@@ -1,3 +1,14 @@
+export * from './types';
+
+// Core components
+export { BaseExchangeConnector } from './core/exchange/base-exchange-connector';
+export { BaseStrategy } from './core/strategy/base-strategy';
+
+// Exchange connectors
+export { MexcConnector } from './exchanges/mexc/mexc-connector';
+
+export { ValidationUtils } from './utils/validation';
+
 import { createLogger, format, transports } from 'winston';
 
 const logger = createLogger({
@@ -24,7 +35,7 @@ export class OpenMM {
   private logger = logger;
 
   constructor() {
-    this.logger.info('OpenMM initialized');
+    this.logger.info('OpenMM Universal Market Making Toolkit initialized');
   }
 
   public start(): void {

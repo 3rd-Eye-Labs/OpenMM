@@ -11,19 +11,27 @@
     "lint": "eslint src/**/*.ts",
     "start": "node dist/index.js"
   },
-  "keywords": ["market-making", "trading", "crypto", "exchange"],
+  "keywords": [
+    "market-making",
+    "trading",
+    "crypto",
+    "exchange"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^16.6.1",
     "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
     "ws": "^8.14.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/node": "^20.0.0",
     "@types/ws": "^8.5.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.48.0",
+    "@typescript-eslint/parser": "^8.48.0",
+    "eslint": "^9.39.1",
     "jest": "^29.0.0",
     "ts-jest": "^29.0.0",
     "ts-node": "^10.9.0",
