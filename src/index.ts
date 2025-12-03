@@ -7,8 +7,6 @@ export { BaseStrategy } from './core/strategy/base-strategy';
 // Exchange connectors
 export { MexcConnector } from './exchanges/mexc/mexc-connector';
 
-export { ValidationUtils } from './utils/validation';
-
 import { createLogger, format, transports } from 'winston';
 
 const logger = createLogger({
