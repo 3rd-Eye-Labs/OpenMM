@@ -31,6 +31,8 @@ export interface Trade {
   amount: number;
   price: number;
   timestamp: number;
+  orderId?: string;
+  fee?: number;
 }
 
 /**
@@ -61,35 +63,6 @@ export interface Ticker {
   ask: number;
   baseVolume: number;
   timestamp: number;
-}
-
-/**
- * WebSocket event types supported by exchanges
- */
-export type WebSocketEventType = 'ticker' | 'orderbook' | 'trade' | 'order' | 'balance';
-
-/**
- * WebSocket event data union type
- */
-export type WebSocketEventData = Ticker | OrderBook | Trade | Order | Record<string, unknown>;
-
-/**
- * WebSocket event structure for real-time updates
- */
-export interface WebSocketEvent {
-  type: WebSocketEventType;
-  symbol?: string;
-  data: WebSocketEventData;
-  timestamp: number;
-}
-
-/**
- * WebSocket subscription configuration
- */
-export interface SubscriptionOptions {
-  symbol?: string;
-  callback: (event: WebSocketEvent) => void;
-  errorCallback?: (error: Error) => void;
 }
 
 /**
