@@ -1,1 +1,1 @@
-export { Logger, createLogger, logger, LogLevel, LogContext } from './logger.js';
+export { Logger, createLogger, logger, LogLevel, LogContext } from './logger';
