@@ -2,6 +2,19 @@ import { MexcWebSocket } from './mexc-websocket';
 import { Order, Trade } from '../../types';
 import { createLogger } from '../../utils';
 
+
+    /**
+     * Official MEXC User Stream Documentation:
+     *
+     * This user stream module provides:
+     * - Real-time order updates (limit/market orders)
+     * - Real-time trade executions (fills)
+     * - Management of user data stream connection
+     * - Keep-alive and listen key management
+     *
+     * https://www.mexc.com/api-docs/spot-v3/websocket-market-streams
+     *
+     */
 /**
  * MEXC User Data Stream Manager
  * Handles user-specific data stream operations for real-time order updates
