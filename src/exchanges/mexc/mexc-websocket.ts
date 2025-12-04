@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { Order, OrderBook, Ticker, Trade, WebSocketStatus, DecodedMexcMessage, MexcSubscription, SubscriptionInfo } from '../../types';
+import { Order, OrderBook, Ticker, Trade, WebSocketStatus, DecodedMexcMessage, DecodedMexcOrder, DecodedMexcTickerData, DecodedMexcTradesData, MexcSubscription, SubscriptionInfo } from '../../types';
 import { MexcProtobufDecoder } from './mexc-protobuf-decoder';
 import { MexcUtils } from './mexc-utils';
 import { createLogger } from '../../utils';
@@ -108,14 +108,13 @@ export class MexcWebSocket {
    * Handle order updates directly from protobuf
    */
   private onOrderUpdate(decoded: DecodedMexcMessage): void {
-    if (!decoded.decoded || !decoded.symbol) return;
+    if (!decoded.decoded || !decoded.symbol || decoded.type !== 'order') return;
 
     try {
-      const order = MexcUtils.transformProtobufOrder(decoded.decoded as any);
+      const order = MexcUtils.transformProtobufOrder(decoded.decoded as DecodedMexcOrder);
       
-      this.subscriptions.forEach((subscription, subscriptionId) => {
+      this.subscriptions.forEach((subscription) => {
         if (subscription.type === 'user_data') {
-          this.logger.debug('Calling order callback for subscription:', { subscriptionId });
           subscription.callback(order);
         }
       });
@@ -128,10 +127,10 @@ export class MexcWebSocket {
    * Handle ticker updates directly from protobuf
    */
   private onTickerUpdate(decoded: DecodedMexcMessage): void {
-    if (!decoded.decoded || !decoded.symbol) return;
+    if (!decoded.decoded || !decoded.symbol || decoded.type !== 'ticker') return;
 
     try {
-      const tickerData = decoded.decoded as any;
+      const tickerData = decoded.decoded as DecodedMexcTickerData;
       
       const ticker: Ticker = {
         symbol: MexcUtils.formatSymbol(decoded.symbol),
@@ -142,9 +141,8 @@ export class MexcWebSocket {
         timestamp: Date.now()
       };
 
-      this.subscriptions.forEach((subscription, subscriptionId) => {
+      this.subscriptions.forEach((subscription) => {
         if (subscription.type === 'ticker') {
-          this.logger.debug('Calling ticker callback for subscription:', { subscriptionId });
           subscription.callback(ticker);
         }
       });
@@ -157,13 +155,13 @@ export class MexcWebSocket {
    * Handle trades updates directly from protobuf
    */
   private onTradesUpdate(decoded: DecodedMexcMessage): void {
-    if (!decoded.decoded || !decoded.symbol) return;
+    if (!decoded.decoded || !decoded.symbol || decoded.type !== 'trades') return;
 
     try {
-      const tradesData = decoded.decoded as any;
+      const tradesData = decoded.decoded as DecodedMexcTradesData;
       
       if (tradesData.dealsList && Array.isArray(tradesData.dealsList)) {
-        tradesData.dealsList.forEach((deal: any) => {
+        tradesData.dealsList.forEach((deal) => {
 
           const trade: Trade = {
             id: `${Date.now()}_${Math.random()}`,
@@ -174,9 +172,8 @@ export class MexcWebSocket {
             timestamp: parseInt(deal.time) || Date.now()
           };
 
-          this.subscriptions.forEach((subscription, subscriptionId) => {
+          this.subscriptions.forEach((subscription) => {
             if (subscription.type === 'trades') {
-              this.logger.debug('Calling trade callback for subscription:', { subscriptionId });
               subscription.callback(trade);
             }
           });
@@ -191,10 +188,10 @@ export class MexcWebSocket {
    * Handle order book updates directly from protobuf
    */
   private onOrderBookUpdate(decoded: DecodedMexcMessage): void {
-    if (!decoded.decoded || !decoded.symbol) return;
+    if (!decoded.decoded || !decoded.symbol || decoded.type !== 'ticker') return;
 
     try {
-      const tickerData = decoded.decoded as any;
+      const tickerData = decoded.decoded as DecodedMexcTickerData;
       
       const orderBook: OrderBook = {
         symbol: MexcUtils.formatSymbol(decoded.symbol),
@@ -209,9 +206,8 @@ export class MexcWebSocket {
         timestamp: Date.now()
       };
 
-      this.subscriptions.forEach((subscription, subscriptionId) => {
+      this.subscriptions.forEach((subscription) => {
         if (subscription.type === 'orderbook') {
-          this.logger.debug('Calling orderbook callback for subscription:', { subscriptionId });
           subscription.callback(orderBook);
         }
       });
