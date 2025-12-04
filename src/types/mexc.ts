@@ -4,6 +4,8 @@
  * Type definitions for MEXC protobuf messages and exchange-specific data structures
  */
 
+import { Order, OrderBook, Ticker, Trade } from './index';
+
 export interface DecodedMexcOrder {
   orderId: string;
   symbol: string;
@@ -46,7 +48,20 @@ export interface MexcSubscription {
   params: string[];
 }
 
-export interface SubscriptionInfo {
-  callback: (data: any) => void;
-  type: 'ticker' | 'orderbook' | 'trades' | 'user_data';
-}
+export type SubscriptionInfo = 
+  | {
+      callback: (data: Ticker) => void;
+      type: 'ticker';
+    }
+  | {
+      callback: (data: OrderBook) => void;
+      type: 'orderbook';
+    }
+  | {
+      callback: (data: Trade) => void;
+      type: 'trades';
+    }
+  | {
+      callback: (data: Order) => void;
+      type: 'user_data';
+    };
