@@ -1,24 +1,14 @@
 import WebSocket from 'ws';
-import { Order, OrderBook, Ticker, Trade, WebSocketStatus, DecodedMexcMessage } from '../../types';
+import { Order, OrderBook, Ticker, Trade, WebSocketStatus, DecodedMexcMessage, MexcSubscription, SubscriptionInfo } from '../../types';
 import { MexcProtobufDecoder } from './mexc-protobuf-decoder';
 import { MexcUtils } from './mexc-utils';
 import { createLogger } from '../../utils';
 
 /**
- * MEXC Websocket
+ * MEXC WebSocket
  *
- *
+ * Provides real-time market data streaming and user order updates 
  */
-
-interface MexcSubscription {
-  method: 'SUBSCRIPTION' | 'UNSUBSCRIPTION';
-  params: string[];
-}
-
-interface SubscriptionInfo {
-  callback: (data: any) => void;
-  type: 'ticker' | 'orderbook' | 'trades' | 'user_data';
-}
 
 export class MexcWebSocket {
   private ws?: WebSocket;

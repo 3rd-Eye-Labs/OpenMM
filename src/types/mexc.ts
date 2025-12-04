@@ -40,3 +40,13 @@ export interface DecodedMexcMessage {
   decoded?: DecodedMexcOrder | DecodedMexcTickerData | DecodedMexcTradesData;
   error?: string;
 }
+
+export interface MexcSubscription {
+  method: 'SUBSCRIPTION' | 'UNSUBSCRIPTION';
+  params: string[];
+}
+
+export interface SubscriptionInfo {
+  callback: (data: any) => void;
+  type: 'ticker' | 'orderbook' | 'trades' | 'user_data';
+}
