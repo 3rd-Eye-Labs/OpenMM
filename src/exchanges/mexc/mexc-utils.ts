@@ -244,4 +244,37 @@ export class MexcUtils {
 
     return params;
   }
+
+  /**
+   * Determine order side from protobuf message patterns
+   */
+  static determineSide(message: string): 'buy' | 'sell' {
+    if (message.includes('R ') || message.includes('@R')) {
+      return 'buy';
+    } else if (message.includes('H') || message.includes('@H')) {
+      return 'sell';
+    }
+    return 'buy';
+  }
+
+  /**
+   * Extract order status from protobuf message
+   */
+  static extractOrderStatus(message: string): string {
+    const upperMessage = message.toUpperCase();
+    
+    if (upperMessage.includes('CANCEL')) {
+      return 'cancelled';
+    } else if (upperMessage.includes('FILLED') || upperMessage.includes('FILL')) {
+      return 'filled';
+    } else if (upperMessage.includes('PARTIAL')) {
+      return 'partially_filled';
+    } else if (upperMessage.includes('EXECUTED') || upperMessage.includes('EXEC')) {
+      return 'filled';
+    } else if (message.includes('R2') || message.includes('H2') || message.includes('EXE')) {
+      return 'filled';
+    } else {
+      return 'new';
+    }
+  }
 }
