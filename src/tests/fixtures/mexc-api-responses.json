@@ -1,0 +1,80 @@
+{
+  "account": {
+    "balances": [
+      {
+        "asset": "USDT",
+        "free": "1000.50000000",
+        "locked": "0.00000000"
+      },
+      {
+        "asset": "INDY",
+        "free": "500.00000000",
+        "locked": "100.00000000"
+      },
+      {
+        "asset": "BTC",
+        "free": "0.00000000",
+        "locked": "0.00000000"
+      }
+    ]
+  },
+  "ticker": {
+    "symbol": "INDYUSDT",
+    "price": "0.12345000",
+    "bidPrice": "0.12340000",
+    "askPrice": "0.12350000",
+    "volume": "1234567.89000000"
+  },
+  "orderBook": {
+    "bids": [
+      ["0.12340", "100.00"],
+      ["0.12339", "200.00"],
+      ["0.12338", "300.00"]
+    ],
+    "asks": [
+      ["0.12350", "150.00"],
+      ["0.12351", "250.00"],
+      ["0.12352", "350.00"]
+    ]
+  },
+  "trades": [
+    {
+      "id": 123456789,
+      "price": "0.12345",
+      "qty": "100.00",
+      "time": 1638360000000,
+      "isBuyerMaker": false
+    },
+    {
+      "id": 123456790,
+      "price": "0.12346",
+      "qty": "50.00",
+      "time": 1638360001000,
+      "isBuyerMaker": true
+    }
+  ],
+  "order": {
+    "orderId": "C02__123456789",
+    "symbol": "INDYUSDT",
+    "type": "LIMIT",
+    "side": "BUY",
+    "origQty": "100.00000000",
+    "price": "0.12340000",
+    "executedQty": "0.00000000",
+    "status": "NEW",
+    "time": 1638360000000
+  },
+  "openOrders": [
+    {
+      "orderId": "C02__123456789",
+      "symbol": "INDYUSDT",
+      "type": "LIMIT",
+      "side": "BUY",
+      "origQty": "100.00000000",
+      "price": "0.12340000",
+      "executedQty": "0.00000000",
+      "status": "NEW",
+      "time": 1638360000000
+    }
+  ]
+}
