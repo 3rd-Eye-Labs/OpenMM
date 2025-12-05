@@ -165,6 +165,10 @@ export class MexcUserStream {
    * Check if the data represents a trade execution event
    */
   private isTradeExecution(data: any): boolean {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+    
     const isFilled = data.status === 'filled';
     const isPartiallyFilled = data.filled && data.filled > 0;
     const hasExecutedQuantity = data.amount && data.filled && (data.filled / data.amount) > 0;
