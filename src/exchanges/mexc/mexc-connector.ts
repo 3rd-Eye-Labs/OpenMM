@@ -5,6 +5,7 @@ import { MexcWebSocket } from './mexc-websocket';
 import { MexcUtils } from './mexc-utils';
 import { MexcUserStream } from './mexc-user-stream';
 import { createLogger } from '../../utils';
+import config from '../../config/environment';
 
 /**
  * MEXC Exchange Connector
@@ -19,6 +20,12 @@ export class MexcConnector extends BaseExchangeConnector {
   constructor() {
     super('mexc', 'MEXC');
     this.baseUrl = 'https://api.mexc.com/api/v3';
+    
+    this.setCredentials({
+      apiKey: config.mexc.apiKey,
+      secret: config.mexc.secret,
+      uid: config.mexc.uid
+    });
   }
 
   /**
@@ -34,7 +41,9 @@ export class MexcConnector extends BaseExchangeConnector {
       );
       
       if (!this.auth.validateCredentials()) {
-        throw new Error('Invalid MEXC credentials');
+        this.connected = false;
+        this.handleError(new Error('Invalid MEXC credentials'), 'connect');
+        return;
       }
 
       this.connected = true;
@@ -151,7 +160,8 @@ export class MexcConnector extends BaseExchangeConnector {
       });
 
       if (!orders || orders.length === 0) {
-        throw new Error('Order not found');
+        this.handleError(new Error('Order not found'), 'getOrder');
+        return {} as Order;
       }
 
       const order = orders[0];
@@ -269,11 +279,13 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeTicker(symbol: string, callback: (ticker: Ticker) => void): Promise<string> {
     try {
       if (!this.ws) {
-        throw new Error('WebSocket not connected. Call connectWebSocket() first.');
+        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeTicker');
+        return '';
       }
       return await this.ws.subscribeTicker(symbol, callback);
     } catch (error: unknown) {
       this.handleError(error, 'subscribeTicker');
+      return '';
     }
   }
 
@@ -283,11 +295,13 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeOrderBook(symbol: string, callback: (orderbook: OrderBook) => void): Promise<string> {
     try {
       if (!this.ws) {
-        throw new Error('WebSocket not connected. Call connectWebSocket() first.');
+        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeOrderBook');
+        return '';
       }
       return await this.ws.subscribeOrderBook(symbol, callback);
     } catch (error: unknown) {
       this.handleError(error, 'subscribeOrderBook');
+      return '';
     }
   }
 
@@ -297,11 +311,13 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeTrades(symbol: string, callback: (trade: Trade) => void): Promise<string> {
     try {
       if (!this.ws) {
-        throw new Error('WebSocket not connected. Call connectWebSocket() first.');
+        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeTrades');
+        return '';
       }
       return await this.ws.subscribeTrades(symbol, callback);
     } catch (error: unknown) {
       this.handleError(error, 'subscribeTrades');
+      return '';
     }
   }
 
@@ -311,11 +327,13 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeOrders(callback: (order: Order) => void): Promise<string> {
     try {
       if (!this.ws) {
-        throw new Error('WebSocket not connected. Call connectWebSocket() first.');
+        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeOrders');
+        return '';
       }
       return await this.ws.subscribeOrders(callback);
     } catch (error: unknown) {
       this.handleError(error, 'subscribeOrders');
+      return '';
     }
   }
 
@@ -325,7 +343,8 @@ export class MexcConnector extends BaseExchangeConnector {
   async unsubscribe(subscriptionId: string): Promise<void> {
     try {
       if (!this.ws) {
-        throw new Error('WebSocket not connected.');
+        this.handleError(new Error('WebSocket not connected.'), 'unsubscribe');
+        return;
       }
       await this.ws.unsubscribe(subscriptionId);
     } catch (error: unknown) {
@@ -355,7 +374,8 @@ export class MexcConnector extends BaseExchangeConnector {
   async connectUserDataStream(): Promise<void> {
     try {
       if (!this.userStream) {
-        throw new Error('User stream not initialized');
+        this.handleError(new Error('User stream not initialized'), 'connectUserDataStream');
+        return;
       }
       await this.userStream.connectUserDataStream();
     } catch (error: unknown) {
@@ -382,11 +402,13 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeUserOrders(callback: (order: Order) => void): Promise<string> {
     try {
       if (!this.userStream) {
-        throw new Error('User stream not initialized');
+        this.handleError(new Error('User stream not initialized'), 'subscribeUserOrders');
+        return '';
       }
       return await this.userStream.subscribeUserOrders(callback);
     } catch (error: unknown) {
       this.handleError(error, 'subscribeUserOrders');
+      return '';
     }
   }
 
@@ -397,11 +419,13 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeUserTrades(callback: (trade: Trade) => void): Promise<string> {
     try {
       if (!this.userStream) {
-        throw new Error('User stream not initialized');
+        this.handleError(new Error('User stream not initialized'), 'subscribeUserTrades');
+        return '';
       }
       return await this.userStream.subscribeUserTrades(callback);
     } catch (error: unknown) {
       this.handleError(error, 'subscribeUserTrades');
+      return '';
     }
   }
 
