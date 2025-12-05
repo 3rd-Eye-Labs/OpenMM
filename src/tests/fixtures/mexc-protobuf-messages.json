@@ -1,0 +1,57 @@
+{
+  "orderMessages": [
+    {
+      "raw": "spot@private.orders.v3.api.pbINDYUSDT0C02__123456789*0.12340\"100.00R",
+      "expected": {
+        "type": "order",
+        "symbol": "INDY/USDT",
+        "orderId": "C02__123456789",
+        "price": 0.12340,
+        "quantity": 100.00,
+        "side": "buy",
+        "status": "new"
+      }
+    },
+    {
+      "raw": "spot@private.orders.v3.api.pbINDYUSDT0C02__987654321*0.12350\"50.00H",
+      "expected": {
+        "type": "order",
+        "symbol": "INDY/USDT",
+        "orderId": "C02__987654321",
+        "price": 0.12350,
+        "quantity": 50.00,
+        "side": "sell",
+        "status": "new"
+      }
+    }
+  ],
+  "tickerMessages": [
+    {
+      "raw": "spot@public.aggre.bookTicker.v3.api.pb@100ms@INDYUSDT0.123400.123500.12340100.0050.00",
+      "expected": {
+        "type": "ticker",
+        "symbol": "INDYUSDT",
+        "bidprice": "0.12340",
+        "askprice": "0.12350",
+        "bidquantity": "100.00",
+        "askquantity": "50.00"
+      }
+    }
+  ],
+  "tradesMessages": [
+    {
+      "raw": "spot@public.aggre.deals.v3.api.pb@100ms@INDYUSDT0.1234550.00",
+      "expected": {
+        "type": "trades",
+        "symbol": "INDYUSDT",
+        "dealsList": [
+          {
+            "price": "0.12345",
+            "quantity": "50.00",
+            "tradetype": 1
+          }
+        ]
+      }
+    }
+  ]
+}
