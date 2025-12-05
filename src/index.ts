@@ -1,30 +1,19 @@
-import { createLogger, format, transports } from 'winston';
+export * from './types';
 
-const logger = createLogger({
-  level: 'info',
-  format: format.combine(
-    format.timestamp(),
-    format.errors({ stack: true }),
-    format.json()
-  ),
-  defaultMeta: { service: 'openmm' },
-  transports: [
-    new transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new transports.File({ filename: 'logs/combined.log' }),
-    new transports.Console({
-      format: format.combine(
-        format.colorize(),
-        format.simple()
-      )
-    })
-  ]
-});
+// Core components
+export { BaseExchangeConnector } from './core/exchange/base-exchange-connector';
+export { BaseStrategy } from './core/strategy/base-strategy';
+
+// Exchange connectors
+export { MexcConnector } from './exchanges/mexc/mexc-connector';
+
+import { createLogger } from './utils';
 
 export class OpenMM {
-  private logger = logger;
+  private logger = createLogger('openmm', './logs/openmm.log');
 
   constructor() {
-    this.logger.info('OpenMM initialized');
+    this.logger.info('OpenMM Universal Market Making Toolkit initialized');
   }
 
   public start(): void {
