@@ -300,7 +300,7 @@ describe('MexcUtils', () => {
       const result = MexcUtils.transformUserDataOrder(mexcOrderData);
 
       expect(result.id).toBe('12350');
-      expect(result.symbol).toBe(undefined);
+      expect(result.symbol).toBe('');
       expect(result.side).toBe('sell');
       expect(result.amount).toBe(0);
       expect(result.price).toBe(0);

@@ -62,8 +62,8 @@ export class MexcUtils {
     const statusCode = userDataOrder.s;
     const status = statusMap[statusCode || 1] || 'open';
     
-    const mexcSymbol = userDataOrder.c || userDataOrder.symbol || '';
-    const symbol = this.formatSymbol(mexcSymbol);
+    const mexcSymbol = userDataOrder.c || userDataOrder.symbol;
+    const symbol = mexcSymbol ? this.formatSymbol(mexcSymbol) : '';
 
     return {
       id: userDataOrder.i?.toString() || Date.now().toString(),
