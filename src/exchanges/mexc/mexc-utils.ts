@@ -1,11 +1,10 @@
-import { Order, OrderType, OrderSide, DecodedMexcOrder } from '../../types';
+import { Order, OrderType, OrderSide, DecodedMexcOrder, MexcRawUserDataOrder } from '../../types';
 
 /**
  * MEXC Utility Functions
  * Handles MEXC-specific operations like symbol formatting, order parameters, and WebSocket data processing
- * 
- * Note: Basic data transformation methods (transformOrder, transformTicker, etc.) have been moved to MexcDataMapper
- * This class now focuses on MEXC-specific utilities and WebSocket message processing
+ *
+ * This class focuses on MEXC-specific utilities and WebSocket message processing
  */
 export class MexcUtils {
 
@@ -45,11 +44,13 @@ export class MexcUtils {
    * Transform MEXC user data order update to OpenMM standard format
    * Used for WebSocket user data stream messages
    */
-  static transformUserDataOrder(mexcOrderData: any): Order {
-    if (mexcOrderData && mexcOrderData.orderId && mexcOrderData.symbol && mexcOrderData.price !== undefined) {
+  static transformUserDataOrder(mexcOrderData: MexcRawUserDataOrder | DecodedMexcOrder): Order {
+    if ('orderId' in mexcOrderData && 'symbol' in mexcOrderData && mexcOrderData.price !== undefined) {
       return this.transformProtobufOrder(mexcOrderData as DecodedMexcOrder);
     }
 
+    const userDataOrder = mexcOrderData as MexcRawUserDataOrder;
+    
     const statusMap: { [key: number]: 'open' | 'filled' | 'cancelled' | 'rejected' } = {
       1: 'open',
       2: 'filled',
@@ -58,21 +59,21 @@ export class MexcUtils {
       5: 'cancelled'  // Partially filled, then canceled
     };
 
-    const statusCode = mexcOrderData?.s;
-    const status = statusMap[statusCode] || 'open';
+    const statusCode = userDataOrder.s;
+    const status = statusMap[statusCode || 1] || 'open';
     
-    const mexcSymbol = mexcOrderData.c || mexcOrderData.symbol || mexcOrderData.s;
+    const mexcSymbol = userDataOrder.c || userDataOrder.symbol || '';
     const symbol = this.formatSymbol(mexcSymbol);
 
     return {
-      id: mexcOrderData?.i?.toString() || Date.now().toString(),
+      id: userDataOrder.i?.toString() || Date.now().toString(),
       symbol: symbol,
       type: 'limit',
-      side: mexcOrderData?.S === 1 ? 'buy' : 'sell',
-      amount: parseFloat(mexcOrderData?.v || '0'),
-      price: parseFloat(mexcOrderData?.p || '0'),
-      filled: parseFloat(mexcOrderData?.z || '0'),
-      remaining: parseFloat(mexcOrderData?.v || '0') - parseFloat(mexcOrderData?.z || '0'),
+      side: userDataOrder.S === 1 ? 'buy' : 'sell',
+      amount: parseFloat(userDataOrder.v || '0'),
+      price: parseFloat(userDataOrder.p || '0'),
+      filled: parseFloat(userDataOrder.z || '0'),
+      remaining: parseFloat(userDataOrder.v || '0') - parseFloat(userDataOrder.z || '0'),
       status,
       timestamp: Date.now()
     };

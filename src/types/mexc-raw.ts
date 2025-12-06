@@ -77,3 +77,18 @@ export interface MexcRawTrade {
   time?: number;
   isBuyerMaker?: boolean;
 }
+
+/**
+ * MEXC Raw WebSocket User Data Order Update
+ * Used for WebSocket user data stream messages
+ */
+export interface MexcRawUserDataOrder {
+  i?: string | number;  // order id
+  c?: string;           // symbol (MEXC format like BTCUSDT)
+  s?: number;           // status code (1: open, 2: filled, 3: open, 4: cancelled, 5: partially filled then cancelled)
+  S?: number;           // side (1: buy, other: sell)
+  v?: string;           // volume/quantity
+  p?: string;           // price
+  z?: string;           // filled quantity
+  symbol?: string;
+}
