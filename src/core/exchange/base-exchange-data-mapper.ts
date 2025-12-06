@@ -4,9 +4,7 @@ import { Balance } from '../../types';
 /**
  * Abstract base class for exchange data mappers
  * Maps exchange-specific data formats to OpenMM standard format
- * 
- * Each exchange implements this to normalize their API responses
- * to a consistent OpenMM format used throughout the application
+ *
  */
 export abstract class BaseExchangeDataMapper<
   TRawOrder = unknown,
@@ -79,7 +77,6 @@ export abstract class BaseExchangeDataMapper<
 
   /**
    * Normalize symbol format to OpenMM standard
-   * Override in subclasses for exchange-specific symbol formatting
    */
   protected normalizeSymbol(symbol: string): string {
     return symbol.toUpperCase();
