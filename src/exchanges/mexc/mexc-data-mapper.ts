@@ -117,7 +117,6 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
     mexcAccount.balances.forEach((mexcBalance: MexcRawBalance) => {
       const balance = this.mapBalance(mexcBalance);
       
-      // Only include balances with non-zero total
       if (balance.total > 0) {
         balances[balance.asset] = balance;
       }
@@ -152,7 +151,6 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
    */
   protected normalizeSymbol(symbol: string): string {
     // MEXC uses format like 'BTCUSDT' 
-    // Convert to OpenMM standard format (keep as is for now)
     return symbol.toUpperCase();
   }
 }
