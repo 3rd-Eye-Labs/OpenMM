@@ -4,6 +4,7 @@ import { MexcAuth } from './mexc-auth';
 import { MexcWebSocket } from './mexc-websocket';
 import { MexcUtils } from './mexc-utils';
 import { MexcUserStream } from './mexc-user-stream';
+import { MexcDataMapper } from './mexc-data-mapper';
 import { createLogger } from '../../utils';
 import config from '../../config/environment';
 
@@ -15,6 +16,7 @@ export class MexcConnector extends BaseExchangeConnector {
   private ws?: MexcWebSocket;
   private userStream?: MexcUserStream;
   private readonly baseUrl: string;
+  private readonly dataMapper = new MexcDataMapper();
   private logger = createLogger('mexc-connector');
 
   constructor() {
@@ -72,21 +74,7 @@ export class MexcConnector extends BaseExchangeConnector {
   async getBalance(asset?: string): Promise<Record<string, Balance> | Balance> {
     try {
       const account = await this.makeRequest('/account');
-      const balances: Record<string, Balance> = {};
-
-      if (account.balances) {
-        account.balances.forEach((balance: any) => {
-          if (parseFloat(balance.free) > 0 || parseFloat(balance.locked) > 0) {
-            balances[balance.asset] = {
-              asset: balance.asset,
-              free: parseFloat(balance.free),
-              used: parseFloat(balance.locked),
-              total: parseFloat(balance.free) + parseFloat(balance.locked),
-              available: parseFloat(balance.free)
-            };
-          }
-        });
-      }
+      const balances = this.dataMapper.mapAccountBalances(account);
 
       if (asset) {
         return balances[asset] || {
@@ -119,7 +107,7 @@ export class MexcConnector extends BaseExchangeConnector {
 
       const result = await this.makeRequest('/order', params, 'POST');
 
-      return MexcUtils.transformOrder({
+      return this.dataMapper.mapOrder({
         orderId: result.orderId,
         symbol: MexcUtils.toMexcSymbol(symbol),
         type: type.toUpperCase(),
@@ -165,7 +153,7 @@ export class MexcConnector extends BaseExchangeConnector {
       }
 
       const order = orders[0];
-      return MexcUtils.transformOrder(order);
+      return this.dataMapper.mapOrder(order);
     } catch (error: unknown) {
       this.handleError(error, 'getOrder');
     }
@@ -182,7 +170,7 @@ export class MexcConnector extends BaseExchangeConnector {
       }
 
       const orders = await this.makeRequest('/openOrders', params);
-      return orders.map((order: any) => MexcUtils.transformOrder(order));
+      return orders.map((order: any) => this.dataMapper.mapOrder(order));
     } catch (error: unknown) {
       this.handleError(error, 'getOpenOrders');
     }
@@ -200,7 +188,7 @@ export class MexcConnector extends BaseExchangeConnector {
         this.makePublicRequest('/ticker/24hr', { symbol: mexcSymbol })
       ]);
 
-      return MexcUtils.transformTicker(priceData, statsData);
+      return this.dataMapper.mapTicker({ priceData, statsData });
     } catch (error: unknown) {
       this.handleError(error, 'getTicker');
     }
@@ -218,7 +206,7 @@ export class MexcConnector extends BaseExchangeConnector {
         limit: 100 
       });
 
-      return MexcUtils.transformOrderBook(orderBook, symbol);
+      return this.dataMapper.mapOrderBook(orderBook, symbol);
     } catch (error: unknown) {
       this.handleError(error, 'getOrderBook');
     }
@@ -236,7 +224,7 @@ export class MexcConnector extends BaseExchangeConnector {
         limit: 100 
       });
 
-      return trades.map((trade: any) => MexcUtils.transformTrade(trade, symbol));
+      return trades.map((trade: any) => this.dataMapper.mapTrade(trade, symbol));
     } catch (error: unknown) {
       this.handleError(error, 'getRecentTrades');
     }
