@@ -1,99 +1,13 @@
-import { Order, OrderType, OrderSide, Ticker, OrderBook, Trade, DecodedMexcOrder } from '../../types';
+import { Order, OrderType, OrderSide, DecodedMexcOrder } from '../../types';
 
 /**
  * MEXC Utility Functions
- * Handles data transformation between MEXC API format and OpenMM standard format
+ * Handles MEXC-specific operations like symbol formatting, order parameters, and WebSocket data processing
+ * 
+ * Note: Basic data transformation methods (transformOrder, transformTicker, etc.) have been moved to MexcDataMapper
+ * This class now focuses on MEXC-specific utilities and WebSocket message processing
  */
 export class MexcUtils {
-  
-  /**
-   * Transform MEXC order format to OpenMM standard format
-   */
-  static transformOrder(mexcOrder: any): Order {
-    const status = this.transformOrderStatus(mexcOrder.status);
-    const filled = parseFloat(mexcOrder.executedQty || '0');
-    const amount = parseFloat(mexcOrder.origQty || mexcOrder.quantity || '0');
-
-    return {
-      id: mexcOrder.orderId?.toString() || mexcOrder.id?.toString(),
-      symbol: this.formatSymbol(mexcOrder.symbol),
-      type: mexcOrder.type.toLowerCase() as OrderType,
-      side: mexcOrder.side.toLowerCase() as OrderSide,
-      amount,
-      price: mexcOrder.price ? parseFloat(mexcOrder.price) : undefined,
-      filled,
-      remaining: amount - filled,
-      status,
-      timestamp: mexcOrder.time || mexcOrder.updateTime || Date.now()
-    };
-  }
-
-  /**
-   * Transform MEXC order status to OpenMM standard format
-   */
-  static transformOrderStatus(mexcStatus: string): 'open' | 'filled' | 'cancelled' | 'rejected' {
-    switch (mexcStatus) {
-      case 'NEW':
-      case 'PARTIALLY_FILLED':
-        return 'open';
-      case 'FILLED':
-        return 'filled';
-      case 'CANCELED':
-      case 'CANCELLED':
-        return 'cancelled';
-      case 'REJECTED':
-      case 'EXPIRED':
-        return 'rejected';
-      default:
-        return 'open';
-    }
-  }
-
-  /**
-   * Transform MEXC ticker data to OpenMM standard format
-   */
-  static transformTicker(priceData: any, statsData?: any): Ticker {
-    return {
-      symbol: this.formatSymbol(priceData.symbol),
-      last: parseFloat(priceData.price),
-      bid: parseFloat(statsData?.bidPrice || priceData.price),
-      ask: parseFloat(statsData?.askPrice || priceData.price),
-      baseVolume: parseFloat(statsData?.volume || '0'),
-      timestamp: Date.now()
-    };
-  }
-
-  /**
-   * Transform MEXC order book data to OpenMM standard format
-   */
-  static transformOrderBook(mexcOrderBook: any, symbol: string): OrderBook {
-    return {
-      symbol,
-      bids: mexcOrderBook.bids.map((bid: [string, string]) => ({
-        price: parseFloat(bid[0]),
-        amount: parseFloat(bid[1])
-      })),
-      asks: mexcOrderBook.asks.map((ask: [string, string]) => ({
-        price: parseFloat(ask[0]),
-        amount: parseFloat(ask[1])
-      })),
-      timestamp: Date.now()
-    };
-  }
-
-  /**
-   * Transform MEXC trade data to OpenMM standard format
-   */
-  static transformTrade(mexcTrade: any, symbol: string): Trade {
-    return {
-      id: mexcTrade.id?.toString() || mexcTrade.tradeId?.toString() || '',
-      symbol,
-      side: mexcTrade.isBuyerMaker === false ? 'buy' : 'sell' as OrderSide,
-      amount: parseFloat(mexcTrade.qty || mexcTrade.quantity || '0'),
-      price: parseFloat(mexcTrade.price || '0'),
-      timestamp: mexcTrade.time || Date.now()
-    };
-  }
 
   /**
    * Transform MEXC protobuf decoded order to OpenMM standard format
