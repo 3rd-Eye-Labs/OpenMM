@@ -15,7 +15,6 @@ export const balanceCommand = new Command('balance')
       try {
         const connector = await ExchangeFactory.getExchange(exchange);
         
-        // Get balance
         const allBalances = await connector.getBalance();
         let balance;
         

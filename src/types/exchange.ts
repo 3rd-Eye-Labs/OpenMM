@@ -62,6 +62,7 @@ export interface Ticker {
   bid: number;
   ask: number;
   baseVolume: number;
+  quoteVolume?: number;
   timestamp: number;
 }
 

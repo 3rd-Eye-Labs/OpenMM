@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { ExchangeFactory } from '../exchange-factory';
 import { validateExchange, validateSymbol } from '../utils/validation';
-import { executeCommand, displayTable, handleError } from '../utils/error-handler';
+import { executeCommand, handleError } from '../utils/error-handler';
 
 export const tradesCommand = new Command('trades')
   .description('Get recent trades for a trading pair')
@@ -25,7 +25,6 @@ export const tradesCommand = new Command('trades')
         const connector = await ExchangeFactory.getExchange(exchange);
         const trades = await connector.getRecentTrades(symbol);
         
-        // Limit the number of trades displayed
         const limitedTrades = trades.slice(0, limit);
 
         if (options.json) {
@@ -36,19 +35,8 @@ export const tradesCommand = new Command('trades')
             return;
           }
 
-          const tradeData = limitedTrades.map(trade => ({
-            ID: trade.id,
-            Side: trade.side === 'buy' ? 
-              chalk.green('BUY') : chalk.red('SELL'),
-            Price: `$${trade.price.toFixed(8)}`,
-            Amount: trade.amount.toFixed(8),
-            Total: `$${(trade.price * trade.amount).toFixed(8)}`,
-            Time: new Date(trade.timestamp).toLocaleTimeString()
-          }));
-
           console.log(`\n${chalk.bold.cyan(`Recent Trades for ${symbol}`)} (Latest ${limitedTrades.length}):`);
           
-          // Custom display for trades with colored sides
           console.log(chalk.gray('ID       │ Side │ Price        │ Amount       │ Total        │ Time'));
           console.log(chalk.gray('─────────┼──────┼──────────────┼──────────────┼──────────────┼─────────────'));
           
@@ -64,7 +52,6 @@ export const tradesCommand = new Command('trades')
             console.log(`${id} │ ${side} │ ${price} │ ${amount} │ ${total} │ ${time}`);
           });
 
-          // Show trade summary
           const buyTrades = limitedTrades.filter(t => t.side === 'buy');
           const sellTrades = limitedTrades.filter(t => t.side === 'sell');
           const totalVolume = limitedTrades.reduce((sum, trade) => sum + (trade.price * trade.amount), 0);

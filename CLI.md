@@ -4,22 +4,28 @@ OpenMM provides a command-line interface for interacting with multiple cryptocur
 
 ## Installation & Setup
 
-### Development Mode
+### Recommended: Global Installation
 ```bash
-# Run commands during development
-npm run cli -- [command] [options]
-```
+# Build the project first
+npm install
+npm run build
 
-### Global Installation
-```bash
 # Install globally to use 'openmm' command anywhere
 npm install -g .
+
+# Now use openmm from anywhere
 openmm [command] [options]
 ```
 
-### Using npx
+### Alternative: Development Mode
 ```bash
-# Run without global installation
+# Run commands during development (without global install)
+npm run cli -- [command] [options]
+```
+
+### Alternative: Using npx
+```bash
+# Run without global installation (requires build first)
 npx openmm [command] [options]
 ```
 
@@ -35,7 +41,7 @@ Currently supported exchanges:
 
 ### Main Help
 ```bash
-npm run cli -- --help
+openmm --help
 ```
 
 ---
@@ -46,18 +52,18 @@ Get account balance information from exchanges.
 
 ### Get All Balances
 ```bash
-npm run cli -- balance --exchange mexc
+openmm balance --exchange mexc
 ```
 
 ### Get Specific Asset Balance
 ```bash
-npm run cli -- balance --exchange mexc --asset BTC
-npm run cli -- balance --exchange mexc --asset USDT
+openmm balance --exchange mexc --asset BTC
+openmm balance --exchange mexc --asset USDT
 ```
 
 ### JSON Output
 ```bash
-npm run cli -- balance --exchange mexc --json
+openmm balance --exchange mexc --json
 ```
 
 **Options:**
@@ -74,36 +80,36 @@ Manage trading orders on exchanges.
 ### List Open Orders
 ```bash
 # List all open orders
-npm run cli -- orders list --exchange mexc
+openmm orders list --exchange mexc
 
 # List only 5 orders
-npm run cli -- orders list --exchange mexc --limit 5
+openmm orders list --exchange mexc --limit 5
 
 # List orders for specific symbol
-npm run cli -- orders list --exchange mexc --symbol BTC/USDT
+openmm orders list --exchange mexc --symbol BTC/USDT
 
 # List only 3 orders for specific symbol
-npm run cli -- orders list --exchange mexc --symbol BTC/USDT --limit 3
+openmm orders list --exchange mexc --symbol BTC/USDT --limit 3
 ```
 
 ### Get Specific Order
 ```bash
-npm run cli -- orders get --exchange mexc --id 123456 --symbol BTC/USDT
+openmm orders get --exchange mexc --id 123456 --symbol BTC/USDT
 ```
 
 ### Create New Order
 ```bash
 # Create limit buy order
-npm run cli -- orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 50000
+openmm orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 50000
 
 # Create market sell order
-npm run cli -- orders create --exchange mexc --symbol BTC/USDT --side sell --type market --amount 0.001
+openmm orders create --exchange mexc --symbol BTC/USDT --side sell --type market --amount 0.001
 ```
 
 ### Cancel Order
 ```bash
 # Cancel specific order
-npm run cli -- orders cancel --exchange mexc --id C02__626091255599874048060 --symbol INDY/USDT
+openmm orders cancel --exchange mexc --id C02__626091255599874048060 --symbol INDY/USDT
 ```
 
 **List Options:**
@@ -142,10 +148,10 @@ Get real-time market data from exchanges.
 ### Ticker Data
 ```bash
 # Get ticker for BTC/USDT
-npm run cli -- ticker --exchange mexc --symbol BTC/USDT
+openmm ticker --exchange mexc --symbol BTC/USDT
 
 # Get ticker in JSON format
-npm run cli -- ticker --exchange mexc --symbol ETH/USDT --json
+openmm ticker --exchange mexc --symbol ETH/USDT --json
 ```
 
 **Options:**
@@ -156,13 +162,13 @@ npm run cli -- ticker --exchange mexc --symbol ETH/USDT --json
 ### Order Book
 ```bash
 # Get order book with default 10 levels
-npm run cli -- orderbook --exchange mexc --symbol BTC/USDT
+openmm orderbook --exchange mexc --symbol BTC/USDT
 
 # Get order book with 5 levels
-npm run cli -- orderbook --exchange mexc --symbol BTC/USDT --limit 5
+openmm orderbook --exchange mexc --symbol BTC/USDT --limit 5
 
 # Using alias 'book'
-npm run cli -- book --exchange mexc --symbol ETH/USDT --json
+openmm book --exchange mexc --symbol ETH/USDT --json
 ```
 
 **Options:**
@@ -174,13 +180,13 @@ npm run cli -- book --exchange mexc --symbol ETH/USDT --json
 ### Recent Trades
 ```bash
 # Get 20 recent trades (default)
-npm run cli -- trades --exchange mexc --symbol BTC/USDT
+openmm trades --exchange mexc --symbol BTC/USDT
 
 # Get 50 recent trades
-npm run cli -- trades --exchange mexc --symbol BTC/USDT --limit 50
+openmm trades --exchange mexc --symbol BTC/USDT --limit 50
 
 # Get trades in JSON format
-npm run cli -- trades --exchange mexc --symbol ETH/USDT --json
+openmm trades --exchange mexc --symbol ETH/USDT --json
 ```
 
 **Options:**
@@ -212,27 +218,27 @@ MEXC_SECRET_KEY=your_mexc_secret_key
 
 ### Check BTC Balance
 ```bash
-npm run cli -- balance --exchange mexc --asset BTC
+openmm balance --exchange mexc --asset BTC
 ```
 
 ### Get ETH/USDT Price
 ```bash
-npm run cli -- ticker --exchange mexc --symbol ETH/USDT
+openmm ticker --exchange mexc --symbol ETH/USDT
 ```
 
 ### View BTC/USDT Order Book
 ```bash
-npm run cli -- orderbook --exchange mexc --symbol BTC/USDT --limit 5
+openmm orderbook --exchange mexc --symbol BTC/USDT --limit 5
 ```
 
 ### Place Limit Buy Order
 ```bash
-npm run cli -- orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 45000
+openmm orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 45000
 ```
 
 ### List All Open Orders
 ```bash
-npm run cli -- orders list --exchange mexc
+openmm orders list --exchange mexc
 ```
 
 ---
@@ -241,13 +247,13 @@ npm run cli -- orders list --exchange mexc
 
 Get help for any command:
 ```bash
-npm run cli -- --help                    # Main help
-npm run cli -- balance --help            # Balance command help  
-npm run cli -- orders --help             # Orders command help
-npm run cli -- orders create --help      # Order creation help
-npm run cli -- ticker --help             # Ticker command help
-npm run cli -- orderbook --help          # Order book command help
-npm run cli -- trades --help             # Trades command help
+openmm --help                    # Main help
+openmm balance --help            # Balance command help  
+openmm orders --help             # Orders command help
+openmm orders create --help      # Order creation help
+openmm ticker --help             # Ticker command help
+openmm orderbook --help          # Order book command help
+openmm trades --help             # Trades command help
 ```
 
 ---
