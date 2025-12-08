@@ -257,14 +257,3 @@ openmm trades --help             # Trades command help
 ```
 
 ---
-
-## 🚨 Error Handling
-
-The CLI provides clear error messages for:
-- Invalid exchange names
-- Missing required parameters  
-- Invalid symbol formats
-- Network connectivity issues
-- API authentication errors
-
-All errors are displayed with helpful suggestions for resolution.
