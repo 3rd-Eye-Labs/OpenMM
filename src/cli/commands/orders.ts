@@ -39,7 +39,6 @@ ordersCommand
         const connector = await ExchangeFactory.getExchange(exchange);
         let orders = await connector.getOpenOrders(symbol);
 
-        // Apply limit if specified
         if (limit) {
           orders = orders.slice(0, limit);
         }
@@ -161,7 +160,6 @@ ordersCommand
     }, 'create order');
   });
 
-// Cancel order subcommand
 ordersCommand
   .command('cancel')
   .description('Cancel a specific order')

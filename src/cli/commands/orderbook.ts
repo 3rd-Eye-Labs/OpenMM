@@ -27,7 +27,6 @@ export const orderbookCommand = new Command('orderbook')
         const orderbook = await connector.getOrderBook(symbol);
 
         if (options.json) {
-          // Limit results for JSON output
           const limitedOrderbook = {
             ...orderbook,
             bids: orderbook.bids.slice(0, limit),
