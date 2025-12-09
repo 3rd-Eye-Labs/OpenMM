@@ -1,9 +1,6 @@
-#!/usr/bin/env node
-
 /**
- * Pool Discovery CLI
- * Command-line tool to discover Cardano liquidity pool identifiers and metrics
- * for any native token to be used in Market Making strategies
+ * Pool Discovery Core Logic
+ * Core functionality for discovering Cardano liquidity pools
  */
 
 import { IrisPoolDiscovery } from '../core/price-aggregation';
@@ -11,7 +8,7 @@ import { IrisApiClient } from '../core/price-aggregation';
 import { getTokenConfig, isTokenSupported, getSupportedTokens } from '../config/price-aggregation';
 import { CardanoTokenConfig } from '../types/price';
 
-interface PoolInfo {
+export interface PoolInfo {
   identifier: string;
   dex: string;
   tvl: number;
@@ -21,7 +18,7 @@ interface PoolInfo {
   isActive: boolean;
 }
 
-interface DiscoveryResult {
+export interface DiscoveryResult {
   token: string;
   policyId: string;
   assetName: string;
@@ -31,7 +28,7 @@ interface DiscoveryResult {
   recommendedIdentifiers: string[];
 }
 
-class PoolDiscoveryCLI {
+export class PoolDiscoveryCLI {
   private poolDiscovery: IrisPoolDiscovery;
   private irisClient: IrisApiClient;
 
@@ -65,7 +62,7 @@ class PoolDiscoveryCLI {
     try {
       const pools = await this.poolDiscovery.discoverPools('lovelace', tokenConfig);
       
-      const filteredPools = minLiquidity
+      const filteredPools = minLiquidity 
         ? pools.filter(pool => Number(pool.state?.tvl || 0) >= minLiquidity)
         : pools;
 
@@ -192,7 +189,6 @@ class PoolDiscoveryCLI {
     }
   }
 
-
   /**
    * Format currency with K/M suffixes
    */
@@ -233,114 +229,3 @@ class PoolDiscoveryCLI {
     };
   }
 }
-
-/**
- * CLI Entry Point
- */
-async function main() {
-  const args = process.argv.slice(2);
-  const cli = new PoolDiscoveryCLI();
-
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log('🔍 OpenMM Pool Discovery CLI');
-    console.log('═'.repeat(40));
-    console.log('Usage: npm run pool-discovery <command> [options]');
-    console.log('\nCommands:');
-    console.log('  discover <TOKEN>     Discover pools for a supported token');
-    console.log('  supported           List all supported tokens');
-    console.log('  prices <TOKEN>      Get live prices for token pools');
-    console.log('  custom <POLICY> <HEX> <SYMBOL>  Generate config for custom token');
-    console.log('\nOptions:');
-    console.log('  --limit <N>         Limit number of pools shown (default: 10)');
-    console.log('  --min-liquidity <N> Filter pools by minimum TVL');
-    console.log('  --show-all          Show all pools (ignore limit)');
-    console.log('\nExamples:');
-    console.log('  npm run pool-discovery discover NIGHT');
-    console.log('  npm run pool-discovery discover SNEK --limit 5');
-    console.log('  npm run pool-discovery discover INDY --min-liquidity 100000');
-    console.log('  npm run pool-discovery prices NIGHT');
-    console.log('  npm run pool-discovery supported');
-    return;
-  }
-
-  const command = args[0];
-
-  try {
-    switch (command) {
-      case 'discover': {
-        if (args.length < 2) {
-          console.log('❌ Token symbol required. Usage: npm run pool-discovery discover <TOKEN>');
-          return;
-        }
-
-        const token = args[1];
-        const options: any = {};
-
-        for (let i = 2; i < args.length; i += 2) {
-          switch (args[i]) {
-            case '--limit':
-              options.limit = parseInt(args[i + 1]);
-              break;
-            case '--min-liquidity':
-              options.minLiquidity = parseInt(args[i + 1]);
-              break;
-            case '--show-all':
-              options.showAll = true;
-              i--;
-              break;
-          }
-        }
-
-        const result = await cli.discoverTokenPools(token, options);
-        cli.displayResults(result);
-        break;
-      }
-
-      case 'supported': {
-        console.log('🎯 Supported Tokens:');
-        console.log('─'.repeat(20));
-        getSupportedTokens().forEach(token => {
-          const config = getTokenConfig(token);
-          console.log(`${token} (Min Liquidity: ${cli['formatCurrency'](config.minLiquidityThreshold || 0)})`);
-        });
-        break;
-      }
-
-      case 'prices': {
-        if (args.length < 2) {
-          console.log('❌ Token symbol required. Usage: npm run pool-discovery prices <TOKEN>');
-          return;
-        }
-
-        const token = args[1];
-        const result = await cli.discoverTokenPools(token, { limit: 3 });
-        await cli.getPoolPrices(result.recommendedIdentifiers);
-        break;
-      }
-
-      case 'custom': {
-        if (args.length < 4) {
-          console.log('❌ Usage: npm run pool-discovery custom <POLICY_ID> <ASSET_NAME_HEX> <SYMBOL>');
-          return;
-        }
-
-        const [, policyId, assetNameHex, symbol] = args;
-        cli.suggestTokenConfig(policyId, assetNameHex, symbol);
-        break;
-      }
-
-      default:
-        console.log(`❌ Unknown command: ${command}`);
-        console.log('Run "npm run pool-discovery --help" for usage information.');
-    }
-  } catch (error: any) {
-    console.error('❌ Error:', error.message);
-    process.exit(1);
-  }
-}
-
-if (require.main === module) {
-  main().catch(console.error);
-}
-
-export { PoolDiscoveryCLI, DiscoveryResult, PoolInfo };
