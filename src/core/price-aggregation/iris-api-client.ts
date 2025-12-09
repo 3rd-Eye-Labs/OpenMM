@@ -62,6 +62,6 @@ export class IrisApiClient {
     }
 
     const data = await response.json();
-    return data.data || [];
+    return data?.data || [];
   }
 }
