@@ -138,6 +138,19 @@ export class MexcConnector extends BaseExchangeConnector {
   }
 
   /**
+   * Cancel all open orders on a symbol
+   */
+  async cancelAllOrders(symbol: string): Promise<void> {
+    try {
+      await this.makeRequest('/openOrders', { 
+        symbol: MexcUtils.toMexcSymbol(symbol)
+      }, 'DELETE');
+    } catch (error: unknown) {
+      this.handleError(error, 'cancelAllOrders');
+    }
+  }
+
+  /**
    * Get order details
    */
   async getOrder(orderId: string, symbol: string): Promise<Order> {

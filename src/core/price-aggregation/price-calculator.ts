@@ -3,7 +3,7 @@
  * Handles liquidity-weighted price calculations following buyback bot patterns
  */
 
-import { LiquidityPool, PriceCalculationResult } from '../../types/iris';
+import { LiquidityPool, PriceCalculationResult } from '../../types';
 
 export class PriceCalculator {
   /**
@@ -47,16 +47,17 @@ export class PriceCalculator {
 
   /**
    * Calculate price from individual pool reserves
-   * Returns ADA per TOKEN (reserveB / reserveA)
+   * Returns ADA per TOKEN (reserveA / reserveB)
+   * reserveA = ADA reserves, reserveB = Token reserves
    */
   private calculatePoolPrice(pool: LiquidityPool): number {
     const { reserveA, reserveB } = pool.state!;
     
-    if (!reserveA || !reserveB || reserveA === 0) {
+    if (!reserveA || !reserveB || reserveB === 0) {
       throw new Error(`Invalid pool reserves for ${pool.identifier}: A=${reserveA}, B=${reserveB}`);
     }
     
-    return reserveB / reserveA;
+    return reserveA / reserveB;
   }
 
   /**

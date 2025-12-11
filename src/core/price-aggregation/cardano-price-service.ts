@@ -4,11 +4,12 @@
  * Following Phase 1 Iris-only approach with fail-fast error handling
  */
 
-import {AggregatedPrice, PriceData} from '../../types/price';
-import {PriceCalculationResult} from '../../types/iris';
+import {AggregatedPrice, PriceData} from '../../types';
+import {PriceCalculationResult} from '../../types';
 import {IrisPoolDiscovery} from './iris-pool-discovery';
 import {PriceCalculator} from './price-calculator';
 import {CEX_API_CONFIG, getTokenConfig, isTokenSupported} from '../../config/price-aggregation';
+import {logger} from "../../utils";
 
 export class CardanoPriceService {
   private poolDiscovery: IrisPoolDiscovery;
@@ -35,6 +36,7 @@ export class CardanoPriceService {
       ]);
 
       const finalPrice = adaUsdtPrice.price * tokenAdaResult.price;
+      logger.info(`Final ${symbol}/USDT price: ${finalPrice.toFixed(8)}`);
 
       return {
         symbol: `${symbol}/USDT`,
@@ -90,7 +92,7 @@ export class CardanoPriceService {
 
       const result = this.priceCalculator.calculateLiquidityWeightedPrice(topPools);
       
-      console.log(`${symbol}/ADA price: ${result.price.toFixed(8)} from ${result.poolsUsed} pools (liquidity: $${result.totalLiquidity.toFixed(0)})`);
+      logger.info(`${symbol}/ADA price: ${result.price.toFixed(8)} from ${result.poolsUsed} pools`);
 
       return result;
     } catch (error) {
