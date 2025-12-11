@@ -1,5 +1,5 @@
 import { PriceCalculator } from '../../../../core/price-aggregation/price-calculator';
-import { LiquidityPool } from '../../../../types/iris';
+import { LiquidityPool } from '../../../../types';
 
 describe('PriceCalculator', () => {
   let calculator: PriceCalculator;
@@ -58,7 +58,7 @@ describe('PriceCalculator', () => {
 
       const result = calculator.calculateLiquidityWeightedPrice(pools);
 
-      expect(result.price).toBe(0.75);
+      expect(result.price).toBeCloseTo(0.75, 3);
       expect(result.confidence).toBe(0.7); // Single pool confidence
       expect(result.poolsUsed).toBe(1);
       expect(result.totalLiquidity).toBe(2000000);

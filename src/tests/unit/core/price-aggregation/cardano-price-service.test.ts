@@ -1,9 +1,11 @@
 import { CardanoPriceService } from '../../../../core/price-aggregation';
 import { IrisPoolDiscovery } from '../../../../core/price-aggregation';
+import { IrisApiClient } from '../../../../core/price-aggregation';
 import { PriceCalculator } from '../../../../core/price-aggregation/price-calculator';
-import { LiquidityPool, PriceCalculationResult } from '../../../../types/iris';
+import { LiquidityPool, PriceCalculationResult } from '../../../../types';
 
 jest.mock('../../../../core/price-aggregation/iris-pool-discovery');
+jest.mock('../../../../core/price-aggregation/iris-api-client');
 jest.mock('../../../../core/price-aggregation/price-calculator');
 
 global.fetch = jest.fn();
@@ -11,6 +13,7 @@ global.fetch = jest.fn();
 describe('CardanoPriceService', () => {
   let service: CardanoPriceService;
   let mockPoolDiscovery: jest.Mocked<IrisPoolDiscovery>;
+  let mockIrisClient: jest.Mocked<IrisApiClient>;
   let mockPriceCalculator: jest.Mocked<PriceCalculator>;
 
   beforeEach(() => {
@@ -20,6 +23,7 @@ describe('CardanoPriceService', () => {
     
     service = new CardanoPriceService();
     mockPoolDiscovery = (service as any).poolDiscovery;
+    mockIrisClient = (service as any).irisClient;
     mockPriceCalculator = (service as any).priceCalculator;
   });
 
@@ -33,6 +37,7 @@ describe('CardanoPriceService', () => {
         }
       ];
       mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
+      mockIrisClient.fetchPrices.mockResolvedValue([0.5]);
 
       const mockPriceResult: PriceCalculationResult = {
         price: 0.5,
@@ -108,6 +113,7 @@ describe('CardanoPriceService', () => {
         }
       ];
       mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
+      mockIrisClient.fetchPrices.mockResolvedValue([0.5]); // Mock Iris API price
 
       const mockPriceResult: PriceCalculationResult = {
         price: 0.5,

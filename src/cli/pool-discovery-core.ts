@@ -5,8 +5,9 @@
 
 import { IrisPoolDiscovery } from '../core/price-aggregation';
 import { IrisApiClient } from '../core/price-aggregation';
+import { CardanoPriceService } from '../core/price-aggregation';
 import { getTokenConfig, isTokenSupported, getSupportedTokens } from '../config/price-aggregation';
-import { CardanoTokenConfig } from '../types/price';
+import { CardanoTokenConfig } from '../types';
 
 export interface PoolInfo {
   identifier: string;
@@ -31,10 +32,12 @@ export interface DiscoveryResult {
 export class PoolDiscoveryCLI {
   private poolDiscovery: IrisPoolDiscovery;
   private irisClient: IrisApiClient;
+  private priceService: CardanoPriceService;
 
   constructor() {
     this.poolDiscovery = new IrisPoolDiscovery();
     this.irisClient = new IrisApiClient();
+    this.priceService = new CardanoPriceService();
   }
 
   /**
@@ -159,7 +162,7 @@ export class PoolDiscoveryCLI {
   /**
    * Get live price information for discovered pools
    */
-  async getPoolPrices(identifiers: string[]): Promise<void> {
+  async getPoolPrices(identifiers: string[], tokenSymbol: string): Promise<void> {
     if (identifiers.length === 0) {
       console.log('❌ No pool identifiers provided');
       return;
@@ -170,9 +173,9 @@ export class PoolDiscoveryCLI {
     try {
       const prices = await this.irisClient.fetchPrices(identifiers, 'OpenMM-PoolDiscovery/1.0');
       
-      console.log('─'.repeat(50));
+      console.log('─'.repeat(60));
       console.log('Pool ID                           | Price (ADA)');
-      console.log('─'.repeat(50));
+      console.log('─'.repeat(60));
       
       identifiers.forEach((id, index) => {
         const price = prices[index] || 0;
@@ -180,9 +183,24 @@ export class PoolDiscoveryCLI {
         console.log(`${shortId} | ${price.toFixed(8)}`);
       });
 
-      const avgPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
-      console.log('─'.repeat(50));
-      console.log(`Average Price: ${avgPrice.toFixed(8)} ADA per token`);
+      const avgAdaPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+      console.log('─'.repeat(60));
+      console.log(`Average Price: ${avgAdaPrice.toFixed(8)} ADA per ${tokenSymbol}`);
+
+      try {
+        console.log('\n💵 Getting full market price...');
+        const aggregatedPrice = await this.priceService.getTokenPrice(tokenSymbol);
+        
+        console.log('─'.repeat(60));
+        console.log(`${tokenSymbol}/USDT Price: $${aggregatedPrice.price.toFixed(8)}`);
+        console.log(`Confidence: ${(aggregatedPrice.confidence * 100).toFixed(1)}%`);
+        console.log(`Sources: ${aggregatedPrice.sources.map(s => s.name).join(', ')}`);
+        console.log(`Updated: ${aggregatedPrice.timestamp.toLocaleString()}`);
+        
+      } catch (usdtError) {
+        console.log(`❌ Fa iled to get USDT price: ${usdtError}`);
+        console.log(`✅ ADA price available: ${avgAdaPrice.toFixed(8)} ADA per ${tokenSymbol}`);
+      }
       
     } catch (error) {
       console.log(`❌ Failed to fetch prices: ${error}`);
