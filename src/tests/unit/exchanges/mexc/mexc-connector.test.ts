@@ -407,6 +407,63 @@ describe('MexcConnector', () => {
     });
   });
 
+  describe('cancelAllOrders', () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
+
+    it('should cancel all orders for a symbol successfully', async () => {
+      MockedMexcUtils.toMexcSymbol.mockReturnValue('INDYUSDT');
+      mockAuth.makeRequest.mockResolvedValue([
+        { orderId: '12345', status: 'CANCELED' },
+        { orderId: '67890', status: 'CANCELED' }
+      ]);
+
+      await connector.cancelAllOrders('INDY/USDT');
+
+      expect(MockedMexcUtils.toMexcSymbol).toHaveBeenCalledWith('INDY/USDT');
+      expect(mockAuth.makeRequest).toHaveBeenCalledWith('/openOrders', {
+        symbol: 'INDYUSDT'
+      }, 'DELETE');
+    });
+
+    it('should handle bulk cancellation errors', async () => {
+      const error = new Error('Symbol not found');
+      MockedMexcUtils.toMexcSymbol.mockReturnValue('INDYUSDT');
+      mockAuth.makeRequest.mockRejectedValue(error);
+
+      await expect(connector.cancelAllOrders('INDY/USDT')).rejects.toThrow('Symbol not found');
+    });
+
+    it('should require authentication', async () => {
+      const unauthenticatedConnector = new MexcConnector();
+
+      await expect(unauthenticatedConnector.cancelAllOrders('INDY/USDT')).rejects.toThrow('MEXC connector not authenticated');
+    });
+
+    it('should handle empty response for no open orders', async () => {
+      MockedMexcUtils.toMexcSymbol.mockReturnValue('INDYUSDT');
+      mockAuth.makeRequest.mockResolvedValue([]);
+
+      await expect(connector.cancelAllOrders('INDY/USDT')).resolves.not.toThrow();
+      expect(mockAuth.makeRequest).toHaveBeenCalledWith('/openOrders', {
+        symbol: 'INDYUSDT'
+      }, 'DELETE');
+    });
+
+    it('should work with different symbol formats', async () => {
+      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
+      mockAuth.makeRequest.mockResolvedValue([]);
+
+      await connector.cancelAllOrders('BTC/USDT');
+
+      expect(MockedMexcUtils.toMexcSymbol).toHaveBeenCalledWith('BTC/USDT');
+      expect(mockAuth.makeRequest).toHaveBeenCalledWith('/openOrders', {
+        symbol: 'BTCUSDT'
+      }, 'DELETE');
+    });
+  });
+
   describe('getOrder', () => {
     beforeEach(async () => {
       await connector.connect();

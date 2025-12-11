@@ -22,8 +22,8 @@ describe('MexcUtils', () => {
       expect(MexcUtils.formatSymbol('USDT')).toBe('USDT');
     });
 
-    it('should handle already formatted symbols (current behavior)', () => {
-      expect(MexcUtils.formatSymbol('BTC/USDT')).toBe('BTC//USDT');
+    it('should handle already formatted symbols correctly', () => {
+      expect(MexcUtils.formatSymbol('BTC/USDT')).toBe('BTC/USDT');
     });
   });
 

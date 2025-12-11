@@ -1,4 +1,5 @@
 import { Order, OrderType, OrderSide, DecodedMexcOrder, MexcRawUserDataOrder } from '../../types';
+import { toStandardFormat, toExchangeFormat } from '../../utils/symbol-utils';
 
 /**
  * MEXC Utility Functions
@@ -105,34 +106,18 @@ export class MexcUtils {
    * Converts formats like BTCUSDT -> BTC/USDT, ETHUSDT -> ETH/USDT, etc.
    */
   static formatSymbol(mexcSymbol: string): string {
-    if (!mexcSymbol || mexcSymbol.length < 6) {
+    try {
+      return toStandardFormat(mexcSymbol);
+    } catch {
       return mexcSymbol;
     }
-
-    const quoteCurrencies = ['USDT', 'USDC', 'BTC', 'ETH', 'BNB', 'BUSD'];
-    
-    for (const quote of quoteCurrencies) {
-      if (mexcSymbol.endsWith(quote)) {
-        const base = mexcSymbol.slice(0, -quote.length);
-        return `${base}/${quote}`;
-      }
-    }
-    
-    // Cases like DOGEUSDT -> DOGE/USDT
-    if (mexcSymbol.length >= 7) {
-      const base = mexcSymbol.slice(0, -4);
-      const quote = mexcSymbol.slice(-4);
-      return `${base}/${quote}`;
-    }
-    
-    return mexcSymbol;
   }
 
   /**
    * Convert symbol format from OpenMM standard to MEXC (INDY/USDT -> INDYUSDT)
    */
   static toMexcSymbol(standardSymbol: string): string {
-    return standardSymbol.replace('/', '');
+    return toExchangeFormat(standardSymbol);
   }
 
   /**

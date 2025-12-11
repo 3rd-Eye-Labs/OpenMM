@@ -34,6 +34,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
   }
 
   async cancelOrder(): Promise<void> {}
+  async cancelAllOrders(): Promise<void> {}
   async getOrder() { return this.createOrder('BTCUSDT', 'limit', 'buy', 1, 50000); }
   async getOpenOrders() { return []; }
   async getTicker() { return { symbol: 'BTCUSDT', bid: 50000, ask: 50001, last: 50000.5, baseVolume: 1000, timestamp: Date.now() }; }

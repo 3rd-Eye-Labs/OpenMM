@@ -3,7 +3,7 @@
  */
 export type OrderType = 'market' | 'limit';
 export type OrderSide = 'buy' | 'sell';
-export type OrderStatus = 'open' | 'filled' | 'cancelled' | 'rejected';
+export type OrderStatus = 'open' | 'filled' | 'cancelled' | 'rejected' | 'partially_filled';
 
 /**
  * Order structure for basic trading operations
