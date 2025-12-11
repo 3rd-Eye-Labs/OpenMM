@@ -7,16 +7,19 @@
 import {AggregatedPrice, PriceData} from '../../types';
 import {PriceCalculationResult} from '../../types';
 import {IrisPoolDiscovery} from './iris-pool-discovery';
+import {IrisApiClient} from './iris-api-client';
 import {PriceCalculator} from './price-calculator';
 import {CEX_API_CONFIG, getTokenConfig, isTokenSupported} from '../../config/price-aggregation';
 import {logger} from "../../utils";
 
 export class CardanoPriceService {
   private poolDiscovery: IrisPoolDiscovery;
+  private irisClient: IrisApiClient;
   private priceCalculator: PriceCalculator;
 
   constructor() {
     this.poolDiscovery = new IrisPoolDiscovery();
+    this.irisClient = new IrisApiClient();
     this.priceCalculator = new PriceCalculator();
   }
 
@@ -90,9 +93,12 @@ export class CardanoPriceService {
         throw new Error(`No valid pools with liquidity found for ${symbol}`);
       }
 
-      const result = this.priceCalculator.calculateLiquidityWeightedPrice(topPools);
+      const identifiers = topPools.map(pool => pool.identifier!);
+      const prices = await this.irisClient.fetchPrices(identifiers, 'OpenMM-CardanoPriceService/1.0');
+
+      const result = this.priceCalculator.calculateLiquidityWeightedPrice(topPools, prices);
       
-      logger.info(`${symbol}/ADA price: ${result.price.toFixed(8)} from ${result.poolsUsed} pools`);
+      logger.info(`${symbol}/ADA price: ${result.price.toFixed(8)} from ${result.poolsUsed} pools (Iris API)`);
 
       return result;
     } catch (error) {

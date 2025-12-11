@@ -47,7 +47,7 @@ export const poolDiscoveryCommand = new Command('pool-discovery')
         await executeCommand(async () => {
           const cli = new PoolDiscoveryCLI();
           const result = await cli.discoverTokenPools(token, { limit: 3 });
-          await cli.getPoolPrices(result.recommendedIdentifiers);
+          await cli.getPoolPrices(result.recommendedIdentifiers, token);
         }, 'pool-discovery prices');
       })
   )

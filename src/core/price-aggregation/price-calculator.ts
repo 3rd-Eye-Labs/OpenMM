@@ -3,14 +3,14 @@
  * Handles liquidity-weighted price calculations following buyback bot patterns
  */
 
-import { LiquidityPool, PriceCalculationResult } from '../../types';
+import {LiquidityPool, PriceCalculationResult} from '../../types';
 
 export class PriceCalculator {
   /**
    * Calculate liquidity-weighted price (exactly like buyback bot)
    * Weights each pool's price by its TVL relative to total liquidity
    */
-  calculateLiquidityWeightedPrice(pools: LiquidityPool[]): PriceCalculationResult {
+  calculateLiquidityWeightedPrice(pools: LiquidityPool[], priceOverrides?: number[]): PriceCalculationResult {
     if (pools.length === 0) {
       throw new Error('No pools provided for price calculation');
     }
@@ -28,9 +28,9 @@ export class PriceCalculator {
       throw new Error('No liquidity available for price calculation');
     }
 
-    const weightedPrice = validPools.reduce((weightedSum, pool) => {
+    const weightedPrice = validPools.reduce((weightedSum, pool, index) => {
       const weight = Number(pool.state?.tvl ?? 0) / totalTvl;
-      const poolPrice = this.calculatePoolPrice(pool);
+      const poolPrice = priceOverrides ? priceOverrides[index] : this.calculatePoolPrice(pool);
       return weightedSum + (poolPrice * weight);
     }, 0);
 
@@ -47,17 +47,17 @@ export class PriceCalculator {
 
   /**
    * Calculate price from individual pool reserves
-   * Returns ADA per TOKEN (reserveA / reserveB)
-   * reserveA = ADA reserves, reserveB = Token reserves
+   * Returns ADA per TOKEN (reserveB / reserveA)
+   * reserveA = Token reserves, reserveB = ADA reserves
    */
   private calculatePoolPrice(pool: LiquidityPool): number {
     const { reserveA, reserveB } = pool.state!;
-    
-    if (!reserveA || !reserveB || reserveB === 0) {
+
+    if (!reserveA || !reserveB || reserveA === 0) {
       throw new Error(`Invalid pool reserves for ${pool.identifier}: A=${reserveA}, B=${reserveB}`);
     }
-    
-    return reserveA / reserveB;
+
+    return reserveB / reserveA;
   }
 
   /**
