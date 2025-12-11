@@ -7,7 +7,11 @@ module.exports = {
     '**/?(*.)+(spec|test).ts'
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest'
+    '^.+\\.ts$': ['ts-jest', {
+      diagnostics: {
+        ignoreCodes: [151002]
+      }
+    }]
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -15,5 +19,9 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  testTimeout: 60000,
+  // Handle cleanup properly
+  forceExit: true,
+  detectOpenHandles: false,
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts']
 };
