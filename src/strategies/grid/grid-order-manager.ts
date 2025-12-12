@@ -1,5 +1,6 @@
 import { Order, OrderSide } from '../../types';
 import { GridLevel, GridCalculator } from './grid-calculator';
+import { createLogger } from '../../utils';
 
 export interface GridOrderManagerConfig {
   priceDeviationThreshold: number;
@@ -8,6 +9,7 @@ export interface GridOrderManagerConfig {
 
 export class GridOrderManager {
   private gridCalculator: GridCalculator;
+  private logger = createLogger('grid-manager');
   private config: GridOrderManagerConfig;
   private activeOrders: Order[] = [];
   private isAdjusting = false;
@@ -26,8 +28,9 @@ export class GridOrderManager {
       try {
         const order = await placeOrderFn(level.side, level.orderSize, level.price);
         orders.push(order);
+        this.logger.info(`Placed ${level.side.toUpperCase()} order: ${level.orderSize.toFixed(3)} @ $${level.price.toFixed(6)}`, { orderId: order.id });
       } catch (error) {
-        console.error(`Failed to place ${level.side} order at ${level.price}:`, error);
+        this.logger.error(`Failed to place ${level.side} order at ${level.price}`, { error: error instanceof Error ? error.message : String(error) });
       }
     }
     
@@ -48,8 +51,10 @@ export class GridOrderManager {
     gridLevels: number,
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
-    cancelOrderFn: (orderId: string) => Promise<void>
+    cancelAllOrdersFn: (symbol: string) => Promise<void>,
   ): Promise<void> {
+    this.logger.info(`Order FILLED: ${filledOrder.side.toUpperCase()} ${filledOrder.filled} @ $${filledOrder.price}`, { orderId: filledOrder.id });
+    
     if (this.isAdjusting || Date.now() - this.lastAdjustmentTime < this.config.adjustmentDebounce) {
       return;
     }
@@ -58,7 +63,7 @@ export class GridOrderManager {
     this.lastAdjustmentTime = Date.now();
     
     try {
-      await this.cancelAllOrders(cancelOrderFn);
+      await this.cancelAllOrdersOptimized(cancelAllOrdersFn, filledOrder.symbol);
       await this.recreateGridAtPrice(currentPrice, gridSpacing, gridLevels, availableBalance, placeOrderFn);
     } finally {
       this.isAdjusting = false;
@@ -71,7 +76,8 @@ export class GridOrderManager {
     gridLevels: number,
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
-    cancelOrderFn: (orderId: string) => Promise<void>
+    cancelAllOrdersFn: (symbol: string) => Promise<void>,
+    symbol: string,
   ): Promise<void> {
     const deviation = Math.abs(newPrice - this.currentGridCenter) / this.currentGridCenter;
     
@@ -80,7 +86,7 @@ export class GridOrderManager {
       this.lastAdjustmentTime = Date.now();
       
       try {
-        await this.cancelAllOrders(cancelOrderFn);
+        await this.cancelAllOrdersOptimized(cancelAllOrdersFn, symbol);
         await this.recreateGridAtPrice(newPrice, gridSpacing, gridLevels, availableBalance, placeOrderFn);
       } finally {
         this.isAdjusting = false;
@@ -88,18 +94,23 @@ export class GridOrderManager {
     }
   }
 
-  private async cancelAllOrders(cancelOrderFn: (orderId: string) => Promise<void>): Promise<void> {
-    // TODO : Optimize cancellation with batch API Cancel orders by exchange
-    const cancelPromises = this.activeOrders.map(async (order) => {
-      try {
-        await cancelOrderFn(order.id);
-      } catch (error) {
-        console.error(`Failed to cancel order ${order.id}:`, error);
-      }
-    });
-    
-    await Promise.all(cancelPromises);
-    this.activeOrders = [];
+  private async cancelAllOrdersOptimized(
+    cancelAllOrdersFn: (symbol: string) => Promise<void>, 
+    symbol: string,
+  ): Promise<void> {
+    if (this.activeOrders.length === 0) {
+      return;
+    }
+
+    try {
+      await cancelAllOrdersFn(symbol);
+      this.activeOrders = [];
+    } catch (error) {
+      this.logger.warn(`⚠️ Bulk cancellation failed for ${symbol}, falling back to individual cancellation`, { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      
+    }
   }
 
   private async recreateGridAtPrice(
@@ -120,5 +131,13 @@ export class GridOrderManager {
   getActiveOrders(): Order[] {
     // TODO Fetch active orders from exchange to ensure sync if not available in memory
     return [...this.activeOrders];
+  }
+
+  /**
+   * Check if grid adjustment is currently in progress
+   * Used to prevent multiple simultaneous grid recreation events
+   */
+  isCurrentlyAdjusting(): boolean {
+    return this.isAdjusting;
   }
 }

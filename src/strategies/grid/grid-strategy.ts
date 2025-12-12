@@ -6,6 +6,8 @@ import { CardanoPriceService } from '../../core/price-aggregation';
 import { RiskManager, RiskManagerConfig } from '../../core/risk-management/risk-manager';
 import { GridOrderManager, GridOrderManagerConfig } from './grid-order-manager';
 import { GridCalculator } from './grid-calculator';
+import { parseSymbol } from '../../utils/symbol-utils';
+import { createLogger } from '../../utils';
 
 export interface GridConfig {
   symbol: string;
@@ -30,6 +32,7 @@ export class GridStrategy extends BaseStrategy {
   private exchangeConnector?: BaseExchangeConnector;
   private gridConfig?: GridConfig;
   private priceUpdateInterval?: NodeJS.Timeout;
+  private logger = createLogger('grid-strategy');
 
   constructor(id: string) {
     super(id, 'grid');
@@ -51,6 +54,15 @@ export class GridStrategy extends BaseStrategy {
     this.orderManager = new GridOrderManager(orderManagerConfig);
   }
 
+  protected validateConfig(config: StrategyConfig): void {
+    super.validateConfig(config);
+    
+    const gridStrategyConfig = config as GridStrategyConfig;
+    if (!gridStrategyConfig.gridConfig) {
+      throw new Error('Grid strategy requires gridConfig');
+    }
+  }
+
   async initialize(config: StrategyConfig): Promise<void> {
     this.validateConfig(config);
     
@@ -68,8 +80,8 @@ export class GridStrategy extends BaseStrategy {
 
     try {
       this.setStatus('running');
-      
-      const aggregatedPrice = await this.priceService.getTokenPrice(this.getSymbol());
+      const { base } = parseSymbol(this.getSymbol());
+      const aggregatedPrice = await this.priceService.getTokenPrice(base);
       
       if (!this.riskManager.checkPriceConfidence(aggregatedPrice)) {
         throw new Error(`Price confidence too low: ${aggregatedPrice.confidence} < ${this.gridConfig.minConfidence}`);
@@ -89,8 +101,9 @@ export class GridStrategy extends BaseStrategy {
         gridWithSizes,
         (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price)
       );
-      
+
       this.startPriceMonitoring();
+      await this.setupOrderSubscription();
       
     } catch (error) {
       this.handleError(error, 'start');
@@ -112,7 +125,7 @@ export class GridStrategy extends BaseStrategy {
           try {
             await this.exchangeConnector.cancelOrder(order.id, order.symbol);
           } catch (error) {
-            console.error(`Failed to cancel order ${order.id}:`, error);
+            this.logger.error(`Failed to cancel order ${order.id}:`, { error });
           }
         }
       }
@@ -136,17 +149,29 @@ export class GridStrategy extends BaseStrategy {
         this.gridConfig.gridLevels,
         balance,
         (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
-        (orderId: string) => this.cancelOrder(orderId)
+        (symbol: string) => this.cancelAllOrders(symbol),
+        symbol,
+        (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
       );
     } catch (error) {
-      console.error('Price update handling failed:', error);
+      this.logger.error('Price update handling failed:', { error });
     }
   }
 
   async onOrderUpdate(order: Order): Promise<void> {
-    if (order.status === 'filled' && this.gridConfig) {
+    if (order.symbol !== this.getSymbol()) {
+      return;
+    }
+    
+    if ((order.status === 'filled' || order.status === 'partially_filled') && this.gridConfig) {
+      if (this.orderManager.isCurrentlyAdjusting()) {
+        this.logger.info(`⏸️  Grid adjustment in progress, ignoring ${order.status} event`);
+        return;
+      }
+      
       try {
-        const aggregatedPrice = await this.priceService.getTokenPrice(this.getSymbol());
+        const { base } = parseSymbol(this.getSymbol());
+        const aggregatedPrice = await this.priceService.getTokenPrice(base);
         const balance = await this.getAvailableBalance();
         
         await this.orderManager.handleOrderFill(
@@ -156,10 +181,11 @@ export class GridStrategy extends BaseStrategy {
           this.gridConfig.gridLevels,
           balance,
           (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
-          (orderId: string) => this.cancelOrder(orderId)
+          (symbol: string) => this.cancelAllOrders(symbol),
+          (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
         );
       } catch (error) {
-        console.error('Order fill handling failed:', error);
+        this.logger.error('Order fill handling failed:',  { error });
       }
     }
   }
@@ -177,13 +203,21 @@ export class GridStrategy extends BaseStrategy {
     return await this.exchangeConnector.createOrder(symbol, 'limit', side, amount, price);
   }
 
-  private async cancelOrder(orderId: string): Promise<void> {
+  private async cancelOrder(orderId: string, symbol?: string): Promise<void> {
     if (!this.exchangeConnector) {
       throw new Error('Exchange connector not set');
     }
 
-    const symbol = this.getSymbol();
-    await this.exchangeConnector.cancelOrder(orderId, symbol);
+    const targetSymbol = symbol || this.getSymbol();
+    await this.exchangeConnector.cancelOrder(orderId, targetSymbol);
+  }
+
+  private async cancelAllOrders(symbol: string): Promise<void> {
+    if (!this.exchangeConnector) {
+      throw new Error('Exchange connector not set');
+    }
+
+    await this.exchangeConnector.cancelAllOrders(symbol);
   }
 
   private async getAvailableBalance(): Promise<number> {
@@ -211,11 +245,27 @@ export class GridStrategy extends BaseStrategy {
   private startPriceMonitoring(): void {
     this.priceUpdateInterval = setInterval(async () => {
       try {
-        const aggregatedPrice = await this.priceService.getTokenPrice(this.getSymbol());
+        const { base } = parseSymbol(this.getSymbol());
+        const aggregatedPrice = await this.priceService.getTokenPrice(base);
         await this.onPriceUpdate(this.getSymbol(), aggregatedPrice.price);
       } catch (error) {
-        console.error('Price monitoring failed:', error);
+        this.logger.error('Price monitoring failed:', { error });
       }
-    }, 30000); // Check every 30 seconds
+    }, 30000);
+  }
+
+  private async setupOrderSubscription(): Promise<void> {
+    if (!this.exchangeConnector) {
+      throw new Error('Exchange connector not set');
+    }
+
+    try {
+      await this.exchangeConnector.connectUserDataStream();
+      await this.exchangeConnector.subscribeUserOrders((order: Order) => {
+        this.onOrderUpdate(order);
+      });
+    } catch (error) {
+      this.logger.error('Failed to setup order subscription:', { error });
+    }
   }
 }
