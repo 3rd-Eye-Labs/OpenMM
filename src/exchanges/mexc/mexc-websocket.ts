@@ -44,7 +44,7 @@ export class MexcWebSocket {
           this.onMessage(data);
         });
 
-        this.ws.on('close', (code, reason) => this.onClose(code, reason));
+        this.ws.on('close', () => this.onClose());
 
         this.ws.on('error', (error) => this.onError(error, reject));
 
@@ -68,22 +68,13 @@ export class MexcWebSocket {
   /**
    * WebSocket close event handler
    */
-  private onClose(code: number, reason: Buffer): void {
+  private onClose(): void {
     this.status = 'disconnected';
-    this.logger.warn('⚠️ WebSocket connection closed:', {
-      code, 
-      reason: reason?.toString(),
-      autoReconnect: this.autoReconnect,
-      reconnectAttempts: this.reconnectAttempts,
-      maxReconnectAttempts: this.maxReconnectAttempts
-    });
     
     if (this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
       this.scheduleReconnect();
     } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.logger.error('❌ Max reconnection attempts reached, giving up');
-    } else {
-      this.logger.warn('⚠️ Auto-reconnect is disabled, not attempting to reconnect');
     }
   }
 
