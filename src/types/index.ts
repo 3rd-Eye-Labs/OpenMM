@@ -4,3 +4,6 @@ export * from './strategy';
 export * from './market';
 export * from './mexc';
 export * from './mexc-raw';
+export * from './price';
+export * from './risk';
+export * from './iris';
