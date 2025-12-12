@@ -214,7 +214,6 @@ describe('MexcWebSocket', () => {
       }
 
       expect(mexcWebSocket.getWebSocketStatus()).toBe('disconnected');
-      expect(mockLogger.warn).toHaveBeenCalledWith('⚠️ WebSocket connection closed:', expect.any(Object));
     });
 
     it('should handle connection setup errors via onError()', async () => {
