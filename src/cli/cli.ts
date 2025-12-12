@@ -7,6 +7,7 @@ import { ordersCommand } from './commands/orders';
 import { tickerCommand } from './commands/ticker';
 import { orderbookCommand } from './commands/orderbook';
 import { tradesCommand } from './commands/trades';
+import { poolDiscoveryCommand } from './commands/pool-discovery';
 
 const program = new Command();
 
@@ -20,6 +21,7 @@ program.addCommand(ordersCommand);
 program.addCommand(tickerCommand);
 program.addCommand(orderbookCommand);
 program.addCommand(tradesCommand);
+program.addCommand(poolDiscoveryCommand);
 
 program.exitOverride((err) => {
   if (err.code === 'commander.unknownCommand') {

@@ -37,6 +37,15 @@ Currently supported exchanges:
 - **bitget** - Bitget (coming soon)
 - **kraken** - Kraken (coming soon)
 
+## Cardano Integration
+
+OpenMM includes comprehensive Cardano DEX integration through Iris Protocol:
+- **Pool Discovery** - Find optimal liquidity pools for Cardano native tokens
+- **Price Aggregation** - Get liquidity-weighted prices from multiple DEXes
+- **Token Management** - Easy addition and configuration of new Cardano tokens
+
+📖 **For token setup guide, see [CARDANO_TOKENS.md](guides/CARDANO_TOKENS.md)**
+
 ## Commands
 
 ### Main Help
@@ -243,6 +252,56 @@ openmm orders list --exchange mexc
 
 ---
 
+## 🏊 Cardano Pool Discovery Commands
+
+Discover and analyze Cardano DEX liquidity pools for native tokens.
+
+### Discover Pools for a Token
+```bash
+# Discover pools for NIGHT token
+openmm pool-discovery discover NIGHT
+
+# Discover top 5 pools for SNEK token
+openmm pool-discovery discover SNEK --limit 5
+
+# Find pools with minimum $50K liquidity for INDY
+openmm pool-discovery discover INDY --min-liquidity 50000
+
+# Show all available pools for a token
+openmm pool-discovery discover INDY --show-all
+```
+
+### List Supported Tokens
+```bash
+# See all supported Cardano tokens
+openmm pool-discovery supported
+```
+
+### Get Live Pool Prices
+```bash
+openmm pool-discovery prices NIGHT
+```
+
+### Generate Custom Token Configuration
+```bash
+# Generate config for a new token (advanced users)
+openmm pool-discovery custom POLICY_ID ASSET_NAME_HEX SYMBOL
+
+# Example for hypothetical token
+openmm pool-discovery custom 533bb94a8850ee3ccbe483106489399112b74c905342cb1792a797a0 494e4459 INDY
+```
+
+**Pool Discovery Options:**
+- `--limit <number>` - Limit number of pools shown (default: 10)
+- `--min-liquidity <number>` - Filter pools by minimum TVL in dollars
+- `--show-all` - Show all pools (ignore limit)
+
+**Supported Cardano Tokens:**
+- **NIGHT** - NightShade
+- **SNEK** - Snek Token
+- **INDY** - Indigo Protocol
+---
+
 ## 📖 Help
 
 Get help for any command:
@@ -254,6 +313,7 @@ openmm orders create --help      # Order creation help
 openmm ticker --help             # Ticker command help
 openmm orderbook --help          # Order book command help
 openmm trades --help             # Trades command help
+openmm pool-discovery --help     # Pool discovery help
 ```
 
 ---
