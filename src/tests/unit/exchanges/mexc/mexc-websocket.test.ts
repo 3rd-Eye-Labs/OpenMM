@@ -3,6 +3,11 @@ import {MexcProtobufDecoder} from '../../../../exchanges/mexc/mexc-protobuf-deco
 import {MexcUtils} from '../../../../exchanges/mexc/mexc-utils';
 import {createLogger} from '../../../../utils';
 import {DecodedMexcMessage, Order} from '../../../../types';
+import {toStandardFormat, toExchangeFormat} from '../../../../utils/symbol-utils';
+
+jest.mock('../../../../utils/symbol-utils');
+const MockedToStandardFormat = toStandardFormat as jest.MockedFunction<typeof toStandardFormat>;
+const MockedToExchangeFormat = toExchangeFormat as jest.MockedFunction<typeof toExchangeFormat>;
 import WebSocket from 'ws';
 
 jest.mock('ws');
@@ -50,6 +55,69 @@ describe('MexcWebSocket', () => {
     }
   };
 
+  const createMockTickerMessage = (overrides: Partial<DecodedMexcMessage> = {}): DecodedMexcMessage => ({
+    type: 'ticker',
+    raw: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT',
+    channel: 'spot@public.aggre.bookTicker.v3.api.pb',
+    symbol: 'BTCUSDT',
+    decoded: {
+      bidprice: '50000',
+      askprice: '50100',
+      bidquantity: '1.0',
+      askquantity: '1.5'
+    },
+    ...overrides
+  });
+
+  const createMockTradesMessage = (overrides: Partial<DecodedMexcMessage> = {}): DecodedMexcMessage => ({
+    type: 'trades',
+    raw: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
+    channel: 'spot@public.aggre.deals.v3.api.pb',
+    symbol: 'BTCUSDT',
+    decoded: {
+      dealsList: [{
+        price: '50000',
+        quantity: '1.0',
+        time: '1640995200000',
+        tradetype: 1
+      }],
+      eventtype: 'trade'
+    },
+    ...overrides
+  });
+
+  const createMockOrderMessage = (overrides: Partial<DecodedMexcMessage> = {}): DecodedMexcMessage => ({
+    type: 'order',
+    raw: 'spot@private.orders.v3.api.pbBTCUSDT',
+    channel: 'spot@private.orders.v3.api.pb',
+    symbol: 'BTCUSDT',
+    decoded: {
+      orderId: 'order123',
+      symbol: 'BTCUSDT',
+      price: 50000,
+      quantity: 1.0,
+      side: 'buy',
+      status: 'filled',
+      timestamp: Date.now(),
+      channel: 'spot@private.orders.v3.api.pb'
+    },
+    ...overrides
+  });
+
+  const createMockOrder = (overrides: Partial<Order> = {}): Order => ({
+    id: 'order123',
+    symbol: 'BTC/USDT',
+    type: 'limit',
+    side: 'buy',
+    amount: 1.0,
+    price: 50000,
+    filled: 1.0,
+    remaining: 0,
+    status: 'filled',
+    timestamp: Date.now(),
+    ...overrides
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -71,11 +139,11 @@ describe('MexcWebSocket', () => {
 
     MockedWebSocket.mockImplementation(() => mockWs);
 
-    MockedMexcUtils.toMexcSymbol.mockImplementation((symbol: string) => symbol.replace('/', ''));
-    MockedMexcUtils.formatSymbol.mockImplementation((symbol: string) => {
+    MockedToStandardFormat.mockImplementation((symbol: string) => {
       if (symbol.includes('/')) return symbol;
       return symbol.replace(/([A-Z]+)(USDT|BTC|ETH)$/, '$1/$2');
     });
+    MockedToExchangeFormat.mockImplementation((symbol: string) => symbol.replace('/', ''));
 
     mexcWebSocket = new MexcWebSocket();
   });
@@ -101,22 +169,22 @@ describe('MexcWebSocket', () => {
   });
 
   describe('connectWebSocket()', () => {
-    it('should successfully connect to WebSocket', async () => {
+    it('should successfully connect to WebSocket via onOpen()', async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
 
       const onCall = mockWs.on.mock.calls.find(([event]) => event === 'open');
       if (onCall && onCall[1]) {
-        (onCall[1] as () => void)(); // Call the 'open' event handler
+        (onCall[1] as () => void)();
       }
 
       await connectPromise;
 
       expect(MockedWebSocket).toHaveBeenCalledWith('wss://wbs-api.mexc.com/ws');
       expect(mexcWebSocket.getWebSocketStatus()).toBe('connected');
-      expect(mockLogger.info).toHaveBeenCalledWith('WebSocket connected successfully');
+      expect(mockLogger.info).toHaveBeenCalledWith('✅ WebSocket connected successfully');
     });
 
-    it('should handle WebSocket connection error', async () => {
+    it('should handle WebSocket connection error via onError()', async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
       const error = new Error('Connection failed');
 
@@ -127,10 +195,10 @@ describe('MexcWebSocket', () => {
 
       await expect(connectPromise).rejects.toThrow('Connection failed');
       expect(mexcWebSocket.getWebSocketStatus()).toBe('error');
-      expect(mockLogger.error).toHaveBeenCalledWith('WebSocket error:', { error });
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ WebSocket error:', { error: 'Connection failed' });
     });
 
-    it('should handle WebSocket close event', async () => {
+    it('should handle WebSocket close event via onClose()', async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
 
       const openCall = mockWs.on.mock.calls.find(([event]) => event === 'open');
@@ -146,10 +214,10 @@ describe('MexcWebSocket', () => {
       }
 
       expect(mexcWebSocket.getWebSocketStatus()).toBe('disconnected');
-      expect(mockLogger.warn).toHaveBeenCalledWith('WebSocket connection closed');
+      expect(mockLogger.warn).toHaveBeenCalledWith('⚠️ WebSocket connection closed:', expect.any(Object));
     });
 
-    it('should handle connection setup errors', async () => {
+    it('should handle connection setup errors via onError()', async () => {
       MockedWebSocket.mockImplementation(() => {
         throw new Error('WebSocket creation failed');
       });
@@ -159,7 +227,7 @@ describe('MexcWebSocket', () => {
     });
   });
 
-  describe('onMessage()', () => {
+  describe('onMessage() - Message handler', () => {
     beforeEach(async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
       const openCall = mockWs.on.mock.calls.find(([event]) => event === 'open');
@@ -170,18 +238,7 @@ describe('MexcWebSocket', () => {
     });
 
     it('should process valid spot messages', () => {
-      const mockDecodedMessage: DecodedMexcMessage = {
-        type: 'ticker',
-        raw: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.bookTicker.v3.api.pb',
-        symbol: 'BTCUSDT',
-        decoded: {
-          bidprice: '50000',
-          askprice: '50100',
-          bidquantity: '1.0',
-          askquantity: '1.5'
-        }
-      };
+      const mockDecodedMessage = createMockTickerMessage();
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(mockDecodedMessage);
 
@@ -238,7 +295,7 @@ describe('MexcWebSocket', () => {
     });
   });
 
-  describe('processDecodedMessage()', () => {
+  describe('processDecodedMessage() - Process decoded message based on type', () => {
     let orderCallback: jest.Mock;
     let tickerCallback: jest.Mock;
     let tradesCallback: jest.Mock;
@@ -263,38 +320,12 @@ describe('MexcWebSocket', () => {
       await mexcWebSocket.subscribeOrderBook('BTC/USDT', orderbookCallback);
     });
 
-    it('should process order messages', () => {
-      const mockOrder: Order = {
-        id: 'order123',
-        symbol: 'BTC/USDT',
-        type: 'limit',
-        side: 'buy',
-        amount: 1.0,
-        price: 50000,
-        filled: 1.0,
-        remaining: 0,
-        status: 'filled',
-        timestamp: Date.now()
-      };
+    it('should process order messages via onOrderUpdate()', () => {
+      const mockOrder = createMockOrder();
 
-      MockedMexcUtils.transformProtobufOrder.mockReturnValue(mockOrder);
+      MockedMexcUtils.transformOrder.mockReturnValue(mockOrder);
 
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'order',
-        raw: 'spot@private.orders.v3.api.pbBTCUSDT',
-        channel: 'spot@private.orders.v3.api.pb',
-        symbol: 'BTCUSDT',
-        decoded: {
-          orderId: 'order123',
-          symbol: 'BTCUSDT',
-          price: 50000,
-          quantity: 1.0,
-          side: 'buy',
-          status: 'filled',
-          timestamp: Date.now(),
-          channel: 'spot@private.orders.v3.api.pb'
-        }
-      };
+      const decodedMessage = createMockOrderMessage();
 
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
@@ -304,25 +335,13 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(MockedMexcUtils.transformProtobufOrder).toHaveBeenCalled();
+      expect(MockedMexcUtils.transformOrder).toHaveBeenCalled();
       expect(orderCallback).toHaveBeenCalledWith(mockOrder);
     });
 
-    it('should process ticker messages', () => {
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'ticker',
-        raw: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.bookTicker.v3.api.pb',
-        symbol: 'BTCUSDT',
-        decoded: {
-          bidprice: '50000',
-          askprice: '50100',
-          bidquantity: '1.0',
-          askquantity: '1.5'
-        }
-      };
+    it('should process ticker messages via onTickerUpdate() and onOrderBookUpdate()', () => {
+      const decodedMessage = createMockTickerMessage();
 
-      MockedMexcUtils.formatSymbol.mockReturnValue('BTC/USDT');
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
 
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
@@ -345,24 +364,9 @@ describe('MexcWebSocket', () => {
       }));
     });
 
-    it('should process trades messages', () => {
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'trades',
-        raw: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.deals.v3.api.pb',
-        symbol: 'BTCUSDT',
-        decoded: {
-          dealsList: [{
-            price: '50000',
-            quantity: '1.0',
-            time: '1640995200000',
-            tradetype: 1
-          }],
-          eventtype: 'trade'
-        }
-      };
+    it('should process trades messages via onTradesUpdate()', () => {
+      const decodedMessage = createMockTradesMessage();
 
-      MockedMexcUtils.formatSymbol.mockReturnValue('BTC/USDT');
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
 
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
@@ -398,27 +402,12 @@ describe('MexcWebSocket', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith('Unhandled message type: unknown');
     });
 
-    it('should handle order processing errors', () => {
-      MockedMexcUtils.transformProtobufOrder.mockImplementation(() => {
+    it('should handle order processing errors in onOrderUpdate()', () => {
+      MockedMexcUtils.transformOrder.mockImplementation(() => {
         throw new Error('Transform error');
       });
 
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'order',
-        raw: 'spot@private.orders.v3.api.pbBTCUSDT',
-        channel: 'spot@private.orders.v3.api.pb',
-        symbol: 'BTCUSDT',
-        decoded: {
-          orderId: 'order123',
-          symbol: 'BTCUSDT',
-          price: 50000,
-          quantity: 1.0,
-          side: 'buy',
-          status: 'filled',
-          timestamp: Date.now(),
-          channel: 'spot@private.orders.v3.api.pb'
-        }
-      };
+      const decodedMessage = createMockOrderMessage();
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
 
@@ -428,26 +417,15 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error processing order update:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Error handling protobuf user data message:', { error: expect.any(Error), message: expect.any(String) });
     });
 
-    it('should handle ticker processing errors', () => {
-      MockedMexcUtils.formatSymbol.mockImplementation(() => {
+    it('should handle ticker processing errors gracefully', () => {
+      MockedToStandardFormat.mockImplementation(() => {
         throw new Error('Format error');
       });
 
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'ticker',
-        raw: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.bookTicker.v3.api.pb',
-        symbol: 'BTCUSDT',
-        decoded: {
-          bidprice: '50000',
-          askprice: '50100',
-          bidquantity: '1.0',
-          askquantity: '1.5'
-        }
-      };
+      const decodedMessage = createMockTickerMessage();
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
 
@@ -457,29 +435,20 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error processing ticker update:', { error: expect.any(Error) });
+      // Should handle symbol conversion error gracefully by using original symbol
+      expect(tickerCallback).toHaveBeenCalledWith(expect.objectContaining({
+        symbol: 'BTCUSDT', // Falls back to original symbol
+        bid: 50000,
+        ask: 50100
+      }));
     });
 
-    it('should handle trades processing errors', () => {
-      MockedMexcUtils.formatSymbol.mockImplementation(() => {
+    it('should handle trades processing errors gracefully', () => {
+      MockedToStandardFormat.mockImplementation(() => {
         throw new Error('Format error');
       });
 
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'trades',
-        raw: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.deals.v3.api.pb',
-        symbol: 'BTCUSDT',
-        decoded: {
-          dealsList: [{
-            price: '50000',
-            quantity: '1.0',
-            time: '1640995200000',
-            tradetype: 1
-          }],
-          eventtype: 'trade'
-        }
-      };
+      const decodedMessage = createMockTradesMessage();
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
 
@@ -489,10 +458,16 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error processing trades update:', { error: expect.any(Error) });
+      // Should handle symbol conversion error gracefully by using original symbol
+      expect(tradesCallback).toHaveBeenCalledWith(expect.objectContaining({
+        symbol: 'BTCUSDT', // Falls back to original symbol
+        side: 'buy',
+        amount: 1.0,
+        price: 50000
+      }));
     });
 
-    it('should skip processing messages without required data', () => {
+    it('should skip processing messages without required data in onOrderUpdate(), onTickerUpdate(), onTradesUpdate()', () => {
       const decodedMessages = [
         { type: 'order', raw: 'test', channel: 'test' },
         { type: 'ticker', raw: 'test', channel: 'test', decoded: {} },
@@ -515,7 +490,7 @@ describe('MexcWebSocket', () => {
     });
   });
 
-  describe('subscription methods', () => {
+  describe('subscription methods - subscribeTicker(), subscribeTrades(), subscribeOrderBook(), subscribeOrders()', () => {
     beforeEach(async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
       const openCall = mockWs.on.mock.calls.find(([event]) => event === 'open');
@@ -527,7 +502,6 @@ describe('MexcWebSocket', () => {
 
     it('should subscribe to ticker updates', async () => {
       const callback = jest.fn();
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
 
       const subscriptionId = await mexcWebSocket.subscribeTicker('BTC/USDT', callback);
 
@@ -541,7 +515,6 @@ describe('MexcWebSocket', () => {
 
     it('should subscribe to trades updates', async () => {
       const callback = jest.fn();
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
 
       const subscriptionId = await mexcWebSocket.subscribeTrades('BTC/USDT', callback);
 
@@ -555,7 +528,6 @@ describe('MexcWebSocket', () => {
 
     it('should subscribe to orderbook updates', async () => {
       const callback = jest.fn();
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
 
       const subscriptionId = await mexcWebSocket.subscribeOrderBook('BTC/USDT', callback);
 
@@ -595,7 +567,7 @@ describe('MexcWebSocket', () => {
     });
   });
 
-  describe('unsubscribe()', () => {
+  describe('unsubscribe() - Unsubscribe from subscription', () => {
     it('should unsubscribe from existing subscription', async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
       const openCall = mockWs.on.mock.calls.find(([event]) => event === 'open');
@@ -619,7 +591,7 @@ describe('MexcWebSocket', () => {
     });
   });
 
-  describe('disconnectWebSocket()', () => {
+  describe('disconnectWebSocket() - Disconnect and cleanup', () => {
     it('should disconnect and cleanup', async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
       const openCall = mockWs.on.mock.calls.find(([event]) => event === 'open');
@@ -645,7 +617,7 @@ describe('MexcWebSocket', () => {
     });
   });
 
-  describe('status methods', () => {
+  describe('status methods - isConnected(), getWebSocketStatus()', () => {
     it('should return correct connection status', () => {
       expect(mexcWebSocket.getWebSocketStatus()).toBe('disconnected');
       expect(mexcWebSocket.isConnected()).toBe(false);
@@ -682,65 +654,52 @@ describe('MexcWebSocket', () => {
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle trades with empty dealsList', async () => {
+  describe('edge cases - onTradesUpdate(), onTickerUpdate()', () => {
+    it('should handle trades with empty dealsList in onTradesUpdate()', async () => {
       await connectWebSocket();
       const callback = await setupTradesSubscription();
 
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'trades',
-        raw: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.deals.v3.api.pb',
-        symbol: 'BTCUSDT',
+      const decodedMessage = createMockTradesMessage({ 
         decoded: {
           dealsList: [],
           eventtype: 'trade'
         }
-      };
+      });
 
       triggerMessage('spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT', decodedMessage);
 
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('should handle trades with null dealsList', async () => {
+    it('should handle trades with null dealsList in onTradesUpdate()', async () => {
       await connectWebSocket();
       const callback = await setupTradesSubscription();
 
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'trades',
-        raw: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.deals.v3.api.pb',
-        symbol: 'BTCUSDT',
+      const decodedMessage = createMockTradesMessage({ 
         decoded: {
           dealsList: null as any,
           eventtype: 'trade'
         }
-      };
+      });
 
       triggerMessage('spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT', decodedMessage);
 
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('should handle ticker data with zero values', async () => {
+    it('should handle ticker data with zero values in onTickerUpdate()', async () => {
       await connectWebSocket();
       const callback = await setupTickerSubscription();
 
-      const decodedMessage: DecodedMexcMessage = {
-        type: 'ticker',
-        raw: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT',
-        channel: 'spot@public.aggre.bookTicker.v3.api.pb',
-        symbol: 'BTCUSDT',
+      const decodedMessage = createMockTickerMessage({ 
         decoded: {
           bidprice: '0',
           askprice: '0',
           bidquantity: '0',
           askquantity: '0'
         }
-      };
+      });
 
-      MockedMexcUtils.formatSymbol.mockReturnValue('BTC/USDT');
       triggerMessage('spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT', decodedMessage);
 
       expect(callback).toHaveBeenCalledWith(expect.objectContaining({
