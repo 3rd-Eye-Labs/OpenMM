@@ -32,7 +32,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
       throw new Error('MEXC order data is required');
     }
     
-    const status = this.mapOrderStatus(mexcOrder.status || 'NEW');
+    const status = MexcDataMapper.mapToOrderStatus(mexcOrder.status || 'NEW');
     const filled = this.parseAmount(mexcOrder.executedQty);
     const amount = this.parseAmount(mexcOrder.origQty || mexcOrder.quantity);
 
@@ -48,6 +48,23 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
       status,
       timestamp: this.parseTimestamp(mexcOrder.time || mexcOrder.updateTime)
     };
+  }
+
+  /**
+   * Order status mapping for all MEXC status formats
+   * Handles REST API, protobuf, and message pattern statuses
+   */
+  static mapToOrderStatus(status: string): OrderStatus {
+    const upperStatus = status.toUpperCase();
+    
+    if (upperStatus.includes('NEW')) return 'open';
+    if (upperStatus.includes('PARTIAL')) return 'open';
+    if (upperStatus.includes('FILL')) return 'filled';
+    if (upperStatus.includes('CANCEL')) return 'cancelled';
+    if (upperStatus.includes('REJECT') || upperStatus.includes('EXPIRED')) return 'rejected';
+    if (upperStatus.includes('EXEC')) return 'filled';
+    
+    return 'open';
   }
 
   /**
@@ -123,27 +140,6 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
     });
 
     return balances;
-  }
-
-  /**
-   * Map MEXC order status to OpenMM OrderStatus
-   */
-  private mapOrderStatus(mexcStatus: string): OrderStatus {
-    switch (mexcStatus) {
-      case 'NEW':
-      case 'PARTIALLY_FILLED':
-        return 'open';
-      case 'FILLED':
-        return 'filled';
-      case 'CANCELED':
-      case 'CANCELLED':
-        return 'cancelled';
-      case 'REJECTED':
-      case 'EXPIRED':
-        return 'rejected';
-      default:
-        return 'open';
-    }
   }
 
   /**
