@@ -1,28 +1,12 @@
 import { BaseStrategy } from '../../core/strategy/base-strategy';
-import { Order, OrderSide } from '../../types';
-import { StrategyConfig } from '../../types';
+import { Order, OrderSide, StrategyConfig, GridConfig, GridStrategyConfig, GridOrderManagerConfig } from '../../types';
 import { BaseExchangeConnector } from '../../core/exchange/base-exchange-connector';
 import { CardanoPriceService } from '../../core/price-aggregation';
 import { RiskManager, RiskManagerConfig } from '../../core/risk-management/risk-manager';
-import { GridOrderManager, GridOrderManagerConfig } from './grid-order-manager';
+import { GridOrderManager } from './grid-order-manager';
 import { GridCalculator } from './grid-calculator';
 import { parseSymbol } from '../../utils/symbol-utils';
 import { createLogger } from '../../utils';
-
-export interface GridConfig {
-  symbol: string;
-  gridLevels: number;
-  gridSpacing: number;
-  orderSize: number;
-  minConfidence: number;
-  priceDeviationThreshold: number;
-  adjustmentDebounce: number;
-}
-
-export interface GridStrategyConfig extends StrategyConfig {
-  type: 'grid';
-  gridConfig: GridConfig;
-}
 
 export class GridStrategy extends BaseStrategy {
   private priceService: CardanoPriceService;

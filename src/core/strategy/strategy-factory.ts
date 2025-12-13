@@ -1,7 +1,7 @@
 import { BaseStrategy } from './base-strategy';
 import { BaseExchangeConnector } from '../exchange/base-exchange-connector';
-import { GridStrategy, GridConfig } from '../../strategies/grid/grid-strategy';
-import { GridStrategyConfig } from '../../types';
+import { GridStrategy } from '../../strategies/grid/grid-strategy';
+import { GridStrategyConfig, GridConfig } from '../../types';
 import { LauncherConfig, GridLauncherParams, DEFAULT_GRID_PARAMS } from '../../config/launcher-config';
 import { toStandardFormat } from '../../utils/symbol-utils';
 import { ExchangeFactory, SupportedExchange } from '../../cli/exchange-factory';

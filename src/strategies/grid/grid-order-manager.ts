@@ -1,11 +1,6 @@
-import { Order, OrderSide } from '../../types';
-import { GridLevel, GridCalculator } from './grid-calculator';
+import { Order, OrderSide, GridLevel, GridOrderManagerConfig } from '../../types';
+import { GridCalculator } from './grid-calculator';
 import { createLogger } from '../../utils';
-
-export interface GridOrderManagerConfig {
-  priceDeviationThreshold: number;
-  adjustmentDebounce: number;
-}
 
 export class GridOrderManager {
   private gridCalculator: GridCalculator;
