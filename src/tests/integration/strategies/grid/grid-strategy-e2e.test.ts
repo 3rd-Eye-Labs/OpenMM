@@ -1,5 +1,5 @@
-import { GridStrategy, GridStrategyConfig } from '../../../../strategies/grid/grid-strategy';
-import { Order, OrderSide, OrderType, OrderStatus, Balance, Ticker, OrderBook, Trade, WebSocketStatus } from '../../../../types';
+import { GridStrategy } from '../../../../strategies/grid/grid-strategy';
+import { Order, OrderSide, OrderType, OrderStatus, Balance, Ticker, OrderBook, Trade, WebSocketStatus, GridStrategyConfig } from '../../../../types';
 import { BaseExchangeConnector } from '../../../../core/exchange/base-exchange-connector';
 
 /**
@@ -299,6 +299,13 @@ describe('Grid Strategy End-to-End Workflow', () => {
       minConfidence: 0.6,
       priceDeviationThreshold: 0.015,
       adjustmentDebounce: 1000
+    },
+    parameters: {
+      gridLevels: 5,
+      gridSpacing: 0.02,
+      orderSize: 10,
+      upperPrice: 999999,
+      lowerPrice: 0
     }
   };
 

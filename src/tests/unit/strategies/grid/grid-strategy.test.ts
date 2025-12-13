@@ -1,6 +1,6 @@
-import {GridStrategy, GridStrategyConfig} from '../../../../strategies/grid/grid-strategy';
+import {GridStrategy} from '../../../../strategies/grid/grid-strategy';
 import {BaseExchangeConnector} from '../../../../core/exchange/base-exchange-connector';
-import {Balance, Order, OrderBook, OrderSide, OrderType, Ticker, Trade, WebSocketStatus} from '../../../../types';
+import {Balance, Order, OrderBook, OrderSide, OrderType, Ticker, Trade, WebSocketStatus, GridStrategyConfig} from '../../../../types';
 
 jest.mock('../../../../core/price-aggregation/cardano-price-service');
 
@@ -146,6 +146,13 @@ describe('GridStrategy', () => {
       minConfidence: 0.6,
       priceDeviationThreshold: 0.015,
       adjustmentDebounce: 2000
+    },
+    parameters: {
+      gridLevels: 3,
+      gridSpacing: 0.02,
+      orderSize: 100,
+      upperPrice: 999999,
+      lowerPrice: 0
     }
   };
 

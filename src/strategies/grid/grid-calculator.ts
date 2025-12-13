@@ -1,8 +1,4 @@
-export interface GridLevel {
-  price: number;
-  side: 'buy' | 'sell';
-  orderSize: number;
-}
+import { GridLevel } from '../../types';
 
 export class GridCalculator {
   calculateGridLevels(centerPrice: number, spacing: number, levels: number): GridLevel[] {

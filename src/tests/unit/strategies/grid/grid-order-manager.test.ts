@@ -1,6 +1,5 @@
 import { GridOrderManager } from '../../../../strategies/grid/grid-order-manager';
-import { Order } from '../../../../types';
-import { GridLevel } from '../../../../strategies/grid/grid-calculator';
+import { Order, GridLevel } from '../../../../types';
 
 describe('GridOrderManager', () => {
   let manager: GridOrderManager;

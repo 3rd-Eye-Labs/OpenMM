@@ -10,16 +10,6 @@ export interface ExchangeCredentials {
 }
 
 /**
- * Account configuration for multi-account, multi-exchange support
- */
-export interface AccountConfig {
-  id: string;
-  exchange: string;
-  credentials: ExchangeCredentials;
-  isActive: boolean;
-}
-
-/**
  * Simple balance representation
  */
 export interface Balance {
