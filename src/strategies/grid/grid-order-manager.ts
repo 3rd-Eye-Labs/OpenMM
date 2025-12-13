@@ -58,7 +58,7 @@ export class GridOrderManager {
     this.lastAdjustmentTime = Date.now();
     
     try {
-      await this.cancelAllOrdersOptimized(cancelAllOrdersFn, filledOrder.symbol);
+      await this.cancelAllOrders(cancelAllOrdersFn, filledOrder.symbol);
       await this.recreateGridAtPrice(currentPrice, gridSpacing, gridLevels, availableBalance, placeOrderFn);
     } finally {
       this.isAdjusting = false;
@@ -81,7 +81,7 @@ export class GridOrderManager {
       this.lastAdjustmentTime = Date.now();
       
       try {
-        await this.cancelAllOrdersOptimized(cancelAllOrdersFn, symbol);
+        await this.cancelAllOrders(cancelAllOrdersFn, symbol);
         await this.recreateGridAtPrice(newPrice, gridSpacing, gridLevels, availableBalance, placeOrderFn);
       } finally {
         this.isAdjusting = false;
@@ -89,7 +89,7 @@ export class GridOrderManager {
     }
   }
 
-  private async cancelAllOrdersOptimized(
+  private async cancelAllOrders(
     cancelAllOrdersFn: (symbol: string) => Promise<void>, 
     symbol: string,
   ): Promise<void> {
