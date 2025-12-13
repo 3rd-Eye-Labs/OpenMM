@@ -112,7 +112,7 @@ describe('RiskManager', () => {
 
       const available = riskManager.calculateAvailableBalance(balance);
 
-      expect(available).toBe(800); // 1000 * (1 - 0.2) = 800
+      expect(available).toBe(800);
     });
   });
 

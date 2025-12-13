@@ -19,7 +19,6 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
         expect(orderData.symbol).toBe('INDY/USDT');
         
         expect(orderData.status).toBe('cancelled');
-        console.log('Actual status detected:', orderData.status);
       }
     });
 
@@ -132,23 +131,13 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
         }
       ];
 
-      problematicMessages.forEach(({ description, raw, expectedOrderId, expectedSymbol, expectedStatus, hasFilledIndicator, hasCancelledIndicator }) => {
-        console.log(`\nTesting: ${description}`);
-        
+      problematicMessages.forEach(({ raw, expectedOrderId, expectedSymbol, expectedStatus }) => {
         const result = MexcProtobufDecoder.decode(raw);
         
         let orderData: DecodedMexcOrder | null = null;
         if (result.decoded && result.type === 'order') {
           orderData = result.decoded as DecodedMexcOrder;
         }
-
-        console.log('Debug info:', {
-          extractedStatus: orderData?.status,
-          expectedStatus,
-          hasFilledIndicator,
-          hasCancelledIndicator,
-          orderId: orderData?.orderId
-        });
 
         expect(result.type).toBe('order');
         expect(result.decoded).toBeDefined();
@@ -195,9 +184,7 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
         }
       ];
 
-      priorityTestCases.forEach(({ name, hasCancelled, hasFilled, hasPartial, expected }) => {
-        console.log(`\nTesting priority logic: ${name}`);
-        
+      priorityTestCases.forEach(({ hasCancelled, hasFilled, hasPartial, expected }) => {
         let message = 'spot@private.orders.v3.api.pbINDYUSDTC02__123456789';
         
         if (hasCancelled) message += '\u0004';
@@ -210,14 +197,6 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
         if (result.decoded && result.type === 'order') {
           orderData = result.decoded as DecodedMexcOrder;
         }
-        
-        console.log('Priority test result:', {
-          hasCancelled,
-          hasFilled,
-          hasPartial,
-          extractedStatus: orderData?.status,
-          expected
-        });
         
         expect(orderData?.status).toBe(expected);
       });

@@ -178,7 +178,7 @@ describe('MexcUtils', () => {
         i: 12346,
         c: 'ETHUSDT',
         s: 1, // open status
-        S: 2, // sell side (not 1)
+        S: 2, // sell side
         v: '2.0',
         p: '3000.00',
         z: '0'
