@@ -77,7 +77,7 @@ export class GridOrderManager {
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
     cancelAllOrdersFn: (symbol: string) => Promise<void>,
-    symbol: string,
+    symbol: string
   ): Promise<void> {
     const deviation = Math.abs(newPrice - this.currentGridCenter) / this.currentGridCenter;
     
