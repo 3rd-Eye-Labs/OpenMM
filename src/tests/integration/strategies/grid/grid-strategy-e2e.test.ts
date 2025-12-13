@@ -303,44 +303,34 @@ describe('Grid Strategy End-to-End Workflow', () => {
   };
 
   beforeEach(async () => {
-    // Reset test state
     orderUpdates = [];
     gridRecreationCount = 0;
 
-    // Create mock exchange
     mockExchange = new MockExchangeConnector();
     await mockExchange.connect();
     await mockExchange.connectUserDataStream();
 
-    // Create grid strategy
     gridStrategy = new GridStrategy('test-grid-1');
     gridStrategy.setExchangeConnector(mockExchange);
     
-    // Track order updates and grid recreation
     const originalOnOrderUpdate = gridStrategy.onOrderUpdate.bind(gridStrategy);
     gridStrategy.onOrderUpdate = async (order: Order) => {
       orderUpdates.push({ ...order });
-      console.log(`📊 Order Update Captured: ${order.id} ${order.status} (${order.side})`);
       
-      // Only track recreation for filled orders 
       if (order.status === 'filled') {
         const ordersBefore = await mockExchange.getOpenOrders(order.symbol);
         const orderCountBefore = ordersBefore.length;
         
         await originalOnOrderUpdate(order);
         
-        // Wait a bit for recreation to complete
         await new Promise(resolve => setTimeout(resolve, 200));
         
         const ordersAfter = await mockExchange.getOpenOrders(order.symbol);
         
-        // Check if grid was recreated (new orders placed)
         if (ordersAfter.length >= orderCountBefore) {
           gridRecreationCount++;
-          console.log(`🔄 Grid Recreation Triggered! Count: ${gridRecreationCount} (${orderCountBefore} → ${ordersAfter.length} orders)`);
         }
       } else {
-        // For non-filled orders, just call the original method
         await originalOnOrderUpdate(order);
       }
     };
@@ -354,123 +344,78 @@ describe('Grid Strategy End-to-End Workflow', () => {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
     
-    // Clear exchange after strategy is stopped
     if (mockExchange) {
       await mockExchange.disconnect();
     }
     
-    // Final wait for any remaining async operations to complete
     await new Promise(resolve => setTimeout(resolve, 300));
   });
 
   describe('Complete Order Lifecycle Flow', () => {
     test('should handle order placement → fill → grid recreation correctly', async () => {
-      console.log('\n🚀 Starting End-to-End Test: Order Placement → Fill → Grid Recreation\n');
 
-      // Step 1: Start grid strategy (should place initial grid)
       await gridStrategy.start();
       expect(gridStrategy.currentStatus).toBe('running');
 
-      // Wait for initial grid placement
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const initialOrders = await mockExchange.getOpenOrders('INDY/USDT');
       expect(initialOrders.length).toBeGreaterThan(0);
-      console.log(`✅ Initial Grid Placed: ${initialOrders.length} orders`);
 
-      // Step 2: Simulate order fill (this should trigger grid recreation)
       const orderToFill = initialOrders[0];
-      console.log(`🎯 Simulating fill for order: ${orderToFill.id} (${orderToFill.side})`);
       
       mockExchange.simulateOrderFill(orderToFill.id);
       
-      // Wait for WebSocket notification and grid recreation
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Step 3: Verify order update was received and processed
-      const fillUpdate = orderUpdates.find(update => 
+      const fillUpdate = orderUpdates.find(update =>
         update.id === orderToFill.id && update.status === 'filled'
       );
       expect(fillUpdate).toBeDefined();
       expect(fillUpdate?.status).toBe('filled');
-      console.log(`✅ Fill Update Received: ${fillUpdate?.id} status=${fillUpdate?.status}`);
 
-      // Step 4: Verify grid was recreated by checking the logs contain new order IDs
-      // The logs clearly show: "Placed BUY order: 62.692 @ $0.319380 {"orderId":"C02__1010"}"
-      // which means the grid recreation worked correctly!
-      
-      console.log(`📊 Grid Recreation Analysis:`);
-      console.log(`   - ✅ Order fill detected and processed`);
-      console.log(`   - ✅ Grid recreation triggered (see logs above)`);
-      console.log(`   - ✅ Bulk cancellation executed successfully`); 
-      console.log(`   - ✅ New orders placed with IDs C02__1010+`);
-      
-      // The key success indicator is that we received the fill update
-      // and the logs show grid recreation happened
       expect(fillUpdate).toBeDefined();
       expect(fillUpdate?.status).toBe('filled');
       
-      // Additional verification: check that we have order updates
       expect(orderUpdates.length).toBeGreaterThanOrEqual(1);
       
-      console.log(`✅ End-to-End Workflow PASSED: Order fill → Grid recreation flow working!`);
 
     }, 10000);
 
     test('should handle order cancellation → NO grid recreation (fixed behavior)', async () => {
-      console.log('\n🚀 Starting End-to-End Test: Order Cancellation → No Recreation (Fixed)\n');
-
-      // Step 1: Start grid strategy
       await gridStrategy.start();
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const initialOrders = await mockExchange.getOpenOrders('INDY/USDT');
-      const initialOrderCount = initialOrders.length;
       const initialGridRecreationCount = gridRecreationCount;
-      
-      console.log(`📊 Initial State: ${initialOrderCount} orders, ${initialGridRecreationCount} recreations`);
 
-      // Step 2: Cancel an order (simulates bulk cancellation with dual indicators)
       const orderToCancel = initialOrders[0];
-      console.log(`❌ Cancelling order: ${orderToCancel.id} (${orderToCancel.side})`);
       
       await mockExchange.cancelOrder(orderToCancel.id, 'INDY/USDT');
       
-      // Wait for WebSocket notification processing
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Step 3: Verify cancellation update was received
-      const cancelUpdate = orderUpdates.find(update => 
+      const cancelUpdate = orderUpdates.find(update =>
         update.id === orderToCancel.id && update.status === 'cancelled'
       );
       expect(cancelUpdate).toBeDefined();
       expect(cancelUpdate?.status).toBe('cancelled');
-      console.log(`✅ Cancel Update Received: ${cancelUpdate?.id} status=${cancelUpdate?.status}`);
 
-      // Step 4: Verify NO grid recreation happened (this is the fix!)
       expect(gridRecreationCount).toBe(initialGridRecreationCount);
-      console.log(`✅ Grid Recreation Count Unchanged: ${gridRecreationCount} (CORRECT BEHAVIOR)`);
 
-      // Step 5: Verify protobuf message contained dual indicators but was parsed correctly
       const protobufMessages = mockExchange.getTestProtobufMessages();
       const cancelMessage = protobufMessages[protobufMessages.length - 1];
-      expect(cancelMessage).toContain('\u0002'); // Contains fill indicator
-      expect(cancelMessage).toContain('\u0004'); // Contains cancel indicator
-      console.log(`✅ Protobuf Message Verified: Contains dual indicators but parsed as cancelled`);
+      expect(cancelMessage).toContain('\u0002');
+      expect(cancelMessage).toContain('\u0004');
 
     }, 10000);
 
     test('should handle multiple order updates without infinite loops', async () => {
-      console.log('\n🚀 Starting End-to-End Test: Multiple Order Updates → No Infinite Loops\n');
-
-      // Step 1: Start grid strategy
       await gridStrategy.start();
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const initialOrders = await mockExchange.getOpenOrders('INDY/USDT');
-      console.log(`📊 Initial Orders: ${initialOrders.length}`);
 
-      // Step 2: Simulate rapid order updates (fills and cancellations)
       const testSequence = [
         { action: 'fill', orderId: initialOrders[0]?.id },
         { action: 'cancel', orderId: initialOrders[1]?.id },
@@ -479,11 +424,9 @@ describe('Grid Strategy End-to-End Workflow', () => {
 
       for (const step of testSequence) {
         if (step.action === 'fill' && step.orderId) {
-          console.log(`🎯 Filling order: ${step.orderId}`);
           mockExchange.simulateOrderFill(step.orderId);
           await new Promise(resolve => setTimeout(resolve, 1200));
         } else if (step.action === 'cancel' && step.orderId) {
-          console.log(`❌ Cancelling order: ${step.orderId}`);
           await mockExchange.cancelOrder(step.orderId, 'INDY/USDT');
           await new Promise(resolve => setTimeout(resolve, 300));
         }
@@ -491,55 +434,41 @@ describe('Grid Strategy End-to-End Workflow', () => {
 
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Step 3: Verify updates were processed correctly
-      console.log(`📊 Total Order Updates Received: ${orderUpdates.length}`);
-      console.log(`📊 Final Grid Recreation Count: ${gridRecreationCount}`);
-
-      // Should have received updates for all actions
       expect(orderUpdates.length).toBeGreaterThanOrEqual(3);
       
-      // Should have recreated grid only for fills (not cancellations)
-      expect(gridRecreationCount).toBe(2); // Only 2 fills should trigger recreation
+      expect(gridRecreationCount).toBe(2);
       
-      // Strategy should still be running (no infinite loop crash)
       expect(gridStrategy.currentStatus).toBe('running');
       
-      console.log(`✅ No Infinite Loops: Strategy running normally with ${gridRecreationCount} recreations`);
 
     }, 15000);
   });
 
   describe('WebSocket Message Flow Integration', () => {
     test('should correctly route protobuf messages through the complete pipeline', async () => {
-      console.log('\n🚀 Starting End-to-End Test: WebSocket Message Pipeline\n');
 
       await gridStrategy.start();
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const initialOrders = await mockExchange.getOpenOrders('INDY/USDT');
       
-      // Simulate different types of protobuf messages
       mockExchange.simulateOrderFill(initialOrders[0].id);
       await new Promise(resolve => setTimeout(resolve, 500));
       
       await mockExchange.cancelOrder(initialOrders[1].id, 'INDY/USDT');
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Verify message pipeline integrity
       const protobufMessages = mockExchange.getTestProtobufMessages();
-      console.log(`📊 Protobuf Messages Generated: ${protobufMessages.length}`);
       
       expect(protobufMessages.length).toBeGreaterThanOrEqual(3); // new + fill + cancel
       expect(orderUpdates.length).toBeGreaterThanOrEqual(3);
       
-      // Verify message content integrity
       const fillMessage = protobufMessages.find(msg => msg.includes('\u0002') && !msg.includes('\u0004'));
       const cancelMessage = protobufMessages.find(msg => msg.includes('\u0004'));
       
       expect(fillMessage).toBeDefined();
       expect(cancelMessage).toBeDefined();
       
-      console.log(`✅ Message Pipeline Verified: Fill and cancel messages properly formatted`);
     });
   });
 });

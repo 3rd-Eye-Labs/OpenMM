@@ -145,10 +145,10 @@ describe('GridOrderManager', () => {
 
       await manager.handleOrderFill(
         filledOrder,
-        105, // current price
-        0.02, // grid spacing
-        3, // grid levels
-        100, // available balance
+        105,
+        0.02,
+        3,
+        100,
         mockPlaceOrder,
         mockCancelAllOrders
       );

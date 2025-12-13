@@ -325,7 +325,6 @@ describe('MexcConnector', () => {
         ]
       };
 
-      // Set specific mock for this test
       mockDataMapper.mapAccountBalances.mockReturnValueOnce({
         BTC: {
           asset: 'BTC',
