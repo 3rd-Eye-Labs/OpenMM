@@ -49,6 +49,18 @@ npm test
 npm run lint
 ```
 
+## Running Trading Strategies
+
+OpenMM includes automated trading strategies for market making:
+
+- **CLI Commands**: See [CLI.md](docs/CLI.md) for all available commands
+- **Grid Strategy**: See [GRID_STRATEGY.md](docs/guides/GRID_STRATEGY.md) for grid trading setup and examples
+
+```bash
+# Example: Start grid trading on MEXC
+openmm trade --strategy grid --exchange mexc --symbol INDY/USDT
+```
+
 ## License
 
 MIT License - see [LICENSE](./LICENSE) file for details.
