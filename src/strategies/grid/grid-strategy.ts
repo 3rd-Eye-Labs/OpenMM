@@ -150,8 +150,7 @@ export class GridStrategy extends BaseStrategy {
         balance,
         (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
         (symbol: string) => this.cancelAllOrders(symbol),
-        symbol,
-        (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
+        symbol
       );
     } catch (error) {
       this.logger.error('Price update handling failed:', { error });
@@ -181,8 +180,7 @@ export class GridStrategy extends BaseStrategy {
           this.gridConfig.gridLevels,
           balance,
           (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
-          (symbol: string) => this.cancelAllOrders(symbol),
-          (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
+          (symbol: string) => this.cancelAllOrders(symbol)
         );
       } catch (error) {
         this.logger.error('Order fill handling failed:',  { error });
@@ -201,15 +199,6 @@ export class GridStrategy extends BaseStrategy {
 
     const symbol = this.getSymbol();
     return await this.exchangeConnector.createOrder(symbol, 'limit', side, amount, price);
-  }
-
-  private async cancelOrder(orderId: string, symbol?: string): Promise<void> {
-    if (!this.exchangeConnector) {
-      throw new Error('Exchange connector not set');
-    }
-
-    const targetSymbol = symbol || this.getSymbol();
-    await this.exchangeConnector.cancelOrder(orderId, targetSymbol);
   }
 
   private async cancelAllOrders(symbol: string): Promise<void> {
