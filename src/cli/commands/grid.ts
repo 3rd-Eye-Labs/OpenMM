@@ -16,6 +16,8 @@ export const gridCommand = new Command('grid')
   .option('--confidence <decimal>', 'Minimum price confidence (0.6 = 60%)', '0.6')
   .option('--deviation <decimal>', 'Price deviation threshold (0.015 = 1.5%)', '0.015')
   .option('--debounce <ms>', 'Adjustment debounce time in ms', '2000')
+  .option('--max-position <decimal>', 'Maximum position size as % of balance (0.8 = 80%)', '0.8')
+  .option('--safety-reserve <decimal>', 'Safety reserve as % of balance (0.2 = 20%)', '0.2')
   .option('--dry-run', 'Simulate trading without placing real orders')
   .action(async (options) => {
     let strategy: BaseStrategy | null = null;
@@ -45,6 +47,8 @@ export const gridCommand = new Command('grid')
         console.log(chalk.gray(`Grid Levels: ${options.levels} each side`));
         console.log(chalk.gray(`Grid Spacing: ${(parseFloat(options.spacing) * 100).toFixed(1)}%`));
         console.log(chalk.gray(`Order Size: $${options.size}`));
+        console.log(chalk.gray(`Max Position: ${(parseFloat(options.maxPosition) * 100).toFixed(0)}%`));
+        console.log(chalk.gray(`Safety Reserve: ${(parseFloat(options.safetyReserve) * 100).toFixed(0)}%`));
         
         if (options.dryRun) {
           console.log(chalk.yellow('⚠️  DRY RUN MODE - No real orders will be placed'));
@@ -62,7 +66,9 @@ export const gridCommand = new Command('grid')
           orderSize: parseFloat(options.size),
           minConfidence: parseFloat(options.confidence),
           priceDeviationThreshold: parseFloat(options.deviation),
-          adjustmentDebounce: parseInt(options.debounce)
+          adjustmentDebounce: parseInt(options.debounce),
+          maxPositionSize: parseFloat(options.maxPosition),
+          safetyReservePercentage: parseFloat(options.safetyReserve)
         };
         
         strategy = await StrategyFactory.create(config, params);
@@ -98,6 +104,8 @@ Grid Strategy Parameters:
   --confidence: Minimum price confidence to trade (default: 0.6 = 60%)
   --deviation: Price movement % to trigger grid recreation (default: 0.015 = 1.5%)
   --debounce: Delay between grid adjustments in ms (default: 2000ms)
+  --max-position: Maximum position size as % of balance (default: 0.8 = 80%)
+  --safety-reserve: Safety reserve as % of balance (default: 0.2 = 20%)
 
 Note: Ensure MEXC_API_KEY and MEXC_SECRET_KEY environment variables are set.
 `);

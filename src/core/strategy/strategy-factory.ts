@@ -64,6 +64,14 @@ export class StrategyFactory {
     const strategy = new GridStrategy(strategyConfig.id);
     strategy.setExchangeConnector(exchange);
     
+    if (gridParams.maxPositionSize !== undefined || gridParams.safetyReservePercentage !== undefined) {
+      strategy.setRiskConfig({
+        maxPositionSize: gridParams.maxPositionSize ?? 0.8,
+        safetyReservePercentage: gridParams.safetyReservePercentage ?? 0.2,
+        minConfidence: gridParams.minConfidence ?? 0.6
+      });
+    }
+    
     await strategy.initialize(strategyConfig);
 
     return strategy;

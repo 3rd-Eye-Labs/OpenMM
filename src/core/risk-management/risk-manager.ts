@@ -1,13 +1,4 @@
-import { Order } from '../../types';
-import { Balance } from '../../types';
-import { AggregatedPrice } from '../../types';
-import { RiskLimits } from '../../types';
-
-export interface RiskManagerConfig {
-  maxPositionSize: number;
-  safetyReservePercentage: number;
-  minConfidence: number;
-}
+import { Order, Balance, AggregatedPrice, RiskManagerConfig } from '../../types';
 
 export class RiskManager {
   private config: RiskManagerConfig;

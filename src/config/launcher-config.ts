@@ -11,6 +11,8 @@ export interface GridLauncherParams {
   minConfidence?: number;
   priceDeviationThreshold?: number;
   adjustmentDebounce?: number;
+  maxPositionSize?: number;
+  safetyReservePercentage?: number;
 }
 
 export const DEFAULT_GRID_PARAMS: GridLauncherParams = {
@@ -19,5 +21,7 @@ export const DEFAULT_GRID_PARAMS: GridLauncherParams = {
   orderSize: 50,
   minConfidence: 0.6,
   priceDeviationThreshold: 0.015,
-  adjustmentDebounce: 2000
+  adjustmentDebounce: 2000,
+  maxPositionSize: 0.8,
+  safetyReservePercentage: 0.2
 };
