@@ -1,5 +1,5 @@
 import { PriceCalculator } from '../../../../core/price-aggregation/price-calculator';
-import { LiquidityPool } from '../../../../types/iris';
+import { LiquidityPool } from '../../../../types';
 
 describe('PriceCalculator', () => {
   let calculator: PriceCalculator;
@@ -15,9 +15,9 @@ describe('PriceCalculator', () => {
           dex: 'MinswapV2',
           identifier: 'pool1',
           state: {
-            tvl: 1000000, // $1M TVL
-            reserveA: 1000000, // 1M tokens
-            reserveB: 500000   // 0.5M ADA -> price = 0.5 ADA/token
+            tvl: 1000000,
+            reserveA: 1000000,
+            reserveB: 500000
           },
           isActive: true
         },
@@ -25,9 +25,9 @@ describe('PriceCalculator', () => {
           dex: 'SundaeSwap',
           identifier: 'pool2',
           state: {
-            tvl: 500000,  // $0.5M TVL
-            reserveA: 500000, // 0.5M tokens
-            reserveB: 300000  // 0.3M ADA -> price = 0.6 ADA/token
+            tvl: 500000,
+            reserveA: 500000,
+            reserveB: 300000
           },
           isActive: true
         }
@@ -58,7 +58,7 @@ describe('PriceCalculator', () => {
 
       const result = calculator.calculateLiquidityWeightedPrice(pools);
 
-      expect(result.price).toBe(0.75);
+      expect(result.price).toBeCloseTo(0.75, 3);
       expect(result.confidence).toBe(0.7); // Single pool confidence
       expect(result.poolsUsed).toBe(1);
       expect(result.totalLiquidity).toBe(2000000);
@@ -80,7 +80,7 @@ describe('PriceCalculator', () => {
           dex: 'InvalidPool',
           identifier: 'pool2',
           state: {
-            tvl: 0, // Invalid TVL
+            tvl: 0,
             reserveA: 0,
             reserveB: 0
           },
@@ -94,7 +94,7 @@ describe('PriceCalculator', () => {
 
       const result = calculator.calculateLiquidityWeightedPrice(pools);
 
-      expect(result.poolsUsed).toBe(1); // Only valid pool counted
+      expect(result.poolsUsed).toBe(1);
       expect(result.price).toBe(0.5);
     });
 

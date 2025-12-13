@@ -1,4 +1,6 @@
 import { Order, OrderType, OrderSide, DecodedMexcOrder, MexcRawUserDataOrder } from '../../types';
+import { MexcDataMapper } from './mexc-data-mapper';
+import { toStandardFormat, toExchangeFormat } from '../../utils/symbol-utils';
 
 /**
  * MEXC Utility Functions
@@ -9,11 +11,54 @@ import { Order, OrderType, OrderSide, DecodedMexcOrder, MexcRawUserDataOrder } f
 export class MexcUtils {
 
   /**
-   * Transform MEXC protobuf decoded order to OpenMM standard format
-   * Used for protobuf WebSocket user data stream messages
+   * Unified order transformation function
+   * Handles all MEXC order formats: REST API, WebSocket, Protobuf, User Data
    */
-  static transformProtobufOrder(decodedOrder: DecodedMexcOrder): Order {
-    const status = this.mapProtobufStatus(decodedOrder.status);
+  static transformOrder(orderData: any): Order {
+    if (!orderData) {
+      throw new Error('Order data is required');
+    }
+
+    if (this.isProtobufOrder(orderData)) {
+      return this.transformProtobufOrderInternal(orderData);
+    } else if (this.isUserDataOrder(orderData)) {
+      return this.transformUserDataOrderInternal(orderData);
+    } else if (this.isWebSocketUserOrder(orderData)) {
+      return this.transformWebSocketUserOrderInternal(orderData);
+    } else if (this.isRestApiOrder(orderData)) {
+      return this.transformRestApiOrderInternal(orderData);
+    } else {
+      // Fallback to REST API format for broader compatibility
+      return this.transformRestApiOrderInternal(orderData);
+    }
+  }
+
+  private static isProtobufOrder(data: any): boolean {
+    return data && typeof data.orderId === 'string' && typeof data.symbol === 'string' && 
+           typeof data.price === 'number' && typeof data.quantity === 'number' && 
+           typeof data.side === 'string' && typeof data.status === 'string';
+  }
+
+  private static isUserDataOrder(data: any): boolean {
+    return data && (data.i !== undefined || data.c !== undefined) && 
+           (data.S !== undefined || data.s !== undefined);
+  }
+
+  private static isRestApiOrder(data: any): boolean {
+    return data && (data.orderId !== undefined || data.id !== undefined) && 
+           typeof data.symbol === 'string' && 
+           (data.origQty !== undefined || data.quantity !== undefined || data.status !== undefined);
+  }
+
+  private static isWebSocketUserOrder(data: any): boolean {
+    return data && (data.i !== undefined || data.orderId !== undefined) && 
+           (data.s !== undefined || data.symbol !== undefined) && 
+           (data.q !== undefined || data.origQty !== undefined) && 
+           (data.X !== undefined || data.orderStatus !== undefined);
+  }
+
+  private static transformProtobufOrderInternal(decodedOrder: DecodedMexcOrder): Order {
+    const status = MexcDataMapper.mapToOrderStatus(decodedOrder.status);
     
     let filled = 0;
     if (status === 'filled') {
@@ -40,30 +85,27 @@ export class MexcUtils {
     };
   }
 
-  /**
-   * Transform MEXC user data order update to OpenMM standard format
-   * Used for WebSocket user data stream messages
-   */
-  static transformUserDataOrder(mexcOrderData: MexcRawUserDataOrder | DecodedMexcOrder): Order {
-    if ('orderId' in mexcOrderData && 'symbol' in mexcOrderData && mexcOrderData.price !== undefined) {
-      return this.transformProtobufOrder(mexcOrderData as DecodedMexcOrder);
-    }
-
-    const userDataOrder = mexcOrderData as MexcRawUserDataOrder;
-    
-    const statusMap: { [key: number]: 'open' | 'filled' | 'cancelled' | 'rejected' } = {
-      1: 'open',
+  private static transformUserDataOrderInternal(userDataOrder: MexcRawUserDataOrder): Order {
+    const statusMap: { [key: number]: string } = {
+      1: 'new',
       2: 'filled',
-      3: 'open',
-      4: 'cancelled', // Order canceled
-      5: 'cancelled'  // Partially filled, then canceled
+      3: 'partially_filled',
+      4: 'cancelled',
+      5: 'cancelled'
     };
 
     const statusCode = userDataOrder.s;
-    const status = statusMap[statusCode || 1] || 'open';
+    const mexcStatus = statusMap[statusCode || 1] || 'new';
+    const status = MexcDataMapper.mapToOrderStatus(mexcStatus);
     
     const mexcSymbol = userDataOrder.c || userDataOrder.symbol;
-    const symbol = mexcSymbol ? this.formatSymbol(mexcSymbol) : '';
+    const symbol = mexcSymbol ? (() => {
+      try {
+        return toStandardFormat(mexcSymbol);
+      } catch {
+        return mexcSymbol;
+      }
+    })() : '';
 
     return {
       id: userDataOrder.i?.toString() || Date.now().toString(),
@@ -79,60 +121,46 @@ export class MexcUtils {
     };
   }
 
-  /**
-   * Map protobuf status strings to OpenMM status
-   */
-  private static mapProtobufStatus(protobufStatus: string): 'open' | 'filled' | 'cancelled' | 'rejected' {
-    switch (protobufStatus.toLowerCase()) {
-      case 'new':
-        return 'open';
-      case 'filled':
-        return 'filled';
-      case 'partially_filled':
-        return 'open';
-      case 'cancelled':
-      case 'canceled':
-        return 'cancelled';
-      case 'rejected':
-        return 'rejected';
-      default:
-        return 'open';
-    }
+  private static transformRestApiOrderInternal(mexcOrder: any): Order {
+    const status = MexcDataMapper.mapToOrderStatus(mexcOrder.status || 'NEW');
+    const filled = parseFloat(mexcOrder.executedQty || '0');
+    const amount = parseFloat(mexcOrder.origQty || mexcOrder.quantity || '0');
+
+    return {
+      id: (mexcOrder.orderId || mexcOrder.id || mexcOrder.i)?.toString() || '',
+      symbol: mexcOrder.symbol || '',
+      type: (mexcOrder.type || 'LIMIT').toLowerCase() as OrderType,
+      side: (mexcOrder.side || 'BUY').toLowerCase() as OrderSide,
+      amount,
+      price: mexcOrder.price ? parseFloat(mexcOrder.price) : 0,
+      filled,
+      remaining: amount - filled,
+      status,
+      timestamp: parseInt(mexcOrder.time || mexcOrder.updateTime) || Date.now()
+    };
   }
 
-  /**
-   * Convert symbol format from MEXC to OpenMM standard format
-   * Converts formats like BTCUSDT -> BTC/USDT, ETHUSDT -> ETH/USDT, etc.
-   */
-  static formatSymbol(mexcSymbol: string): string {
-    if (!mexcSymbol || mexcSymbol.length < 6) {
-      return mexcSymbol;
+  private static transformWebSocketUserOrderInternal(data: any): Order {
+    const mexcSymbol = data.s || data.symbol || '';
+    let symbol: string;
+    try {
+      symbol = toStandardFormat(mexcSymbol);
+    } catch {
+      symbol = mexcSymbol;
     }
 
-    const quoteCurrencies = ['USDT', 'USDC', 'BTC', 'ETH', 'BNB', 'BUSD'];
-    
-    for (const quote of quoteCurrencies) {
-      if (mexcSymbol.endsWith(quote)) {
-        const base = mexcSymbol.slice(0, -quote.length);
-        return `${base}/${quote}`;
-      }
-    }
-    
-    // Cases like DOGEUSDT -> DOGE/USDT
-    if (mexcSymbol.length >= 7) {
-      const base = mexcSymbol.slice(0, -4);
-      const quote = mexcSymbol.slice(-4);
-      return `${base}/${quote}`;
-    }
-    
-    return mexcSymbol;
-  }
-
-  /**
-   * Convert symbol format from OpenMM standard to MEXC (INDY/USDT -> INDYUSDT)
-   */
-  static toMexcSymbol(standardSymbol: string): string {
-    return standardSymbol.replace('/', '');
+    return {
+      id: data.i?.toString() || data.orderId?.toString() || Date.now().toString(),
+      symbol: symbol,
+      type: (data.o?.toLowerCase() || 'limit') as OrderType,
+      side: (data.S?.toLowerCase() || 'buy') as OrderSide,
+      amount: parseFloat(data.q || data.origQty || '0'),
+      price: parseFloat(data.p || data.price || '0'),
+      filled: parseFloat(data.z || data.executedQty || '0'),
+      remaining: parseFloat(data.q || '0') - parseFloat(data.z || '0'),
+      status: MexcDataMapper.mapToOrderStatus(data.X || data.orderStatus || 'NEW'),
+      timestamp: parseInt(data.T || data.transactTime) || Date.now()
+    };
   }
 
   /**
@@ -146,7 +174,7 @@ export class MexcUtils {
     price?: number
   ): Record<string, any> {
     const params: any = {
-      symbol: this.toMexcSymbol(symbol),
+      symbol: toExchangeFormat(symbol),
       side: side.toUpperCase(),
       type: type.toUpperCase(),
       quantity: amount.toString()
@@ -170,26 +198,5 @@ export class MexcUtils {
       return 'sell';
     }
     return 'buy';
-  }
-
-  /**
-   * Extract order status from protobuf message
-   */
-  static extractOrderStatus(message: string): string {
-    const upperMessage = message.toUpperCase();
-    
-    if (upperMessage.includes('CANCEL')) {
-      return 'cancelled';
-    } else if (upperMessage.includes('FILLED') || upperMessage.includes('FILL')) {
-      return 'filled';
-    } else if (upperMessage.includes('PARTIAL')) {
-      return 'partially_filled';
-    } else if (upperMessage.includes('EXECUTED') || upperMessage.includes('EXEC')) {
-      return 'filled';
-    } else if (message.includes('R2') || message.includes('H2') || message.includes('EXE')) {
-      return 'filled';
-    } else {
-      return 'new';
-    }
   }
 }

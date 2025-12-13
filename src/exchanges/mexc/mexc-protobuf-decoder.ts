@@ -22,7 +22,7 @@ import { MexcUtils } from './mexc-utils';
  */
 
 export class MexcProtobufDecoder {
-  
+
   /**
    * Main decoder function for MEXC protobuf messages
    */
@@ -57,13 +57,18 @@ export class MexcProtobufDecoder {
 
   /**
    * Decode order-related protobuf messages for user data stream
-   * Format: spot@private.orders.v3.api.pINDYUSDT0...
+   * Format: spot@private.orders.v3.api.pb\u001a\bINDYUSDT0...
    */
   private static decodeOrderMessage(message: string, channel: string): DecodedMexcMessage {
     try {
-      let symbolMatch = message.match(/\.pb([A-Z]+USDT|[A-Z]+BTC|[A-Z]+ETH|[A-Z]+BNB)/);
+      let symbolMatch = message.match(/\\u001a\\b([A-Z]{3,10}USDT|[A-Z]{3,10}BTC|[A-Z]{3,10}ETH|[A-Z]{3,10}BNB)/);
+      
       if (!symbolMatch) {
-        symbolMatch = message.match(/spot@private\.orders\.v3\.api\.p([A-Z]+USDT|[A-Z]+BTC|[A-Z]+ETH|[A-Z]+BNB)/);
+        symbolMatch = message.match(/([A-Z]{3,10}USDT|[A-Z]{3,10}BTC|[A-Z]{3,10}ETH|[A-Z]{3,10}BNB)0/);
+      }
+      
+      if (!symbolMatch) {
+        symbolMatch = message.match(/\.pb([A-Z]+USDT|[A-Z]+BTC|[A-Z]+ETH|[A-Z]+BNB)/);
       }
 
       const symbol = symbolMatch ? symbolMatch[1] : 'UNKNOWN';
@@ -94,7 +99,7 @@ export class MexcProtobufDecoder {
       }
       
       const side = MexcUtils.determineSide(message);
-      const status = MexcUtils.extractOrderStatus(message);
+      const status = this.extractProtobufOrderStatus(message);
       
       const decoded: DecodedMexcOrder = {
         orderId,
@@ -123,7 +128,6 @@ export class MexcProtobufDecoder {
       };
     }
   }
-
 
   /**
    * Decode ticker protobuf messages
@@ -217,5 +221,32 @@ export class MexcProtobufDecoder {
         error: `Trades decode error: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
+  }
+
+  /**
+   * Extract order status from MEXC protobuf message
+   */
+  private static extractProtobufOrderStatus(message: string): string {
+    const hasCancelled = message.includes('\\u0004') || message.includes('\u0004');
+    const hasPartial = message.includes('\\u0003') || message.includes('\u0003');
+    const hasFilled = message.includes('\\u0002') || message.includes('\u0002');
+
+    if (hasCancelled) return 'cancelled';
+    if (hasPartial) return 'partially_filled';
+    if (hasFilled) return 'filled';
+
+    const upperMessage = message.toUpperCase();
+
+    if (upperMessage.includes('CANCEL')) {
+      return 'cancelled';
+    } else if (upperMessage.includes('FILLED') || upperMessage.includes('FILL')) {
+      return 'filled';
+    } else if (upperMessage.includes('PARTIAL')) {
+      return 'partially_filled';
+    } else if (upperMessage.includes('EXECUTED') || upperMessage.includes('EXEC')) {
+      return 'filled';
+    }
+
+    return 'new';
   }
 }

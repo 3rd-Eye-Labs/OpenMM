@@ -25,6 +25,8 @@ export class MexcUserStream {
   private keepAliveInterval?: NodeJS.Timeout;
   private makeRequestFn: (endpoint: string, params: Record<string, unknown>, method: string) => Promise<any>;
   private logger = createLogger('mexc-user-stream');
+  private orderCallback?: (order: Order) => void;
+  private tradeCallback?: (trade: Trade) => void;
 
   constructor(makeRequestFn: (endpoint: string, params: Record<string, unknown>, method: string) => Promise<any>) {
     this.makeRequestFn = makeRequestFn;
@@ -36,18 +38,106 @@ export class MexcUserStream {
   async connectUserDataStream(): Promise<void> {
     try {
       await this.getListenKey();
+      
       if (!this.userDataWs) {
-        this.userDataWs = new MexcWebSocket(`wss://wbs-api.mexc.com/ws?listenKey=${this.listenKey}`);
+        const wsUrl = `wss://wbs-api.mexc.com/ws?listenKey=${this.listenKey}`;
+        this.userDataWs = new MexcWebSocket(wsUrl);
       }
 
       await this.userDataWs.connectWebSocket();
+      this.logger.info('✅ User data stream connected successfully');
 
       this.keepAliveInterval = setInterval(() => {
         this.keepAliveListenKey().catch((error) => this.logger.error('Keep alive listen key failed', { error }));
       }, 30 * 60 * 1000);
 
+      this.setupDisconnectHandler();
+      
+      this.startConnectionMonitoring();
+
     } catch (error: unknown) {
+      this.logger.error('❌ Failed to connect user data stream:', { error });
       throw new Error(`Failed to connect user data stream: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Set up immediate disconnect detection
+   */
+  private setupDisconnectHandler(): void {
+    if (!this.userDataWs) return;
+    
+    const originalOnClose = (this.userDataWs as any).ws?.onclose;
+    if ((this.userDataWs as any).ws) {
+      (this.userDataWs as any).ws.onclose = (event: any) => {
+        
+        if (originalOnClose) {
+          originalOnClose.call((this.userDataWs as any).ws, event);
+        }
+        
+        setTimeout(() => {
+          if (this.userDataWs && !this.userDataWs.isConnected()) {
+            this.reconnectUserDataStream().catch((error) =>
+              this.logger.error('Immediate reconnection failed:', { error })
+            );
+          }
+        }, 1000);
+      };
+    }
+  }
+
+  /**
+   * Monitor connection status and reconnect if needed
+   */
+  private startConnectionMonitoring(): void {
+    setInterval(() => {
+      if (this.userDataWs && !this.userDataWs.isConnected()) {
+        this.reconnectUserDataStream().catch((error) =>
+          this.logger.error('Failed to reconnect user data stream:', { error })
+        );
+      } else if (this.userDataWs) {
+      } else {
+        this.logger.warn('⚠️ No user data WebSocket instance found');
+      }
+    }, 10000);
+  }
+
+  /**
+   * Reconnect the user data stream
+   */
+  private async reconnectUserDataStream(): Promise<void> {
+    try {
+      if (this.userDataWs) {
+        await this.userDataWs.disconnectWebSocket();
+        this.userDataWs = undefined;
+      }
+
+      await this.getListenKey();
+      
+      const wsUrl = `wss://wbs-api.mexc.com/ws?listenKey=${this.listenKey}`;
+      this.userDataWs = new MexcWebSocket(wsUrl);
+      
+      await this.userDataWs.connectWebSocket();
+
+      this.setupDisconnectHandler();
+      
+      if (this.orderCallback) {
+        await this.userDataWs.subscribeToUserData(this.orderCallback);
+      }
+      
+      if (this.tradeCallback) {
+        const wrappedCallback = (data: any) => {
+          if (this.isTradeExecution(data)) {
+            const trade = this.transformToTrade(data);
+            this.tradeCallback!(trade);
+          }
+        };
+        await this.userDataWs.subscribeToUserData(wrappedCallback);
+      }
+      
+    } catch (error) {
+      this.logger.error('❌ Failed to reconnect user data stream:', { error });
+      throw error;
     }
   }
 
@@ -80,8 +170,11 @@ export class MexcUserStream {
         throw new Error('User data stream not connected. Call connect() first.');
       }
 
+      this.orderCallback = callback;
+
       return await this.userDataWs.subscribeToUserData(callback);
     } catch (error: unknown) {
+      this.logger.error('❌ Failed to subscribe to user orders:', { error });
       throw new Error(`Failed to subscribe to user orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -103,10 +196,10 @@ export class MexcUserStream {
         throw new Error('User data stream not connected. Call connect() first.');
       }
 
+      this.tradeCallback = callback;
       const wrappedCallback = (data: any) => {
         if (this.isTradeExecution(data)) {
           const trade = this.transformToTrade(data);
-          this.logger.info('🎯 Trade execution detected and transformed', trade);
           callback(trade);
         }
       };

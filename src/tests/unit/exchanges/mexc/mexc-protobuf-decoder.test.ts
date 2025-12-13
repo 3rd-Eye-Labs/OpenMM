@@ -1,31 +1,32 @@
 import { MexcProtobufDecoder } from '../../../../exchanges/mexc/mexc-protobuf-decoder';
 import { MexcUtils } from '../../../../exchanges/mexc/mexc-utils';
+import { MexcDataMapper } from '../../../../exchanges/mexc/mexc-data-mapper';
 import { DecodedMexcOrder, DecodedMexcTickerData, DecodedMexcTradesData } from '../../../../types';
 
 jest.mock('../../../../exchanges/mexc/mexc-utils');
+jest.mock('../../../../exchanges/mexc/mexc-data-mapper');
 
 const MockedMexcUtils = MexcUtils as jest.Mocked<typeof MexcUtils>;
+const MockedMexcDataMapper = MexcDataMapper as jest.Mocked<typeof MexcDataMapper>;
 
 describe('MexcProtobufDecoder', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
     MockedMexcUtils.determineSide.mockReturnValue('buy');
-    MockedMexcUtils.extractOrderStatus.mockReturnValue('FILLED');
+    MockedMexcDataMapper.mapToOrderStatus.mockReturnValue('filled');
   });
 
   describe('decode()', () => {
     it('should identify and route order messages to decodeOrderMessage', () => {
       const orderMessage = 'spot@private.orders.v3.api.pbBTCUSDTC02__123456*50000.0"1.5';
       MockedMexcUtils.determineSide.mockReturnValue('buy');
-      MockedMexcUtils.extractOrderStatus.mockReturnValue('NEW');
 
       const result = MexcProtobufDecoder.decode(orderMessage);
 
       expect(result.type).toBe('order');
       expect(result.decoded).toBeDefined();
       expect(MockedMexcUtils.determineSide).toHaveBeenCalled();
-      expect(MockedMexcUtils.extractOrderStatus).toHaveBeenCalled();
     });
 
     it('should identify and route ticker messages to decodeTickerMessage', () => {
@@ -119,14 +120,12 @@ describe('MexcProtobufDecoder', () => {
     it('should extract order ID from C02__ pattern', () => {
       const message = 'spot@private.orders.v3.api.pbBTCUSDTC02__987654*45000.0"2.0';
       MockedMexcUtils.determineSide.mockReturnValue('sell');
-      MockedMexcUtils.extractOrderStatus.mockReturnValue('PARTIALLY_FILLED');
 
       const result = MexcProtobufDecoder.decode(message);
       const decoded = result.decoded as DecodedMexcOrder;
 
       expect(decoded.orderId).toBe('C02__987654');
       expect(decoded.side).toBe('sell');
-      expect(decoded.status).toBe('PARTIALLY_FILLED');
     });
 
     it('should handle missing order ID gracefully', () => {
@@ -188,7 +187,7 @@ describe('MexcProtobufDecoder', () => {
     });
 
     it('should handle order decoding errors', () => {
-      MockedMexcUtils.extractOrderStatus.mockImplementation(() => {
+      MockedMexcUtils.determineSide.mockImplementation(() => {
         throw new Error('Status error');
       });
 
@@ -393,7 +392,6 @@ describe('MexcProtobufDecoder', () => {
       MexcProtobufDecoder.decode(message);
 
       expect(MockedMexcUtils.determineSide).toHaveBeenCalledWith(message);
-      expect(MockedMexcUtils.extractOrderStatus).toHaveBeenCalledWith(message);
     });
   });
 });

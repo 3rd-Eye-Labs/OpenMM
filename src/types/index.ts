@@ -7,3 +7,4 @@ export * from './mexc-raw';
 export * from './price';
 export * from './risk';
 export * from './iris';
+export * from './grid';

@@ -54,6 +54,7 @@ export abstract class BaseExchangeConnector {
   ): Promise<Order>;
 
   abstract cancelOrder(orderId: string, symbol: string): Promise<void>;
+  abstract cancelAllOrders(symbol: string): Promise<void>;
   abstract getOrder(orderId: string, symbol: string): Promise<Order>;
   abstract getOpenOrders(symbol?: string): Promise<Order[]>;
 
