@@ -27,12 +27,14 @@ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT
 
 ### Custom Configuration
 ```bash
-# Advanced grid with custom parameters
+# Advanced grid with custom parameters and risk management
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --levels 5 \
   --spacing 0.02 \
   --size 50 \
-  --confidence 0.7
+  --confidence 0.7 \
+  --max-position 0.6 \
+  --safety-reserve 0.3
 ```
 
 ## Command Options
@@ -49,6 +51,8 @@ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
 - `--confidence <decimal>` - Minimum price confidence to trade (default: 0.6 = 60%)
 - `--deviation <decimal>` - Price deviation % to trigger grid recreation (default: 0.015 = 1.5%)
 - `--debounce <ms>` - Delay between grid adjustments (default: 2000ms)
+- `--max-position <decimal>` - Maximum position size as % of balance (default: 0.8 = 80%)
+- `--safety-reserve <decimal>` - Safety reserve as % of balance (default: 0.2 = 20%)
 - `--dry-run` - Simulate trading without placing real orders
 
 ## Trading Examples
@@ -86,10 +90,16 @@ openmm grid --exchange mexc --symbol INDY/USDT --levels 5
 
 The Grid Strategy includes built-in risk management:
 
+### Configurable Risk Limits
+Users can customize risk management through CLI parameters:
+- `--max-position 0.6` - Use max 60% of balance for trading (default: 80%)
+- `--safety-reserve 0.3` - Keep 30% as safety reserve (default: 20%)
+- `--confidence 0.8` - Require 80% price confidence (default: 60%)
+
 ### Automatic Position Sizing
 When `--size` is omitted, the system automatically calculates optimal order sizes:
-- Uses **80% of available balance** for trading
-- Keeps **20% as safety reserve**
+- Uses **max-position %** of available balance for trading
+- Keeps **safety-reserve %** untouched as safety buffer
 - Distributes orders across grid levels efficiently
 
 ### Price Confidence Filtering

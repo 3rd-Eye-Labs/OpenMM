@@ -18,6 +18,8 @@ export const tradeCommand = new Command('trade')
   .option('--confidence <decimal>', 'Grid: Minimum price confidence (0.6 = 60%)', '0.6')
   .option('--deviation <decimal>', 'Grid: Price deviation threshold (0.015 = 1.5%)', '0.015')
   .option('--debounce <ms>', 'Grid: Adjustment debounce time in ms (default: 2000)', '2000')
+  .option('--max-position <decimal>', 'Grid: Maximum position size as % of balance (0.8 = 80%)', '0.8')
+  .option('--safety-reserve <decimal>', 'Grid: Safety reserve as % of balance (0.2 = 20%)', '0.2')
   
   .option('--dry-run', 'Simulate trading without placing real orders')
   
@@ -66,6 +68,8 @@ export const tradeCommand = new Command('trade')
           console.log(chalk.gray(`Grid Levels: ${options.levels} each side`));
           console.log(chalk.gray(`Grid Spacing: ${(parseFloat(options.spacing) * 100).toFixed(1)}%`));
           console.log(chalk.gray(`Order Size: $${options.size}`));
+          console.log(chalk.gray(`Max Position: ${(parseFloat(options.maxPosition) * 100).toFixed(0)}%`));
+          console.log(chalk.gray(`Safety Reserve: ${(parseFloat(options.safetyReserve) * 100).toFixed(0)}%`));
           
           params = {
             gridLevels: parseInt(options.levels),
@@ -73,7 +77,9 @@ export const tradeCommand = new Command('trade')
             orderSize: parseFloat(options.size),
             minConfidence: parseFloat(options.confidence),
             priceDeviationThreshold: parseFloat(options.deviation),
-            adjustmentDebounce: parseInt(options.debounce)
+            adjustmentDebounce: parseInt(options.debounce),
+            maxPositionSize: parseFloat(options.maxPosition),
+            safetyReservePercentage: parseFloat(options.safetyReserve)
           } as GridLauncherParams;
         }
         
@@ -110,6 +116,8 @@ Grid Strategy Parameters:
   --confidence: Minimum price confidence to trade (default: 0.6 = 60%)
   --deviation: Price movement % to trigger grid recreation (default: 0.015 = 1.5%)
   --debounce: Delay between grid adjustments in ms (default: 2000ms)
+  --max-position: Maximum position size as % of balance (default: 0.8 = 80%)
+  --safety-reserve: Safety reserve as % of balance (default: 0.2 = 20%)
 
 Note: Ensure exchange-specific environment variables are set (e.g., MEXC_API_KEY and MEXC_SECRET_KEY for MEXC).
 `);

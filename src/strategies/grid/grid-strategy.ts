@@ -1,8 +1,8 @@
 import { BaseStrategy } from '../../core/strategy/base-strategy';
-import { Order, OrderSide, StrategyConfig, GridConfig, GridStrategyConfig, GridOrderManagerConfig } from '../../types';
+import { Order, OrderSide, StrategyConfig, GridConfig, GridStrategyConfig, GridOrderManagerConfig, RiskManagerConfig } from '../../types';
 import { BaseExchangeConnector } from '../../core/exchange/base-exchange-connector';
 import { CardanoPriceService } from '../../core/price-aggregation';
-import { RiskManager, RiskManagerConfig } from '../../core/risk-management/risk-manager';
+import { RiskManager } from '../../core/risk-management/risk-manager';
 import { GridOrderManager } from './grid-order-manager';
 import { GridCalculator } from './grid-calculator';
 import { parseSymbol } from '../../utils/symbol-utils';
@@ -174,6 +174,10 @@ export class GridStrategy extends BaseStrategy {
 
   setExchangeConnector(connector: BaseExchangeConnector): void {
     this.exchangeConnector = connector;
+  }
+
+  setRiskConfig(riskConfig: RiskManagerConfig): void {
+    this.riskManager = new RiskManager(riskConfig);
   }
 
   private async placeOrder(side: OrderSide, amount: number, price: number): Promise<Order> {
