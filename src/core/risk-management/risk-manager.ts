@@ -1,4 +1,4 @@
-import { Order, OrderSide } from '../../types';
+import { Order } from '../../types';
 import { Balance } from '../../types';
 import { AggregatedPrice } from '../../types';
 import { RiskLimits } from '../../types';
