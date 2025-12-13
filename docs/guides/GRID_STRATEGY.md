@@ -78,14 +78,6 @@ openmm trade --strategy grid --exchange mexc --symbol BTC/USDT \
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT --dry-run
 ```
 
-## Alternative Commands
-
-### Legacy Grid Command
-```bash
-# Equivalent to trade command but grid-specific
-openmm grid --exchange mexc --symbol INDY/USDT --levels 5
-```
-
 ## Risk Management
 
 The Grid Strategy includes built-in risk management:
