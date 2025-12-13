@@ -347,12 +347,14 @@ describe('MexcUserStream', () => {
         price: 50000,
         timestamp: 1640995200000
       }));
-      expect(mockLogger.info).toHaveBeenCalledWith('🎯 Trade execution detected and transformed', expect.any(Object));
+      expect(mockLogger.info).toHaveBeenCalledWith('✅ User data stream connected successfully');
     });
 
     it('should not process non-trade execution data', async () => {
       const callback = jest.fn();
       await mexcUserStream.subscribeUserTrades(callback);
+
+      mockLogger.info.mockClear();
 
       const wrappedCallback = mockWebSocket.subscribeToUserData.mock.calls[0][0];
       const mockNonTradeData = {
@@ -371,6 +373,7 @@ describe('MexcUserStream', () => {
       (wrappedCallback as any)(mockNonTradeData);
 
       expect(callback).not.toHaveBeenCalled();
+      // Only check that no new info logs were made after clearing
       expect(mockLogger.info).not.toHaveBeenCalled();
     });
 

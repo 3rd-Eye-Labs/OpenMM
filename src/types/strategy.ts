@@ -21,10 +21,24 @@ export interface StrategyConfig {
 }
 
 /**
+ * Grid configuration
+ */
+export interface GridConfig {
+  symbol: string;
+  gridLevels: number;
+  gridSpacing: number;
+  orderSize: number;
+  minConfidence: number;
+  priceDeviationThreshold: number;
+  adjustmentDebounce: number;
+}
+
+/**
  * Grid strategy specific configuration
  */
 export interface GridStrategyConfig extends StrategyConfig {
   type: 'grid';
+  gridConfig: GridConfig;
   parameters: {
     gridLevels: number;
     gridSpacing: number;

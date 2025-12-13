@@ -1,6 +1,6 @@
 import { IrisPoolDiscovery } from '../../../../core/price-aggregation';
 import { IrisApiClient } from '../../../../core/price-aggregation';
-import { CardanoTokenConfig } from '../../../../types/price';
+import { CardanoTokenConfig } from '../../../../types';
 
 jest.mock('../../../../core/price-aggregation/iris-api-client');
 

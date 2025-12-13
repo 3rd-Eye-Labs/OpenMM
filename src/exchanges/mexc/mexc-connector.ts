@@ -6,6 +6,7 @@ import { MexcUtils } from './mexc-utils';
 import { MexcUserStream } from './mexc-user-stream';
 import { MexcDataMapper } from './mexc-data-mapper';
 import { createLogger } from '../../utils';
+import { toExchangeFormat } from '../../utils/symbol-utils';
 import config from '../../config/environment';
 
 /**
@@ -109,7 +110,7 @@ export class MexcConnector extends BaseExchangeConnector {
 
       return this.dataMapper.mapOrder({
         orderId: result.orderId,
-        symbol: MexcUtils.toMexcSymbol(symbol),
+        symbol: toExchangeFormat(symbol),
         type: type.toUpperCase(),
         side: side.toUpperCase(),
         origQty: amount.toString(),
@@ -129,11 +130,24 @@ export class MexcConnector extends BaseExchangeConnector {
   async cancelOrder(orderId: string, symbol: string): Promise<void> {
     try {
       await this.makeRequest('/order', { 
-        symbol: MexcUtils.toMexcSymbol(symbol), 
+        symbol: toExchangeFormat(symbol), 
         orderId 
       }, 'DELETE');
     } catch (error: unknown) {
       this.handleError(error, 'cancelOrder');
+    }
+  }
+
+  /**
+   * Cancel all open orders on a symbol
+   */
+  async cancelAllOrders(symbol: string): Promise<void> {
+    try {
+      await this.makeRequest('/openOrders', { 
+        symbol: toExchangeFormat(symbol)
+      }, 'DELETE');
+    } catch (error: unknown) {
+      this.handleError(error, 'cancelAllOrders');
     }
   }
 
@@ -143,7 +157,7 @@ export class MexcConnector extends BaseExchangeConnector {
   async getOrder(orderId: string, symbol: string): Promise<Order> {
     try {
       const orders = await this.makeRequest('/allOrders', { 
-        symbol: MexcUtils.toMexcSymbol(symbol),
+        symbol: toExchangeFormat(symbol),
         orderId 
       });
 
@@ -166,7 +180,7 @@ export class MexcConnector extends BaseExchangeConnector {
     try {
       const params: any = {};
       if (symbol) {
-        params.symbol = MexcUtils.toMexcSymbol(symbol);
+        params.symbol = toExchangeFormat(symbol);
       }
 
       const orders = await this.makeRequest('/openOrders', params);
@@ -181,7 +195,7 @@ export class MexcConnector extends BaseExchangeConnector {
    */
   async getTicker(symbol: string): Promise<Ticker> {
     try {
-      const mexcSymbol = MexcUtils.toMexcSymbol(symbol);
+      const mexcSymbol = toExchangeFormat(symbol);
       
       const [priceData, statsData] = await Promise.all([
         this.makePublicRequest('/ticker/price', { symbol: mexcSymbol }),
@@ -199,7 +213,7 @@ export class MexcConnector extends BaseExchangeConnector {
    */
   async getOrderBook(symbol: string): Promise<OrderBook> {
     try {
-      const mexcSymbol = MexcUtils.toMexcSymbol(symbol);
+      const mexcSymbol = toExchangeFormat(symbol);
       
       const orderBook = await this.makePublicRequest('/depth', { 
         symbol: mexcSymbol,
@@ -217,7 +231,7 @@ export class MexcConnector extends BaseExchangeConnector {
    */
   async getRecentTrades(symbol: string): Promise<Trade[]> {
     try {
-      const mexcSymbol = MexcUtils.toMexcSymbol(symbol);
+      const mexcSymbol = toExchangeFormat(symbol);
       
       const trades = await this.makePublicRequest('/trades', { 
         symbol: mexcSymbol,

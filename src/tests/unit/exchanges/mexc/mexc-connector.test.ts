@@ -3,18 +3,21 @@ import { MexcAuth } from '../../../../exchanges/mexc/mexc-auth';
 import { MexcWebSocket } from '../../../../exchanges/mexc/mexc-websocket';
 import { MexcUserStream } from '../../../../exchanges/mexc/mexc-user-stream';
 import { MexcUtils } from '../../../../exchanges/mexc/mexc-utils';
+import { MexcDataMapper } from '../../../../exchanges/mexc/mexc-data-mapper';
 import { mockCredentials } from '../../../fixtures/test-helpers';
 
 jest.mock('../../../../exchanges/mexc/mexc-auth');
 jest.mock('../../../../exchanges/mexc/mexc-websocket');
 jest.mock('../../../../exchanges/mexc/mexc-user-stream');
 jest.mock('../../../../exchanges/mexc/mexc-utils');
+jest.mock('../../../../exchanges/mexc/mexc-data-mapper');
 jest.mock('../../../../utils');
 
 const MockedMexcAuth = MexcAuth as jest.MockedClass<typeof MexcAuth>;
 const MockedMexcWebSocket = MexcWebSocket as jest.MockedClass<typeof MexcWebSocket>;
 const MockedMexcUserStream = MexcUserStream as jest.MockedClass<typeof MexcUserStream>;
 const MockedMexcUtils = MexcUtils as jest.Mocked<typeof MexcUtils>;
+const MockedMexcDataMapper = MexcDataMapper as jest.MockedClass<typeof MexcDataMapper>;
 
 class TestableMexcConnector extends MexcConnector {
   public testAuth?: MexcAuth;
@@ -114,9 +117,21 @@ describe('MexcConnector', () => {
   let mockAuth: jest.Mocked<MexcAuth>;
   let mockWebSocket: jest.Mocked<MexcWebSocket>;
   let mockUserStream: jest.Mocked<MexcUserStream>;
+  let mockDataMapper: jest.Mocked<MexcDataMapper>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    jest.spyOn(MexcDataMapper, 'mapToOrderStatus').mockImplementation((status: string) => {
+      switch (status.toUpperCase()) {
+        case 'NEW': return 'open';
+        case 'FILLED': return 'filled';
+        case 'CANCELED':
+        case 'CANCELLED': return 'cancelled';
+        case 'REJECTED': return 'rejected';
+        default: return 'open';
+      }
+    });
 
     mockAuth = {
       validateCredentials: jest.fn().mockReturnValue(true),
@@ -149,9 +164,48 @@ describe('MexcConnector', () => {
       deleteListenKey: jest.fn(),
     } as any;
 
+    mockDataMapper = {
+      mapOrder: jest.fn().mockReturnValue({
+        id: 'mock-order-id',
+        symbol: 'BTCUSDT',
+        type: 'limit',
+        side: 'buy',
+        amount: 1.0,
+        price: 50000,
+        filled: 0,
+        remaining: 1.0,
+        status: 'open',
+        timestamp: Date.now()
+      }),
+      mapAccountBalances: jest.fn().mockReturnValue({}),
+      mapTicker: jest.fn().mockReturnValue({
+        symbol: 'BTCUSDT',
+        last: 50000,
+        bid: 49999,
+        ask: 50001,
+        baseVolume: 1000,
+        timestamp: Date.now()
+      }),
+      mapOrderBook: jest.fn().mockReturnValue({
+        symbol: 'BTC/USDT',
+        bids: [[49999, 1.0]],
+        asks: [[50001, 1.0]],
+        timestamp: Date.now()
+      }),
+      mapTrade: jest.fn().mockReturnValue({
+        id: 'trade-1',
+        symbol: 'BTC/USDT',
+        side: 'buy',
+        amount: 1.0,
+        price: 50000,
+        timestamp: Date.now()
+      }),
+    } as any;
+
     MockedMexcAuth.mockImplementation(() => mockAuth);
     MockedMexcWebSocket.mockImplementation(() => mockWebSocket);
     MockedMexcUserStream.mockImplementation(() => mockUserStream);
+    MockedMexcDataMapper.mockImplementation(() => mockDataMapper);
 
     connector = new TestableMexcConnector(mockAuth, mockWebSocket, mockUserStream);
   });
@@ -226,6 +280,22 @@ describe('MexcConnector', () => {
       };
 
       mockAuth.makeRequest.mockResolvedValue(mockAccountData);
+      mockDataMapper.mapAccountBalances.mockReturnValue({
+        BTC: {
+          asset: 'BTC',
+          free: 1.0,
+          used: 0.5,
+          total: 1.5,
+          available: 1.0
+        },
+        USDT: {
+          asset: 'USDT',
+          free: 1000.0,
+          used: 0.0,
+          total: 1000.0,
+          available: 1000.0
+        }
+      });
 
       const result = await connector.getBalance();
 
@@ -254,6 +324,16 @@ describe('MexcConnector', () => {
           { asset: 'BTC', free: '1.0', locked: '0.5' }
         ]
       };
+
+      mockDataMapper.mapAccountBalances.mockReturnValueOnce({
+        BTC: {
+          asset: 'BTC',
+          free: 1.0,
+          used: 0.5,
+          total: 1.5,
+          available: 1.0
+        }
+      });
 
       mockAuth.makeRequest.mockResolvedValue(mockAccountData);
 
@@ -315,8 +395,20 @@ describe('MexcConnector', () => {
       const mockApiResponse = { orderId: '12345' };
 
       MockedMexcUtils.createOrderParams.mockReturnValue(mockOrderParams);
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+            mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+      
+      mockDataMapper.mapOrder.mockReturnValueOnce({
+        id: '12345',
+        symbol: 'BTCUSDT',
+        type: 'limit',
+        side: 'buy',
+        amount: 1.5,
+        price: 50000,
+        filled: 0,
+        remaining: 1.5,
+        status: 'open',
+        timestamp: Date.now()
+      });
 
       const result = await connector.createOrder('BTC/USDT', 'limit', 'buy', 1.5, 50000);
 
@@ -344,8 +436,20 @@ describe('MexcConnector', () => {
       const mockApiResponse = { orderId: '54321' };
 
       MockedMexcUtils.createOrderParams.mockReturnValue(mockOrderParams);
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+            mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+      
+      mockDataMapper.mapOrder.mockReturnValueOnce({
+        id: '54321',
+        symbol: 'BTCUSDT',
+        type: 'market',
+        side: 'sell',
+        amount: 1.0,
+        price: 0,
+        filled: 0,
+        remaining: 1.0,
+        status: 'open',
+        timestamp: Date.now()
+      });
 
       const result = await connector.createOrder('BTC/USDT', 'market', 'sell', 1.0);
 
@@ -380,12 +484,10 @@ describe('MexcConnector', () => {
     });
 
     it('should cancel an order successfully', async () => {
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makeRequest.mockResolvedValue({});
+            mockAuth.makeRequest.mockResolvedValue({});
 
       await connector.cancelOrder('12345', 'BTC/USDT');
 
-      expect(MockedMexcUtils.toMexcSymbol).toHaveBeenCalledWith('BTC/USDT');
       expect(mockAuth.makeRequest).toHaveBeenCalledWith('/order', {
         symbol: 'BTCUSDT',
         orderId: '12345'
@@ -394,8 +496,7 @@ describe('MexcConnector', () => {
 
     it('should handle cancellation errors', async () => {
       const error = new Error('Order not found');
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makeRequest.mockRejectedValue(error);
+            mockAuth.makeRequest.mockRejectedValue(error);
 
       await expect(connector.cancelOrder('12345', 'BTC/USDT')).rejects.toThrow('Order not found');
     });
@@ -404,6 +505,57 @@ describe('MexcConnector', () => {
       const unauthenticatedConnector = new MexcConnector();
 
       await expect(unauthenticatedConnector.cancelOrder('12345', 'BTC/USDT')).rejects.toThrow('MEXC connector not authenticated');
+    });
+  });
+
+  describe('cancelAllOrders', () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
+
+    it('should cancel all orders for a symbol successfully', async () => {
+      mockAuth.makeRequest.mockResolvedValue([
+        { orderId: '12345', status: 'CANCELED' },
+        { orderId: '67890', status: 'CANCELED' }
+      ]);
+
+      await connector.cancelAllOrders('INDY/USDT');
+
+      expect(mockAuth.makeRequest).toHaveBeenCalledWith('/openOrders', {
+        symbol: 'INDYUSDT'
+      }, 'DELETE');
+    });
+
+    it('should handle bulk cancellation errors', async () => {
+      const error = new Error('Symbol not found');
+      mockAuth.makeRequest.mockRejectedValue(error);
+
+      await expect(connector.cancelAllOrders('INDY/USDT')).rejects.toThrow('Symbol not found');
+    });
+
+    it('should require authentication', async () => {
+      const unauthenticatedConnector = new MexcConnector();
+
+      await expect(unauthenticatedConnector.cancelAllOrders('INDY/USDT')).rejects.toThrow('MEXC connector not authenticated');
+    });
+
+    it('should handle empty response for no open orders', async () => {
+      mockAuth.makeRequest.mockResolvedValue([]);
+
+      await expect(connector.cancelAllOrders('INDY/USDT')).resolves.not.toThrow();
+      expect(mockAuth.makeRequest).toHaveBeenCalledWith('/openOrders', {
+        symbol: 'INDYUSDT'
+      }, 'DELETE');
+    });
+
+    it('should work with different symbol formats', async () => {
+            mockAuth.makeRequest.mockResolvedValue([]);
+
+      await connector.cancelAllOrders('BTC/USDT');
+
+      expect(mockAuth.makeRequest).toHaveBeenCalledWith('/openOrders', {
+        symbol: 'BTCUSDT'
+      }, 'DELETE');
     });
   });
 
@@ -426,8 +578,20 @@ describe('MexcConnector', () => {
       }];
 
 
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+            mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+      
+      mockDataMapper.mapOrder.mockReturnValueOnce({
+        id: '12345',
+        symbol: 'BTCUSDT',
+        type: 'limit',
+        side: 'buy',
+        amount: 1.5,
+        price: 50000,
+        filled: 0.5,
+        remaining: 1.0,
+        status: 'open',
+        timestamp: 1234567890
+      });
 
       const result = await connector.getOrder('12345', 'BTC/USDT');
 
@@ -445,8 +609,7 @@ describe('MexcConnector', () => {
     });
 
     it('should handle order not found', async () => {
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makeRequest.mockResolvedValue([]);
+            mockAuth.makeRequest.mockResolvedValue([]);
 
       await expect(connector.getOrder('12345', 'BTC/USDT')).rejects.toThrow('Order not found');
     });
@@ -490,8 +653,7 @@ describe('MexcConnector', () => {
       ];
 
 
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+            mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
 
       const result = await connector.getOpenOrders('BTC/USDT');
 
@@ -519,8 +681,7 @@ describe('MexcConnector', () => {
       const mockPriceData = { symbol: 'BTCUSDT', price: '50000' };
       const mockStatsData = { bidPrice: '49999', askPrice: '50001', volume: '100' };
 
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makePublicRequest
+            mockAuth.makePublicRequest
         .mockResolvedValueOnce(mockPriceData)
         .mockResolvedValueOnce(mockStatsData);
 
@@ -538,8 +699,7 @@ describe('MexcConnector', () => {
 
     it('should handle API errors', async () => {
       const error = new Error('Symbol not found');
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makePublicRequest.mockRejectedValue(error);
+            mockAuth.makePublicRequest.mockRejectedValue(error);
 
       await expect(connector.getTicker('BTC/USDT')).rejects.toThrow('Symbol not found');
     });
@@ -563,8 +723,7 @@ describe('MexcConnector', () => {
       };
 
 
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makePublicRequest.mockResolvedValue(mockApiResponse);
+            mockAuth.makePublicRequest.mockResolvedValue(mockApiResponse);
 
       const result = await connector.getOrderBook('BTC/USDT');
 
@@ -598,8 +757,7 @@ describe('MexcConnector', () => {
       ];
 
 
-      MockedMexcUtils.toMexcSymbol.mockReturnValue('BTCUSDT');
-      mockAuth.makePublicRequest.mockResolvedValue(mockApiResponse);
+            mockAuth.makePublicRequest.mockResolvedValue(mockApiResponse);
 
       const result = await connector.getRecentTrades('BTC/USDT');
 
