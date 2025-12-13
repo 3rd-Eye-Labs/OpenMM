@@ -21,7 +21,7 @@ export interface StrategyConfig {
 }
 
 /**
- * Simple grid configuration following INDY Analytics patterns
+ * Grid configuration
  */
 export interface GridConfig {
   symbol: string;
