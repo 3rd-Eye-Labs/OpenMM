@@ -8,7 +8,7 @@
     "openmm": "dist/cli/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
     "dev": "ts-node src/index.ts",
     "cli": "ts-node src/cli/cli.ts",
     "test": "jest",
