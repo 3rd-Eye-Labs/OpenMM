@@ -2,13 +2,11 @@
  * Integration tests for Cardano Price Service
  * Tests the complete price aggregation flow with Iris API
  */
-
 import { CardanoPriceService } from '../../../core/price-aggregation';
 import { isTokenSupported, getSupportedTokens } from '../../../config/price-aggregation';
 
 describe('CardanoPriceService Integration', () => {
   let priceService: CardanoPriceService;
-
   beforeEach(() => {
     priceService = new CardanoPriceService();
   });
@@ -39,10 +37,8 @@ describe('CardanoPriceService Integration', () => {
       await expect(priceService.getTokenPrice('UNKNOWN')).rejects.toThrow('Unsupported token: UNKNOWN');
     });
 
-
     test('should fetch INDY price successfully', async () => {
       const price = await priceService.getTokenPrice('INDY');
-      
       expect(price.symbol).toBe('INDY/USDT');
       expect(price.price).toBeGreaterThan(0);
       expect(price.confidence).toBeGreaterThan(0);
@@ -52,7 +48,6 @@ describe('CardanoPriceService Integration', () => {
 
     test('should fetch SNEK price successfully', async () => {
       const price = await priceService.getTokenPrice('SNEK');
-      
       expect(price.symbol).toBe('SNEK/USDT');
       expect(price.price).toBeGreaterThan(0);
       expect(price.confidence).toBeGreaterThan(0);
@@ -62,9 +57,7 @@ describe('CardanoPriceService Integration', () => {
   describe('Error Handling', () => {
     test('should handle network errors gracefully', async () => {
       jest.spyOn(priceService as any, 'getTokenADAPrice').mockRejectedValue(new Error('Network error'));
-      
       await expect(priceService.getTokenPrice('INDY')).rejects.toThrow('Price aggregation failed for INDY');
     });
   });
-
 });

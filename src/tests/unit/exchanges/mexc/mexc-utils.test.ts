@@ -4,6 +4,7 @@ import { toStandardFormat, toExchangeFormat } from '../../../../utils/symbol-uti
 
 describe('MexcUtils', () => {
   describe('Symbol conversion utility functions', () => {
+
     describe('toStandardFormat', () => {
       it('should format MEXC symbols to OpenMM format', () => {
         expect(toStandardFormat('BTCUSDT')).toBe('BTC/USDT');
@@ -51,7 +52,6 @@ describe('MexcUtils', () => {
         1.5,
         50000.00
       );
-
       expect(result).toEqual({
         symbol: 'BTCUSDT',
         side: 'BUY',
@@ -69,7 +69,6 @@ describe('MexcUtils', () => {
         'sell',
         100
       );
-
       expect(result).toEqual({
         symbol: 'INDYUSDT',
         side: 'SELL',
@@ -138,9 +137,7 @@ describe('MexcUtils', () => {
         status: 'filled',
         timestamp: Date.now()
       };
-
       const result = MexcUtils.transformOrder(protobufOrder);
-
       expect(result.id).toBe('C02__123456');
       expect(result.symbol).toBe('BTC/USDT');
       expect(result.type).toBe('limit');
@@ -149,20 +146,17 @@ describe('MexcUtils', () => {
       expect(result.price).toBe(50000);
       expect(result.status).toBe('filled');
     });
-
     it('should transform numeric status codes', () => {
       const mexcOrderData = {
         i: 12345,
         c: 'BTCUSDT',
-        s: 2, // filled status
-        S: 1, // buy side
-        v: '1.5', // volume
-        p: '50000.00', // price
-        z: '1.5' // filled quantity
+        s: 2, 
+        S: 1, 
+        v: '1.5', 
+        p: '50000.00', 
+        z: '1.5' 
       };
-
       const result = MexcUtils.transformOrder(mexcOrderData);
-
       expect(result.id).toBe('12345');
       expect(result.symbol).toBe('BTC/USDT');
       expect(result.side).toBe('buy');
@@ -172,76 +166,63 @@ describe('MexcUtils', () => {
       expect(result.remaining).toBe(0);
       expect(result.status).toBe('filled');
     });
-
     it('should handle sell side correctly', () => {
       const mexcOrderData = {
         i: 12346,
         c: 'ETHUSDT',
-        s: 1, // open status
-        S: 2, // sell side
+        s: 1, 
+        S: 2, 
         v: '2.0',
         p: '3000.00',
         z: '0'
       };
-
       const result = MexcUtils.transformOrder(mexcOrderData);
-
       expect(result.side).toBe('sell');
       expect(result.status).toBe('open');
       expect(result.filled).toBe(0);
       expect(result.remaining).toBe(2.0);
     });
-
     it('should handle cancelled orders', () => {
       const mexcOrderData = {
         i: 12347,
         c: 'ADAUSDT',
-        s: 4, // cancelled status
+        s: 4, 
         S: 1,
         v: '100.0',
         p: '1.50',
         z: '0'
       };
-
       const result = MexcUtils.transformOrder(mexcOrderData);
-
       expect(result.status).toBe('cancelled');
     });
-
     it('should handle partially filled then cancelled orders', () => {
       const mexcOrderData = {
         i: 12348,
         c: 'DOGEUSDT',
-        s: 5, // partially filled then cancelled
+        s: 5, 
         S: 1,
         v: '1000.0',
         p: '0.10',
         z: '500.0'
       };
-
       const result = MexcUtils.transformOrder(mexcOrderData);
-
       expect(result.status).toBe('cancelled');
       expect(result.filled).toBe(500.0);
       expect(result.remaining).toBe(500.0);
     });
-
     it('should handle unknown status codes', () => {
       const mexcOrderData = {
         i: 12349,
         c: 'SOLUSDT',
-        s: 999, // unknown status
+        s: 999, 
         S: 1,
         v: '10.0',
         p: '100.00',
         z: '0'
       };
-
       const result = MexcUtils.transformOrder(mexcOrderData);
-
       expect(result.status).toBe('open');
     });
-
     it('should generate fallback ID when missing', () => {
       const mexcOrderData = {
         c: 'BTCUSDT',
@@ -251,23 +232,18 @@ describe('MexcUtils', () => {
         p: '50000.00',
         z: '0'
       };
-
       const beforeTime = Date.now();
       const result = MexcUtils.transformOrder(mexcOrderData);
       const afterTime = Date.now();
-
       const resultId = parseInt(result.id);
       expect(resultId).toBeGreaterThanOrEqual(beforeTime);
       expect(resultId).toBeLessThanOrEqual(afterTime);
     });
-
     it('should handle missing fields gracefully', () => {
       const mexcOrderData = {
         i: 12350
       };
-
       const result = MexcUtils.transformOrder(mexcOrderData);
-
       expect(result.id).toBe('12350');
       expect(result.symbol).toBe('');
       expect(result.side).toBe('buy');
@@ -278,7 +254,6 @@ describe('MexcUtils', () => {
       expect(result.status).toBe('open');
     });
   });
-
   describe('edge cases and error handling', () => {
     it('should handle toStandardFormat with special cases', () => {
       expect(toStandardFormat('USDCUSDT')).toBe('USDC/USDT');
@@ -286,7 +261,6 @@ describe('MexcUtils', () => {
       expect(toStandardFormat('WBTCBTC')).toBe('WBTC/BTC');
       expect(toStandardFormat('ETHBUSD')).toBe('ETH/BUSD');
     });
-
     it('should handle toStandardFormat with very short symbols', () => {
       expect(() => toStandardFormat('')).toThrow();
       expect(() => toStandardFormat('A')).toThrow();
@@ -295,15 +269,78 @@ describe('MexcUtils', () => {
       expect(() => toStandardFormat('ABCD')).toThrow();
       expect(() => toStandardFormat('ABCDE')).toThrow();
     });
-
     it('should handle createOrderParams with edge cases', () => {
       const marketParams = MexcUtils.createOrderParams('BTC/USDT', 'market', 'buy', 1.0);
       expect(marketParams.price).toBeUndefined();
       expect(marketParams.timeInForce).toBeUndefined();
-
       const limitParams = MexcUtils.createOrderParams('BTC/USDT', 'limit', 'sell', 1.0, 0);
       expect(limitParams.price).toBeUndefined();
       expect(limitParams.timeInForce).toBeUndefined();
+    });
+
+    describe('Error cases tests', () => {
+      it('should throw error when transformOrder receives null/undefined data', () => {
+        expect(() => MexcUtils.transformOrder(null)).toThrow('Order data is required');
+        expect(() => MexcUtils.transformOrder(undefined)).toThrow('Order data is required');
+      });
+      it('should handle unknown order formats in transformOrder', () => {
+        const unknownOrderData = { unknownFormat: true, symbol: 'BTCUSDT' };
+        const result = MexcUtils.transformOrder(unknownOrderData);
+        expect(result).toBeDefined();
+        expect(result.symbol).toBe('BTCUSDT');
+      });
+
+      it('should handle toStandardFormat error in transformUserDataOrderInternal', () => {
+        jest.mock('../../../../utils/symbol-utils', () => ({
+          toStandardFormat: jest.fn().mockImplementation((symbol) => {
+            if (symbol === 'INVALIDSYMBOL') throw new Error('Invalid symbol format');
+            return symbol + '/USDT';
+          })
+        }));
+        const userDataOrder = { c: 'INVALIDSYMBOL', i: 123, S: 1 };
+        const result = (MexcUtils as any).transformUserDataOrderInternal(userDataOrder);
+        expect(result.symbol).toBe('INVALIDSYMBOL');
+      });
+
+      it('should handle toStandardFormat error in transformWebSocketUserOrderInternal', () => {
+        jest.mock('../../../../utils/symbol-utils', () => ({
+          toStandardFormat: jest.fn().mockImplementation((symbol) => {
+            if (symbol === 'BADSYMBOL') throw new Error('Bad symbol');
+            return symbol + '/USDT';
+          })
+        }));
+        const wsOrder = { s: 'BADSYMBOL', i: 456 };
+        const result = (MexcUtils as any).transformWebSocketUserOrderInternal(wsOrder);
+        expect(result.symbol).toBe('BADSYMBOL');
+      });
+
+      it('should handle protobuf order with partial filled status', () => {
+        const mockDecodedOrder = {
+          quantity: 10,
+          price: 50000,
+          side: 'buy',
+          symbol: 'BTCUSDT',
+          status: 'partial-filled'
+        };
+        jest.spyOn(MexcDataMapper, 'mapToOrderStatus').mockReturnValue('open');
+        const result = (MexcUtils as any).transformProtobufOrderInternal(mockDecodedOrder);
+        expect(result.filled).toBe(10);
+        expect(result.remaining).toBe(0);
+      });
+
+      it('should handle protobuf order with filled status in lowercase', () => {
+        const mockDecodedOrder = {
+          quantity: 5,
+          price: 50000,
+          side: 'sell',
+          symbol: 'ETHUSDT',
+          status: 'filled'
+        };
+        jest.spyOn(MexcDataMapper, 'mapToOrderStatus').mockReturnValue('open');
+        const result = (MexcUtils as any).transformProtobufOrderInternal(mockDecodedOrder);
+        expect(result.filled).toBe(5);
+        expect(result.remaining).toBe(0);
+      });
     });
   });
 });

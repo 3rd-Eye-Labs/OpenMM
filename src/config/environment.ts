@@ -29,7 +29,6 @@ interface EnvironmentConfig {
     secret: string;
   };
   
-  // Application settings
   logLevel: string;
   nodeEnv: string;
 }
@@ -81,7 +80,7 @@ class EnvironmentValidator {
         };
       }
 
-      const validLogLevels = ['error', 'warn', 'info', 'verbose', 'debug', 'silly'];
+      const validLogLevels = ['error', 'warn', 'info', 'debug'];
       if (!validLogLevels.includes(config.logLevel)) {
         const errorMessage = `Invalid LOG_LEVEL: ${config.logLevel}. Must be one of: ${validLogLevels.join(', ')}`;
         logger.error('Environment validation failed', { error: errorMessage });
