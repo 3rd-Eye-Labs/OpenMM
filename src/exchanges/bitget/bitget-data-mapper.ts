@@ -25,19 +25,33 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
 
   /**
    * Map Bitget order to OpenMM Order format
+   * Handles both REST API and WebSocket order formats
    */
   mapOrder(bitgetOrder: BitgetRawOrder): Order {
     if (!bitgetOrder) {
       throw new Error('Bitget order data is required');
     }
     
-    const status = BitgetDataMapper.mapToOrderStatus(bitgetOrder.state || bitgetOrder.status || 'NEW');
-    const filled = this.parseAmount(bitgetOrder.filledQty || '0');
+    // Handle symbol field (REST uses 'symbol', WebSocket uses 'instId')
+    const symbol = bitgetOrder.symbol || bitgetOrder.instId;
+    if (!symbol) {
+      throw new Error('Order missing symbol/instId field');
+    }
+    
+    const status = BitgetDataMapper.mapToOrderStatus(
+      bitgetOrder.state || bitgetOrder.status || 'NEW'
+    );
+    
+    // Handle filled quantity (REST uses 'filledQty', WebSocket uses 'accBaseVolume')
+    const filled = this.parseAmount(
+      bitgetOrder.filledQty || bitgetOrder.accBaseVolume || '0'
+    );
+    
     const amount = this.parseAmount(bitgetOrder.size);
 
     return {
       id: bitgetOrder.orderId,
-      symbol: toStandardFormat(bitgetOrder.symbol),
+      symbol: toStandardFormat(symbol),
       type: this.mapOrderType(bitgetOrder.orderType),
       side: bitgetOrder.side.toLowerCase() as OrderSide,
       amount,
