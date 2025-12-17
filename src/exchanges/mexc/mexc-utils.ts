@@ -1,6 +1,6 @@
 import { Order, OrderType, OrderSide, DecodedMexcOrder, MexcRawUserDataOrder } from '../../types';
 import { MexcDataMapper } from './mexc-data-mapper';
-import { toStandardFormat, toExchangeFormat } from '../../utils/symbol-utils';
+import { toStandardFormat } from '../../utils/symbol-utils';
 
 /**
  * MEXC Utility Functions
@@ -163,30 +163,6 @@ export class MexcUtils {
     };
   }
 
-  /**
-   * Create order parameters in MEXC format
-   */
-  static createOrderParams(
-    symbol: string,
-    type: OrderType,
-    side: OrderSide,
-    amount: number,
-    price?: number
-  ): Record<string, any> {
-    const params: any = {
-      symbol: toExchangeFormat(symbol),
-      side: side.toUpperCase(),
-      type: type.toUpperCase(),
-      quantity: amount.toString()
-    };
-
-    if (type === 'limit' && price) {
-      params.price = price.toString();
-      params.timeInForce = 'GTC';
-    }
-
-    return params;
-  }
 
   /**
    * Determine order side from protobuf message patterns
