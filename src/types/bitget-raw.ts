@@ -8,21 +8,28 @@
 
 /**
  * Bitget raw order format from API response
+ * Supports both REST API and WebSocket formats
  */
 export interface BitgetRawOrder {
   orderId: string;
   clientOid?: string;
-  symbol: string;
+  // Symbol fields (REST uses 'symbol', WebSocket uses 'instId')
+  symbol?: string;
+  instId?: string;
   side: string;
   orderType: string;
   force?: string;
   price?: string;
   size: string;
+  // Filled quantity fields (REST uses 'filledQty', WebSocket uses 'accBaseVolume')
   filledQty?: string;
+  accBaseVolume?: string;
+  // Status fields (REST uses 'state', WebSocket uses 'status')
   state?: string;
   status?: string;
-  cTime?: number;
-  uTime?: number;
+  // Timestamp fields (can be number or string)
+  cTime?: number | string;
+  uTime?: number | string;
 }
 
 /**

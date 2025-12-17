@@ -7,65 +7,36 @@
 import { Order, OrderBook, Ticker, Trade } from './index';
 
 /**
- * Bitget subscription types for WebSocket connections
- */
-export interface BitgetSubscription {
-  op: 'subscribe' | 'unsubscribe';
-  args: string[];
-}
-
-/**
- * Bitget WebSocket message structure
- */
-export interface BitgetWebSocketMessage {
-  action?: string;
-  arg?: {
-    channel: string;
-    instId: string;
-  };
-  data?: any[];
-  code?: string;
-  msg?: string;
-  event?: string;
-}
-
-/**
  * Subscription callback information for different data types
  */
 export type BitgetSubscriptionInfo = 
   | {
       callback: (data: Ticker) => void;
       type: 'ticker';
+      symbol: string;
     }
   | {
       callback: (data: OrderBook) => void;
       type: 'orderbook';
+      symbol: string;
     }
   | {
       callback: (data: Trade) => void;
       type: 'trades';
+      symbol: string;
     }
   | {
       callback: (data: Order) => void;
       type: 'orders';
+      symbol?: string;
+    }
+  | {
+      callback: (data: Trade) => void;
+      type: 'user_trades';
+      symbol?: string;
+    }
+  | {
+      callback: (data: any) => void;
+      type: 'account';
+      symbol?: string;
     };
-
-/**
- * Bitget API error response structure
- */
-export interface BitgetApiError {
-  code: string;
-  msg: string;
-  requestTime: number;
-  data?: any;
-}
-
-/**
- * Bitget API success response structure
- */
-export interface BitgetApiResponse<T = any> {
-  code: string;
-  msg: string;
-  requestTime: number;
-  data: T;
-}
