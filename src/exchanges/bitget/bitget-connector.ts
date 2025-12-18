@@ -3,8 +3,11 @@ import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide, Balance, Exchang
 import { BitgetAuth, BitgetCredentials } from './bitget-auth';
 import { BitgetUtils } from './bitget-utils';
 import { BitgetDataMapper } from './bitget-data-mapper';
+import { BitgetWebSocket } from './bitget-websocket';
+import { BitgetUserDataStream } from './bitget-user-stream';
 import { createLogger, ExchangeUtils } from '../../utils';
 import { toExchangeFormat } from '../../utils/symbol-utils';
+import config from '../../config/environment';
 
 /**
  * Bitget Exchange Connector
@@ -14,6 +17,8 @@ import { toExchangeFormat } from '../../utils/symbol-utils';
  */
 export class BitgetConnector extends BaseExchangeConnector {
   private auth?: BitgetAuth;
+  private ws?: BitgetWebSocket;
+  private userStream?: BitgetUserDataStream;
   private logger = createLogger('bitget-connector');
   private readonly baseUrl = 'https://api.bitget.com';
   private readonly dataMapper = new BitgetDataMapper();
@@ -21,6 +26,14 @@ export class BitgetConnector extends BaseExchangeConnector {
   constructor() {
     super('bitget', 'Bitget');
     this.logger.info('BitgetConnector initialized');
+    
+    if (config.bitget) {
+      this.setCredentials({
+        apiKey: config.bitget.apiKey,
+        secret: config.bitget.secret,
+        passphrase: config.bitget.passphrase
+      });
+    }
   }
 
   /**
@@ -95,7 +108,13 @@ export class BitgetConnector extends BaseExchangeConnector {
     try {
       this.logger.info('Disconnecting from Bitget API...');
       
+      // Disconnect WebSocket if connected
+      await this.disconnectWebSocket();
+      await this.disconnectUserDataStream();
+      
       this.connected = false;
+      this.auth = undefined;
+      this.userStream = undefined;
       
       this.logger.info('Successfully disconnected from Bitget API');
       
@@ -110,10 +129,6 @@ export class BitgetConnector extends BaseExchangeConnector {
   private isValidBitgetCredentials(credentials: ExchangeCredentials): credentials is BitgetCredentials {
     return !!(credentials as BitgetCredentials).passphrase;
   }
-
-  // ============================================================================
-  // PLACEHOLDER METHODS - TO BE IMPLEMENTED IN SUBSEQUENT PARTS
-  // ============================================================================
 
   /**
    * Get account balance for all assets or a specific asset
@@ -264,10 +279,64 @@ export class BitgetConnector extends BaseExchangeConnector {
    * 
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise that resolves when all orders are cancelled
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if cancellation fails
    */
   async cancelAllOrders(symbol: string): Promise<void> {
-    throw new Error('cancelAllOrders not implemented yet');
+    try {
+      if (!ExchangeUtils.isValidSymbol(symbol)) {
+        throw new Error(`Invalid symbol format: ${symbol}`);
+      }
+
+      const bitgetSymbol = toExchangeFormat(symbol);
+      
+      try {
+        const response = await this.makeRequest(
+          '/api/v2/spot/trade/cancel-symbol-order',
+          {},
+          'POST',
+          {
+            symbol: bitgetSymbol
+          }
+        );
+
+        if (response && response.code === '00000') {
+          this.logger.info('All orders cancelled successfully via bulk operation', {
+            symbol: bitgetSymbol
+          });
+          return;
+        }
+      } catch (bulkError) {
+        this.logger.warn('Bulk cancellation failed, falling back to individual cancellation', {
+          symbol: bitgetSymbol,
+          error: bulkError instanceof Error ? bulkError.message : String(bulkError)
+        });
+      }
+
+      const openOrders = await this.getOpenOrders(symbol);
+      
+      if (openOrders.length === 0) {
+        this.logger.info('No open orders to cancel', { symbol: bitgetSymbol });
+        return;
+      }
+
+      const cancelPromises = openOrders.map(order => 
+        this.cancelOrder(order.id, symbol).catch(error => {
+          this.logger.error(`Failed to cancel order ${order.id}`, { error: error instanceof Error ? error.message : String(error) });
+          throw error;
+        })
+      );
+
+      await Promise.all(cancelPromises);
+      
+      this.logger.info(`Successfully cancelled ${openOrders.length} orders`, {
+        symbol: bitgetSymbol,
+        orderCount: openOrders.length
+      });
+      
+    } catch (error: unknown) {
+      const errorMessage = BitgetUtils.mapErrorMessage(error);
+      this.handleError(new Error(errorMessage), 'cancelAllOrders');
+    }
   }
 
   /**
@@ -439,20 +508,35 @@ export class BitgetConnector extends BaseExchangeConnector {
    * Connect to Bitget WebSocket for real-time data
    * 
    * @returns Promise that resolves when WebSocket connection is established
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if connection fails
    */
   async connectWebSocket(): Promise<void> {
-    throw new Error('connectWebSocket not implemented yet');
+    try {
+      if (!this.ws) {
+        this.ws = new BitgetWebSocket();
+      }
+      await this.ws.connectWebSocket();
+      this.logger.info('Successfully connected to Bitget WebSocket');
+    } catch (error: unknown) {
+      this.handleError(error, 'connectWebSocket');
+    }
   }
 
   /**
    * Disconnect from Bitget WebSocket
    * 
    * @returns Promise that resolves when WebSocket is disconnected
-   * @throws Error indicating this method is not yet implemented
    */
   async disconnectWebSocket(): Promise<void> {
-    throw new Error('disconnectWebSocket not implemented yet');
+    try {
+      if (this.ws) {
+        await this.ws.disconnectWebSocket();
+        this.ws = undefined;
+        this.logger.info('Successfully disconnected from Bitget WebSocket');
+      }
+    } catch (error: unknown) {
+      this.handleError(error, 'disconnectWebSocket');
+    }
   }
 
   /**
@@ -461,10 +545,18 @@ export class BitgetConnector extends BaseExchangeConnector {
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when ticker updates are received
    * @returns Promise resolving to subscription ID for managing the subscription
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if WebSocket not connected or subscription fails
    */
   async subscribeTicker(symbol: string, callback: (ticker: Ticker) => void): Promise<string> {
-    throw new Error('subscribeTicker not implemented yet');
+    try {
+      if (!this.ws) {
+        throw new Error('WebSocket not initialized. Call connectWebSocket() first.');
+      }
+      return await this.ws.subscribeTicker(symbol, callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeTicker');
+      return '';
+    }
   }
 
   /**
@@ -473,10 +565,18 @@ export class BitgetConnector extends BaseExchangeConnector {
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when order book updates are received
    * @returns Promise resolving to subscription ID for managing the subscription
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if WebSocket not connected or subscription fails
    */
   async subscribeOrderBook(symbol: string, callback: (orderbook: OrderBook) => void): Promise<string> {
-    throw new Error('subscribeOrderBook not implemented yet');
+    try {
+      if (!this.ws) {
+        throw new Error('WebSocket not initialized. Call connectWebSocket() first.');
+      }
+      return await this.ws.subscribeOrderBook(symbol, callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeOrderBook');
+      return '';
+    }
   }
 
   /**
@@ -485,10 +585,18 @@ export class BitgetConnector extends BaseExchangeConnector {
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when new trades are executed
    * @returns Promise resolving to subscription ID for managing the subscription
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if WebSocket not connected or subscription fails
    */
   async subscribeTrades(symbol: string, callback: (trade: Trade) => void): Promise<string> {
-    throw new Error('subscribeTrades not implemented yet');
+    try {
+      if (!this.ws) {
+        throw new Error('WebSocket not initialized. Call connectWebSocket() first.');
+      }
+      return await this.ws.subscribeTrades(symbol, callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeTrades');
+      return '';
+    }
   }
 
   /**
@@ -496,10 +604,18 @@ export class BitgetConnector extends BaseExchangeConnector {
    * 
    * @param callback - Function called when user's order status changes
    * @returns Promise resolving to subscription ID for managing the subscription
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if WebSocket not connected or subscription fails
    */
   async subscribeOrders(callback: (order: Order) => void): Promise<string> {
-    throw new Error('subscribeOrders not implemented yet');
+    try {
+      if (!this.userStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
+      }
+      return await this.userStream.subscribeUserOrders(callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeOrders');
+      return '';
+    }
   }
 
   /**
@@ -507,10 +623,17 @@ export class BitgetConnector extends BaseExchangeConnector {
    * 
    * @param subscriptionId - The ID of the subscription to cancel
    * @returns Promise that resolves when subscription is cancelled
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if WebSocket not connected or unsubscribe fails
    */
   async unsubscribe(subscriptionId: string): Promise<void> {
-    throw new Error('unsubscribe not implemented yet');
+    try {
+      if (!this.ws) {
+        throw new Error('WebSocket not initialized.');
+      }
+      await this.ws.unsubscribe(subscriptionId);
+    } catch (error: unknown) {
+      this.handleError(error, 'unsubscribe');
+    }
   }
 
   /**
@@ -519,7 +642,7 @@ export class BitgetConnector extends BaseExchangeConnector {
    * @returns Boolean indicating WebSocket connection status
    */
   isWebSocketConnected(): boolean {
-    return false;
+    return this.ws ? this.ws.isConnected() : false;
   }
 
   /**
@@ -528,27 +651,51 @@ export class BitgetConnector extends BaseExchangeConnector {
    * @returns Current WebSocket status ('connected', 'disconnected', etc.)
    */
   getWebSocketStatus(): WebSocketStatus {
-    return 'disconnected';
+    return this.ws ? this.ws.getWebSocketStatus() : 'disconnected';
   }
+
+  /**
+   * User Data Stream Methods Implementation
+   */
 
   /**
    * Connect to user data stream for real-time account updates
    * 
    * @returns Promise that resolves when user data stream is connected
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if authentication fails or connection cannot be established
    */
   async connectUserDataStream(): Promise<void> {
-    throw new Error('connectUserDataStream not implemented yet');
+    try {
+      if (!this.auth) {
+        throw new Error('Authentication required. Call connect() first.');
+      }
+      
+      if (!this.userStream) {
+        this.userStream = new BitgetUserDataStream(this.auth);
+      }
+      
+      await this.userStream.connectUserDataStream();
+      this.logger.info('Successfully connected to Bitget User Data Stream');
+    } catch (error: unknown) {
+      this.handleError(error, 'connectUserDataStream');
+    }
   }
 
   /**
    * Disconnect from user data stream
    * 
    * @returns Promise that resolves when user data stream is disconnected
-   * @throws Error indicating this method is not yet implemented
    */
   async disconnectUserDataStream(): Promise<void> {
-    throw new Error('disconnectUserDataStream not implemented yet');
+    try {
+      if (this.userStream) {
+        await this.userStream.disconnectUserDataStream();
+        this.userStream = undefined;
+        this.logger.info('Successfully disconnected from Bitget User Data Stream');
+      }
+    } catch (error: unknown) {
+      this.handleError(error, 'disconnectUserDataStream');
+    }
   }
 
   /**
@@ -556,10 +703,18 @@ export class BitgetConnector extends BaseExchangeConnector {
    * 
    * @param callback - Function called when user's orders change status
    * @returns Promise resolving to subscription ID for managing the subscription
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if user data stream not connected or subscription fails
    */
   async subscribeUserOrders(callback: (order: Order) => void): Promise<string> {
-    throw new Error('subscribeUserOrders not implemented yet');
+    try {
+      if (!this.userStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
+      }
+      return await this.userStream.subscribeUserOrders(callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeUserOrders');
+      return '';
+    }
   }
 
   /**
@@ -568,10 +723,37 @@ export class BitgetConnector extends BaseExchangeConnector {
    * 
    * @param callback - Function called when user's trades are executed
    * @returns Promise resolving to subscription ID for managing the subscription
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if user data stream not connected or subscription fails
    */
   async subscribeUserTrades(callback: (trade: Trade) => void): Promise<string> {
-    throw new Error('subscribeUserTrades not implemented yet');
+    try {
+      if (!this.userStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
+      }
+      return await this.userStream.subscribeUserTrades(callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeUserTrades');
+      return '';
+    }
+  }
+
+  /**
+   * Subscribe to real-time account balance updates
+   * 
+   * @param callback - Function called when account balance changes
+   * @returns Promise resolving to subscription ID for managing the subscription
+   * @throws Error if user data stream not connected or subscription fails
+   */
+  async subscribeAccountUpdates(callback: (accountData: any) => void): Promise<string> {
+    try {
+      if (!this.userStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
+      }
+      return await this.userStream.subscribeAccountUpdates(callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeAccountUpdates');
+      return '';
+    }
   }
 
   /**
@@ -580,7 +762,7 @@ export class BitgetConnector extends BaseExchangeConnector {
    * @returns Boolean indicating user data stream connection status
    */
   isUserDataStreamConnected(): boolean {
-    return false;
+    return this.userStream ? this.userStream.isUserDataStreamConnected() : false;
   }
 
   /**
