@@ -24,14 +24,20 @@ export class GridCalculator {
     return gridLevels;
   }
 
-  calculateOrderSizes(availableBalance: number, levels: number): number {
-    return (availableBalance * 0.8) / (levels * 2);
+  calculateOrderSizes(availableBalance: number, levels: number, minOrderValue?: number): number {
+    const targetOrderSize = (availableBalance * 0.8) / (levels * 2);
+    
+    if (minOrderValue && targetOrderSize < minOrderValue) {
+      return minOrderValue;
+    }
+    
+    return targetOrderSize;
   }
 
-  assignOrderSizes(gridLevels: GridLevel[], orderSize: number): GridLevel[] {
+  assignOrderSizes(gridLevels: GridLevel[], orderSizeInQuote: number): GridLevel[] {
     return gridLevels.map(level => ({
       ...level,
-      orderSize
+      orderSize: orderSizeInQuote / level.price
     }));
   }
 }
