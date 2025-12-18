@@ -34,7 +34,7 @@ npx openmm [command] [options]
 Currently supported exchanges:
 - **mexc** - MEXC Exchange (fully implemented)
 - **gateio** - Gate.io (coming soon)
-- **bitget** - Bitget (coming soon)
+- **bitget** - Bitget (fully implemented)
 - **kraken** - Kraken (coming soon)
 
 ## Cardano Integration
@@ -61,18 +61,31 @@ Get account balance information from exchanges.
 
 ### Get All Balances
 ```bash
+# MEXC Example
 openmm balance --exchange mexc
+
+# Bitget Example
+openmm balance --exchange bitget
 ```
 
 ### Get Specific Asset Balance
 ```bash
+# MEXC Examples
 openmm balance --exchange mexc --asset BTC
 openmm balance --exchange mexc --asset USDT
+
+# Bitget Examples
+openmm balance --exchange bitget --asset BTC
+openmm balance --exchange bitget --asset USDT
 ```
 
 ### JSON Output
 ```bash
+# MEXC Example
 openmm balance --exchange mexc --json
+
+# Bitget Example
+openmm balance --exchange bitget --json
 ```
 
 **Options:**
@@ -88,37 +101,44 @@ Manage trading orders on exchanges.
 
 ### List Open Orders
 ```bash
-# List all open orders
+# MEXC Examples
 openmm orders list --exchange mexc
-
-# List only 5 orders
 openmm orders list --exchange mexc --limit 5
-
-# List orders for specific symbol
 openmm orders list --exchange mexc --symbol BTC/USDT
 
-# List only 3 orders for specific symbol
-openmm orders list --exchange mexc --symbol BTC/USDT --limit 3
+# Bitget Examples
+openmm orders list --exchange bitget
+openmm orders list --exchange bitget --limit 5
+openmm orders list --exchange bitget --symbol SNEK/USDT
 ```
 
 ### Get Specific Order
 ```bash
+# MEXC Example
 openmm orders get --exchange mexc --id 123456 --symbol BTC/USDT
+
+# Bitget Example
+openmm orders get --exchange bitget --id 1385288398060044291 --symbol SNEK/USDT
 ```
 
 ### Create New Order
 ```bash
-# Create limit buy order
+# MEXC Examples
 openmm orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 50000
-
-# Create market sell order
 openmm orders create --exchange mexc --symbol BTC/USDT --side sell --type market --amount 0.001
+
+# Bitget Examples
+openmm orders create --exchange bitget --symbol SNEK/USDT --side buy --type limit --amount 10000 --price 0.00001
+openmm orders create --exchange bitget --symbol SNEK/USDT --side sell --type market --amount 5000
 ```
 
 ### Cancel Order
 ```bash
-# Cancel specific order
+# MEXC Example
 openmm orders cancel --exchange mexc --id C02__626091255599874048060 --symbol INDY/USDT
+
+# Bitget Example
+openmm orders cancel --exchange bitget --id 1385288398060044291 --symbol SNEK/USDT
 ```
 
 **List Options:**
@@ -156,11 +176,13 @@ Get real-time market data from exchanges.
 
 ### Ticker Data
 ```bash
-# Get ticker for BTC/USDT
+# MEXC Examples
 openmm ticker --exchange mexc --symbol BTC/USDT
-
-# Get ticker in JSON format
 openmm ticker --exchange mexc --symbol ETH/USDT --json
+
+# Bitget Examples
+openmm ticker --exchange bitget --symbol SNEK/USDT
+openmm ticker --exchange bitget --symbol BTC/USDT --json
 ```
 
 **Options:**
@@ -170,14 +192,13 @@ openmm ticker --exchange mexc --symbol ETH/USDT --json
 
 ### Order Book
 ```bash
-# Get order book with default 10 levels
+# MEXC Examples
 openmm orderbook --exchange mexc --symbol BTC/USDT
-
-# Get order book with 5 levels
 openmm orderbook --exchange mexc --symbol BTC/USDT --limit 5
 
-# Using alias 'book'
-openmm book --exchange mexc --symbol ETH/USDT --json
+# Bitget Examples
+openmm orderbook --exchange bitget --symbol SNEK/USDT
+openmm book --exchange bitget --symbol BTC/USDT --json
 ```
 
 **Options:**
@@ -188,14 +209,15 @@ openmm book --exchange mexc --symbol ETH/USDT --json
 
 ### Recent Trades
 ```bash
-# Get 20 recent trades (default)
+# MEXC Examples
 openmm trades --exchange mexc --symbol BTC/USDT
-
-# Get 50 recent trades
 openmm trades --exchange mexc --symbol BTC/USDT --limit 50
-
-# Get trades in JSON format
 openmm trades --exchange mexc --symbol ETH/USDT --json
+
+# Bitget Examples
+openmm trades --exchange bitget --symbol SNEK/USDT
+openmm trades --exchange bitget --symbol BTC/USDT --limit 50
+openmm trades --exchange bitget --symbol SNEK/USDT --json
 ```
 
 **Options:**
@@ -215,6 +237,12 @@ Ensure your `.env` file contains the necessary API credentials:
 # MEXC Configuration
 MEXC_API_KEY=your_mexc_api_key
 MEXC_SECRET_KEY=your_mexc_secret_key
+
+# Bitget Configuration
+BITGET_API_KEY=your_bitget_api_key
+BITGET_SECRET=your_bitget_secret_key
+BITGET_PASSPHRASE=your_bitget_passphrase  # Set when creating API key - API TOKEN
+
 ```
 
 ### Symbol Format
@@ -225,29 +253,49 @@ MEXC_SECRET_KEY=your_mexc_secret_key
 
 ## 🔍 Common Examples
 
-### Check BTC Balance
+### Check Balance
 ```bash
+# MEXC - Check BTC Balance
 openmm balance --exchange mexc --asset BTC
+
+# Bitget - Check USDT Balance
+openmm balance --exchange bitget --asset USDT
 ```
 
-### Get ETH/USDT Price
+### Get Ticker Price
 ```bash
+# MEXC - Get ETH/USDT Price
 openmm ticker --exchange mexc --symbol ETH/USDT
+
+# Bitget - Get SNEK/USDT Price
+openmm ticker --exchange bitget --symbol SNEK/USDT
 ```
 
-### View BTC/USDT Order Book
+### View Order Book
 ```bash
+# MEXC - BTC/USDT Order Book
 openmm orderbook --exchange mexc --symbol BTC/USDT --limit 5
+
+# Bitget - SNEK/USDT Order Book
+openmm orderbook --exchange bitget --symbol SNEK/USDT --limit 10
 ```
 
-### Place Limit Buy Order
+### Place Orders
 ```bash
+# MEXC - Limit Buy Order
 openmm orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 45000
+
+# Bitget - Limit Buy Order
+openmm orders create --exchange bitget --symbol SNEK/USDT --side buy --type limit --amount 10000 --price 0.00001
 ```
 
-### List All Open Orders
+### List Open Orders
 ```bash
+# MEXC - All Open Orders
 openmm orders list --exchange mexc
+
+# Bitget - Open Orders for SNEK/USDT
+openmm orders list --exchange bitget --symbol SNEK/USDT
 ```
 
 ---
@@ -297,7 +345,7 @@ openmm pool-discovery custom 533bb94a8850ee3ccbe483106489399112b74c905342cb1792a
 - `--show-all` - Show all pools (ignore limit)
 
 **Supported Cardano Tokens:**
-- **NIGHT** - NightShade
+- **NIGHT** - Midnight
 - **SNEK** - Snek Token
 - **INDY** - Indigo Protocol
 ---
