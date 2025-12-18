@@ -6,7 +6,7 @@ import { RiskManager } from '../../core/risk-management/risk-manager';
 import { GridOrderManager } from './grid-order-manager';
 import { GridCalculator } from './grid-calculator';
 import { parseSymbol } from '../../utils/symbol-utils';
-import { createLogger } from '../../utils';
+import { createLogger, ExchangeUtils } from '../../utils';
 
 export class GridStrategy extends BaseStrategy {
   private priceService: CardanoPriceService;
@@ -78,7 +78,8 @@ export class GridStrategy extends BaseStrategy {
         this.gridConfig.gridLevels
       );
       
-      const orderSize = this.calculator.calculateOrderSizes(balance, this.gridConfig.gridLevels);
+      const minOrderValue = this.config ? ExchangeUtils.getMinimumOrderValue(this.config.exchange, this.config.symbol) : 0;
+      const orderSize = this.calculator.calculateOrderSizes(balance, this.gridConfig.gridLevels, minOrderValue);
       const gridWithSizes = this.calculator.assignOrderSizes(gridLevels, orderSize);
       
       await this.orderManager.placeInitialGrid(

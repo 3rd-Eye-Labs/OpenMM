@@ -1,5 +1,6 @@
 import { MexcUtils } from '../../../../exchanges/mexc/mexc-utils';
 import { MexcDataMapper } from '../../../../exchanges/mexc/mexc-data-mapper';
+import { ExchangeUtils } from '../../../../utils';
 import { toStandardFormat, toExchangeFormat } from '../../../../utils/symbol-utils';
 
 describe('MexcUtils', () => {
@@ -45,7 +46,7 @@ describe('MexcUtils', () => {
 
   describe('createOrderParams', () => {
     it('should create limit order parameters', () => {
-      const result = MexcUtils.createOrderParams(
+      const result = ExchangeUtils.createMexcOrderParams(
         'BTC/USDT',
         'limit',
         'buy',
@@ -63,7 +64,7 @@ describe('MexcUtils', () => {
     });
 
     it('should create market order parameters', () => {
-      const result = MexcUtils.createOrderParams(
+      const result = ExchangeUtils.createMexcOrderParams(
         'INDY/USDT',
         'market',
         'sell',
@@ -270,12 +271,11 @@ describe('MexcUtils', () => {
       expect(() => toStandardFormat('ABCDE')).toThrow();
     });
     it('should handle createOrderParams with edge cases', () => {
-      const marketParams = MexcUtils.createOrderParams('BTC/USDT', 'market', 'buy', 1.0);
+      const marketParams = ExchangeUtils.createMexcOrderParams('BTC/USDT', 'market', 'buy', 1.0);
       expect(marketParams.price).toBeUndefined();
       expect(marketParams.timeInForce).toBeUndefined();
-      const limitParams = MexcUtils.createOrderParams('BTC/USDT', 'limit', 'sell', 1.0, 0);
-      expect(limitParams.price).toBeUndefined();
-      expect(limitParams.timeInForce).toBeUndefined();
+      expect(() => ExchangeUtils.createMexcOrderParams('BTC/USDT', 'limit', 'sell', 1.0, 0))
+        .toThrow('Price is required and must be greater than 0 for limit orders');
     });
 
     describe('Error cases tests', () => {
