@@ -2,10 +2,9 @@ import { BaseExchangeConnector } from '../../core/exchange/base-exchange-connect
 import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide, Balance, WebSocketStatus } from '../../types';
 import { MexcAuth } from './mexc-auth';
 import { MexcWebSocket } from './mexc-websocket';
-import { MexcUtils } from './mexc-utils';
 import { MexcUserStream } from './mexc-user-stream';
 import { MexcDataMapper } from './mexc-data-mapper';
-import { createLogger } from '../../utils';
+import { createLogger, ExchangeUtils } from '../../utils';
 import { toExchangeFormat } from '../../utils/symbol-utils';
 import config from '../../config/environment';
 
@@ -104,7 +103,7 @@ export class MexcConnector extends BaseExchangeConnector {
     price?: number
   ): Promise<Order> {
     try {
-      const params = MexcUtils.createOrderParams(symbol, type, side, amount, price);
+      const params = ExchangeUtils.createMexcOrderParams(symbol, type, side, amount, price);
 
       const result = await this.makeRequest('/order', params, 'POST');
 
