@@ -236,4 +236,13 @@ export class BitgetAuth {
       return false;
     }
   }
+
+  /**
+   * Get credentials for WebSocket authentication
+   * 
+   * @returns The BitgetCredentials object
+   */
+  getCredentials(): BitgetCredentials {
+    return this.credentials;
+  }
 }
