@@ -7,6 +7,7 @@ import { BitgetWebSocket } from './bitget-websocket';
 import { BitgetUserDataStream } from './bitget-user-stream';
 import { createLogger, ExchangeUtils } from '../../utils';
 import { toExchangeFormat } from '../../utils/symbol-utils';
+import config from '../../config/environment';
 
 /**
  * Bitget Exchange Connector
@@ -25,6 +26,14 @@ export class BitgetConnector extends BaseExchangeConnector {
   constructor() {
     super('bitget', 'Bitget');
     this.logger.info('BitgetConnector initialized');
+    
+    if (config.bitget) {
+      this.setCredentials({
+        apiKey: config.bitget.apiKey,
+        secret: config.bitget.secret,
+        passphrase: config.bitget.passphrase
+      });
+    }
   }
 
   /**
@@ -270,10 +279,64 @@ export class BitgetConnector extends BaseExchangeConnector {
    * 
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise that resolves when all orders are cancelled
-   * @throws Error indicating this method is not yet implemented
+   * @throws Error if cancellation fails
    */
   async cancelAllOrders(symbol: string): Promise<void> {
-    throw new Error('cancelAllOrders not implemented yet');
+    try {
+      if (!ExchangeUtils.isValidSymbol(symbol)) {
+        throw new Error(`Invalid symbol format: ${symbol}`);
+      }
+
+      const bitgetSymbol = toExchangeFormat(symbol);
+      
+      try {
+        const response = await this.makeRequest(
+          '/api/v2/spot/trade/cancel-symbol-order',
+          {},
+          'POST',
+          {
+            symbol: bitgetSymbol
+          }
+        );
+
+        if (response && response.code === '00000') {
+          this.logger.info('All orders cancelled successfully via bulk operation', {
+            symbol: bitgetSymbol
+          });
+          return;
+        }
+      } catch (bulkError) {
+        this.logger.warn('Bulk cancellation failed, falling back to individual cancellation', {
+          symbol: bitgetSymbol,
+          error: bulkError instanceof Error ? bulkError.message : String(bulkError)
+        });
+      }
+
+      const openOrders = await this.getOpenOrders(symbol);
+      
+      if (openOrders.length === 0) {
+        this.logger.info('No open orders to cancel', { symbol: bitgetSymbol });
+        return;
+      }
+
+      const cancelPromises = openOrders.map(order => 
+        this.cancelOrder(order.id, symbol).catch(error => {
+          this.logger.error(`Failed to cancel order ${order.id}`, { error: error instanceof Error ? error.message : String(error) });
+          throw error;
+        })
+      );
+
+      await Promise.all(cancelPromises);
+      
+      this.logger.info(`Successfully cancelled ${openOrders.length} orders`, {
+        symbol: bitgetSymbol,
+        orderCount: openOrders.length
+      });
+      
+    } catch (error: unknown) {
+      const errorMessage = BitgetUtils.mapErrorMessage(error);
+      this.handleError(new Error(errorMessage), 'cancelAllOrders');
+    }
   }
 
   /**
@@ -545,10 +608,10 @@ export class BitgetConnector extends BaseExchangeConnector {
    */
   async subscribeOrders(callback: (order: Order) => void): Promise<string> {
     try {
-      if (!this.ws) {
-        throw new Error('WebSocket not initialized. Call connectWebSocket() first.');
+      if (!this.userStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
       }
-      return await this.ws.subscribeOrders(callback);
+      return await this.userStream.subscribeUserOrders(callback);
     } catch (error: unknown) {
       this.handleError(error, 'subscribeOrders');
       return '';

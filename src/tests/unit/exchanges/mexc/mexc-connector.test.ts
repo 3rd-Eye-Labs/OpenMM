@@ -2,21 +2,32 @@ import {MexcConnector} from '../../../../exchanges/mexc/mexc-connector';
 import {MexcAuth} from '../../../../exchanges/mexc/mexc-auth';
 import {MexcWebSocket} from '../../../../exchanges/mexc/mexc-websocket';
 import {MexcUserStream} from '../../../../exchanges/mexc/mexc-user-stream';
-import {MexcUtils} from '../../../../exchanges/mexc/mexc-utils';
 import {MexcDataMapper} from '../../../../exchanges/mexc/mexc-data-mapper';
+import {ExchangeUtils} from '../../../../utils';
 import {mockCredentials} from '../../../fixtures/test-helpers';
 
 jest.mock('../../../../exchanges/mexc/mexc-auth');
 jest.mock('../../../../exchanges/mexc/mexc-websocket');
 jest.mock('../../../../exchanges/mexc/mexc-user-stream');
-jest.mock('../../../../exchanges/mexc/mexc-utils');
 jest.mock('../../../../exchanges/mexc/mexc-data-mapper');
-jest.mock('../../../../utils');
+jest.mock('../../../../utils', () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn()
+  })),
+  ExchangeUtils: {
+    createMexcOrderParams: jest.fn(),
+    createBitgetOrderParams: jest.fn(),
+    createOrderParams: jest.fn(),
+    isValidSymbol: jest.fn()
+  }
+}));
 
 const MockedMexcAuth = MexcAuth as jest.MockedClass<typeof MexcAuth>;
 const MockedMexcWebSocket = MexcWebSocket as jest.MockedClass<typeof MexcWebSocket>;
 const MockedMexcUserStream = MexcUserStream as jest.MockedClass<typeof MexcUserStream>;
-const MockedMexcUtils = MexcUtils as jest.Mocked<typeof MexcUtils>;
 const MockedMexcDataMapper = MexcDataMapper as jest.MockedClass<typeof MexcDataMapper>;
 
 class TestableMexcConnector extends MexcConnector {
@@ -143,6 +154,7 @@ describe('MexcConnector', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetAllMocks();
     jest.spyOn(MexcDataMapper, 'mapToOrderStatus').mockImplementation((status: string) => {
       switch (status.toUpperCase()) {
         case 'NEW': return 'open';
@@ -403,8 +415,10 @@ describe('MexcConnector', () => {
         timeInForce: 'GTC'
       };
       const mockApiResponse = { orderId: '12345' };
-      MockedMexcUtils.createOrderParams.mockReturnValue(mockOrderParams);
-            mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+      
+      (ExchangeUtils.createMexcOrderParams as jest.Mock).mockReturnValue(mockOrderParams);
+      
+      mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
       mockDataMapper.mapOrder.mockReturnValueOnce({
         id: '12345',
         symbol: 'BTCUSDT',
@@ -420,8 +434,8 @@ describe('MexcConnector', () => {
 
       const result = await connector.createOrder('BTC/USDT', 'limit', 'buy', 1.5, 50000);
 
-      expect(MockedMexcUtils.createOrderParams).toHaveBeenCalledWith('BTC/USDT', 'limit', 'buy', 1.5, 50000);
       expect(mockAuth.makeRequest).toHaveBeenCalledWith('/order', mockOrderParams, 'POST');
+      expect(ExchangeUtils.createMexcOrderParams).toHaveBeenCalledWith('BTC/USDT', 'limit', 'buy', 1.5, 50000);
       expect(result).toEqual(expect.objectContaining({
         id: '12345',
         symbol: 'BTCUSDT',
@@ -441,8 +455,11 @@ describe('MexcConnector', () => {
         quantity: '1.0'
       };
       const mockApiResponse = { orderId: '54321' };
-      MockedMexcUtils.createOrderParams.mockReturnValue(mockOrderParams);
-            mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
+      
+      // Mock the ExchangeUtils method
+      (ExchangeUtils.createMexcOrderParams as jest.Mock).mockReturnValue(mockOrderParams);
+      
+      mockAuth.makeRequest.mockResolvedValue(mockApiResponse);
       mockDataMapper.mapOrder.mockReturnValueOnce({
         id: '54321',
         symbol: 'BTCUSDT',
@@ -458,8 +475,8 @@ describe('MexcConnector', () => {
 
       const result = await connector.createOrder('BTC/USDT', 'market', 'sell', 1.0);
 
-      expect(MockedMexcUtils.createOrderParams).toHaveBeenCalledWith('BTC/USDT', 'market', 'sell', 1.0, undefined);
       expect(mockAuth.makeRequest).toHaveBeenCalledWith('/order', mockOrderParams, 'POST');
+      expect(ExchangeUtils.createMexcOrderParams).toHaveBeenCalledWith('BTC/USDT', 'market', 'sell', 1.0, undefined);
       expect(result).toEqual(expect.objectContaining({
         id: '54321',
         type: 'market',
@@ -470,7 +487,7 @@ describe('MexcConnector', () => {
 
     it('should handle order creation errors', async () => {
       const error = new Error('Insufficient balance');
-      MockedMexcUtils.createOrderParams.mockReturnValue({} as any);
+      (ExchangeUtils.createMexcOrderParams as jest.Mock).mockReturnValue({} as any);
       mockAuth.makeRequest.mockRejectedValue(error);
       await expect(connector.createOrder('BTC/USDT', 'limit', 'buy', 1.5, 50000)).rejects.toThrow('Insufficient balance');
     });

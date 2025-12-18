@@ -3,7 +3,7 @@
  * All endpoints and settings for price services
  */
 
-import { CardanoTokenConfig } from '../types/price';
+import { CardanoTokenConfig } from '../types';
 
 export const CEX_API_CONFIG = {
   BINANCE: {
@@ -52,7 +52,7 @@ export const SUPPORTED_TOKENS: Record<string, CardanoTokenConfig> = {
   },
   'NIGHT': {
     symbol: 'NIGHT',
-    policyId: '0691b2fecca1ac4f53cb6dfb00b7013e561d1f34403b957cbb5af1fa4e49474854',
+    policyId: '0691b2fecca1ac4f53cb6dfb00b7013e561d1f34403b957cbb5af1fa',
     assetName: '4e49474854',
     minLiquidityThreshold: 25000
   },
