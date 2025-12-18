@@ -53,16 +53,18 @@ describe('GridCalculator', () => {
   });
 
   describe('assignOrderSizes', () => {
-    it('should assign order sizes to all grid levels', () => {
+    it('should assign order sizes to all grid levels with currency conversion', () => {
       const gridLevels = [
         { price: 0.40, side: 'buy' as const, orderSize: 0 },
         { price: 0.44, side: 'sell' as const, orderSize: 0 }
       ];
-      const orderSize = 50;
-      const result = calculator.assignOrderSizes(gridLevels, orderSize);
+      const orderSizeInQuote = 50;
+      const result = calculator.assignOrderSizes(gridLevels, orderSizeInQuote);
       expect(result).toHaveLength(2);
-      expect(result[0].orderSize).toBe(50);
-      expect(result[1].orderSize).toBe(50);
+      
+      expect(result[0].orderSize).toBe(125);
+      expect(result[1].orderSize).toBeCloseTo(113.636, 2);
+      
       expect(result[0].price).toBe(0.40);
       expect(result[1].price).toBe(0.44);
     });
