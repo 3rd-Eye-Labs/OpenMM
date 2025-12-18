@@ -105,21 +105,111 @@ export class ExchangeUtils {
       amount,
       price,
       (params) => {
+        this.validateBitgetMinimumOrder(params.amount, params.price, params.symbol);
+
         const bitgetParams: Record<string, string> = {
           symbol: params.symbol,
           side: params.side.toLowerCase(),
           orderType: params.type.toLowerCase(),
           force: 'gtc',
-          size: params.amount.toString()
+          size: this.formatBitgetQuantity(params.amount, params.symbol)
         };
 
         if (params.type === 'limit' && params.price !== undefined) {
-          bitgetParams.price = params.price.toString();
+          bitgetParams.price = this.formatBitgetPrice(params.price, params.symbol);
         }
 
         return bitgetParams;
       }
     );
+  }
+
+  /**
+   * Format quantity for Bitget with appropriate precision
+   * 
+   * @param quantity - The quantity to format
+   * @param symbol - Trading pair symbol for precision rules
+   * @returns Formatted quantity string with correct decimal places
+   */
+  private static formatBitgetQuantity(quantity: number, symbol: string): string {
+    const precision = this.getBitgetQuantityPrecision(symbol);
+    return quantity.toFixed(precision);
+  }
+
+  /**
+   * Format price for Bitget with appropriate precision
+   * 
+   * @param price - The price to format
+   * @param symbol - Trading pair symbol for precision rules
+   * @returns Formatted price string with correct decimal places
+   */
+  private static formatBitgetPrice(price: number, symbol: string): string {
+    const precision = this.getBitgetPricePrecision(symbol);
+    return price.toFixed(precision);
+  }
+
+  /**
+   * Get quantity precision for Bitget symbol
+   * Based on common Bitget precision rules
+   * 
+   * @param symbol - Trading pair symbol
+   * @returns Number of decimal places for quantity
+   */
+  private static getBitgetQuantityPrecision(symbol: string): number {
+    if (symbol.includes('USDT') || symbol.includes('USDC')) {
+      if (symbol.includes('SNEK') || symbol.includes('INDY') || symbol.includes('NIGHT')) {
+        return 2;
+      }
+      if (symbol.includes('BTC') || symbol.includes('ETH')) {
+        return 6;
+      }
+    }
+    return 4;
+  }
+
+  /**
+   * Get price precision for Bitget symbol
+   * Based on common Bitget precision rules
+   * 
+   * @param symbol - Trading pair symbol
+   * @returns Number of decimal places for price
+   */
+  private static getBitgetPricePrecision(symbol: string): number {
+    if (symbol.includes('USDT') || symbol.includes('USDC')) {
+      if (symbol.includes('SNEK') || symbol.includes('NIGHT')) {
+        return 6;
+      }
+      if (symbol.includes('INDY')) {
+        return 6;
+      }
+      if (symbol.includes('BTC')) {
+        return 2;
+      }
+      if (symbol.includes('ETH')) {
+        return 3;
+      }
+    }
+    return 6;
+  }
+
+  /**
+   * Validate minimum order value for Bitget
+   * Bitget requires minimum order value of 1 USDT
+   * 
+   * @param amount - Order quantity
+   * @param price - Order price
+   * @param symbol - Trading pair symbol
+   * @throws Error if order value is below minimum
+   */
+  private static validateBitgetMinimumOrder(amount: number, price?: number, symbol?: string): void {
+    if (price && symbol && (symbol.includes('USDT') || symbol.includes('USDC'))) {
+      const orderValue = amount * price;
+      const minimumValue = 1.0;
+      
+      if (orderValue < minimumValue) {
+        throw new Error(`Bitget order value ${orderValue.toFixed(6)} USDT is below minimum ${minimumValue} USDT. Increase order size or price.`);
+      }
+    }
   }
 
   /**
@@ -161,6 +251,30 @@ export class ExchangeUtils {
         return mexcParams;
       }
     );
+  }
+
+  /**
+   * Get minimum order value for exchange
+   * 
+   * @param exchange - Exchange name ('bitget', 'mexc', etc.)
+   * @param symbol - Trading pair symbol
+   * @returns Minimum order value in quote currency
+   */
+  static getMinimumOrderValue(exchange: string, symbol: string): number {
+    switch (exchange.toLowerCase()) {
+      case 'bitget':
+        if (symbol.includes('USDT') || symbol.includes('USDC')) {
+          return 1.0; // 1 USDT minimum
+        }
+        return 0;
+      case 'mexc':
+        if (symbol.includes('USDT') || symbol.includes('USDC')) {
+          return 1.0; // 1 USDT minimum
+        }
+        return 0;
+      default:
+        return 0;
+    }
   }
 
   /**

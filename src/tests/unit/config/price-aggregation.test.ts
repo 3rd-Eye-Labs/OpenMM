@@ -67,7 +67,7 @@ describe('Price Aggregation Config', () => {
 
       expect(SUPPORTED_TOKENS.NIGHT).toEqual({
         symbol: 'NIGHT',
-        policyId: '0691b2fecca1ac4f53cb6dfb00b7013e561d1f34403b957cbb5af1fa4e49474854',
+        policyId: '0691b2fecca1ac4f53cb6dfb00b7013e561d1f34403b957cbb5af1fa',
         assetName: '4e49474854',
         minLiquidityThreshold: 25000
       });
