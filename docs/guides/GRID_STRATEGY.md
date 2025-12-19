@@ -7,8 +7,15 @@ This guide explains how to run the Grid Trading Strategy using OpenMM's unified 
 1. **Environment Setup**
    ```bash
    # Set your exchange API credentials
+   
+   # For MEXC
    export MEXC_API_KEY="your_api_key"
    export MEXC_SECRET_KEY="your_secret_key"
+   
+   # For Bitget
+   export BITGET_API_KEY="your_api_key"
+   export BITGET_SECRET="your_secret_key"
+   export BITGET_PASSPHRASE="your_passphrase"
    ```
 
 2. **Install Dependencies**
@@ -20,14 +27,24 @@ This guide explains how to run the Grid Trading Strategy using OpenMM's unified 
 ## Quick Start
 
 ### Basic Grid Strategy
+
+**MEXC Example:**
 ```bash
-# Start grid trading with default settings
+# Start grid trading with default settings on MEXC
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT
 ```
 
-### Custom Configuration
+**Bitget Example:**
 ```bash
-# Advanced grid with custom parameters and risk management
+# Start grid trading with default settings on Bitget
+openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT
+```
+
+### Custom Configuration
+
+**MEXC Advanced Grid:**
+```bash
+# Advanced grid with custom parameters on MEXC
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --levels 5 \
   --spacing 0.02 \
@@ -37,12 +54,24 @@ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --safety-reserve 0.3
 ```
 
+**Bitget Advanced Grid:**
+```bash
+# Advanced grid with custom parameters on Bitget
+openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT \
+  --levels 3 \
+  --spacing 0.015 \
+  --size 25 \
+  --confidence 0.8 \
+  --max-position 0.7 \
+  --safety-reserve 0.3
+```
+
 ## Command Options
 
 ### Required Parameters
 - `--strategy grid` - Specifies grid trading strategy
-- `--exchange mexc` - Exchange to trade on (currently supports MEXC)
-- `--symbol <symbol>` - Trading pair (e.g., INDY/USDT, BTC/USDT)
+- `--exchange <exchange>` - Exchange to trade on (supports: `mexc`, `bitget`)
+- `--symbol <symbol>` - Trading pair (e.g., INDY/USDT, SNEK/USDT, BTC/USDT)
 
 ### Optional Parameters
 - `--levels <number>` - Grid levels each side (default: 5, range: 1-20)
@@ -57,7 +86,9 @@ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
 
 ## Trading Examples
 
-### Conservative INDY Trading
+### Conservative Trading Strategies
+
+**MEXC - Conservative INDY Trading:**
 ```bash
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --levels 3 \
@@ -65,7 +96,18 @@ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --confidence 0.8
 ```
 
-### Active BTC Trading
+**Bitget - Conservative SNEK Trading:**
+```bash
+openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT \
+  --levels 2 \
+  --spacing 0.02 \
+  --size 20 \
+  --confidence 0.8
+```
+
+### Active Trading Strategies
+
+**MEXC - Active BTC Trading:**
 ```bash
 openmm trade --strategy grid --exchange mexc --symbol BTC/USDT \
   --levels 7 \
@@ -73,9 +115,25 @@ openmm trade --strategy grid --exchange mexc --symbol BTC/USDT \
   --size 25
 ```
 
+**Bitget - Active NIGHT Trading:**
+```bash
+openmm trade --strategy grid --exchange bitget --symbol NIGHT/USDT \
+  --levels 5 \
+  --spacing 0.025 \
+  --size 30 \
+  --max-position 0.6
+```
+
 ### Test Mode (No Real Orders)
+
+**MEXC Test:**
 ```bash
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT --dry-run
+```
+
+**Bitget Test:**
+```bash
+openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT --dry-run
 ```
 
 ## Risk Management
@@ -108,6 +166,8 @@ When `--size` is omitted, the system automatically calculates optimal order size
 
 ### Real-time Updates
 The strategy provides live feedback:
+
+**MEXC Example:**
 ```
 🚀 Starting Grid Trading Strategy
 Exchange: MEXC
@@ -115,6 +175,21 @@ Symbol: INDY/USDT
 Grid Levels: 5 each side
 Grid Spacing: 2.0%
 Order Size: $50
+
+✅ Strategy initialized successfully
+🔄 Starting grid strategy...
+✅ Grid strategy is now running!
+Press Ctrl+C to stop the strategy gracefully
+```
+
+**Bitget Example:**
+```
+🚀 Starting Grid Trading Strategy
+Exchange: BITGET
+Symbol: SNEK/USDT
+Grid Levels: 2 each side
+Grid Spacing: 2.0%
+Order Size: $20
 
 ✅ Strategy initialized successfully
 🔄 Starting grid strategy...
@@ -136,11 +211,23 @@ The system will:
 
 ### Common Issues
 
-**Invalid credentials:**
+**Invalid credentials (MEXC):**
 ```
 Error: MEXC credentials not found
 ```
 Solution: Verify `MEXC_API_KEY` and `MEXC_SECRET_KEY` environment variables
+
+**Invalid credentials (Bitget):**
+```
+Error: Bitget credentials validation failed
+```
+Solution: Verify `BITGET_API_KEY`, `BITGET_SECRET`, and `BITGET_PASSPHRASE` environment variables
+
+**Minimum order value (Bitget/MEXC):**
+```
+Error: Bitget order value 0.50 USDT is below minimum 1 USDT
+```
+Solution: Increase `--size` parameter or reduce number of `--levels` to ensure each order meets 1 USDT minimum
 
 **Low price confidence:**
 ```
@@ -148,8 +235,27 @@ Error: Price confidence too low: 0.4 < 0.6
 ```
 Solution: Lower `--confidence` threshold or wait for better price data
 
+**Price precision error (Bitget):**
+```
+Error: param price scale error
+```
+Solution: This is automatically handled by the system's precision formatting. If you see this error, please report it as it indicates a system issue.
+
 **Insufficient balance:**
 ```
 Error: No balance found for USDT
 ```
 Solution: Ensure sufficient USDT balance in your exchange account
+
+### Exchange-Specific Notes
+
+**Bitget Requirements:**
+- Minimum order value: 1 USDT per order
+- Price precision: 6 decimal places for SNEK/NIGHT pairs
+- Quantity precision: 2 decimal places for SNEK/INDY/NIGHT pairs
+- Requires API key, secret, and passphrase for authentication
+
+**MEXC Requirements:**
+- Minimum order value: 1 USDT per order  
+- Flexible precision handling
+- Requires API key and secret for authentication

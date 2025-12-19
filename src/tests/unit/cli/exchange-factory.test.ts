@@ -1,7 +1,20 @@
 import { ExchangeFactory } from '../../../cli/exchange-factory';
 import { MexcConnector } from '../../../exchanges/mexc/mexc-connector';
 import { BaseExchangeConnector } from '../../../core/exchange/base-exchange-connector';
+
 jest.mock('../../../exchanges/mexc/mexc-connector');
+jest.mock('../../../config/environment', () => ({
+  default: {
+    mexc: {
+      apiKey: 'test-key',
+      secret: 'test-secret',
+      uid: 'test-uid'
+    },
+    logLevel: 'info',
+    nodeEnv: 'test'
+  }
+}));
+
 const MockMexcConnector = MexcConnector as jest.MockedClass<typeof MexcConnector>;
 describe('ExchangeFactory', () => {
   let mockConnector: jest.Mocked<BaseExchangeConnector>;
@@ -61,9 +74,9 @@ describe('ExchangeFactory', () => {
         .rejects.toThrow('GateIO connector not yet implemented');
     });
 
-    it('should throw error for bitget exchange', async () => {
+    it('should throw error for bitget exchange when no credentials', async () => {
       await expect(ExchangeFactory.getExchange('bitget'))
-        .rejects.toThrow('Bitget connector not yet implemented');
+        .rejects.toThrow('Bitget connect failed: No credentials set for Bitget');
     });
 
     it('should throw error for kraken exchange', async () => {

@@ -1,5 +1,6 @@
 import { BaseExchangeConnector } from '../core/exchange/base-exchange-connector';
 import { MexcConnector } from '../exchanges/mexc/mexc-connector';
+import { BitgetConnector } from "../exchanges/bitget/bitget-connector";
 
 /**
  * Supported exchanges
@@ -47,8 +48,8 @@ export class ExchangeFactory {
       
       case 'bitget':
         // TODO: Implement Bitget connector
-        throw new Error('Bitget connector not yet implemented');
-      
+        return new BitgetConnector();
+
       case 'kraken':
         // TODO: Implement Kraken connector
         throw new Error('Kraken connector not yet implemented');
