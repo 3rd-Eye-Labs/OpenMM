@@ -57,7 +57,7 @@ export function validateOrderId(orderId: string): string {
  */
 export function validatePositiveNumber(value: string, fieldName: string): number {
   const num = parseFloat(value);
-  
+
   if (isNaN(num)) {
     console.error(chalk.red(`❌ ${fieldName} must be a valid number`));
     process.exit(1);
@@ -79,7 +79,7 @@ export function validatePositiveNumber(value: string, fieldName: string): number
 export function validateOrderType(type: string): 'market' | 'limit' {
   const validTypes = ['market', 'limit'];
   const lowerType = type.toLowerCase();
-  
+
   if (!validTypes.includes(lowerType)) {
     console.error(chalk.red(`❌ Invalid order type: ${type}`));
     console.log(chalk.yellow(`Valid types: ${validTypes.join(', ')}`));
@@ -97,7 +97,7 @@ export function validateOrderType(type: string): 'market' | 'limit' {
 export function validateOrderSide(side: string): 'buy' | 'sell' {
   const validSides = ['buy', 'sell'];
   const lowerSide = side.toLowerCase();
-  
+
   if (!validSides.includes(lowerSide)) {
     console.error(chalk.red(`❌ Invalid order side: ${side}`));
     console.log(chalk.yellow(`Valid sides: ${validSides.join(', ')}`));
@@ -114,7 +114,7 @@ export function validateOrderSide(side: string): 'buy' | 'sell' {
  */
 export function requireOptions(options: Record<string, any>, required: string[]): void {
   const missing = required.filter(key => !options[key]);
-  
+
   if (missing.length > 0) {
     console.error(chalk.red(`❌ Missing required options: ${missing.join(', ')}`));
     process.exit(1);

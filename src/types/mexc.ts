@@ -1,6 +1,6 @@
 /**
  * MEXC Exchange Specific Types
- * 
+ *
  * Type definitions for MEXC protobuf messages and exchange-specific data structures
  */
 
@@ -48,7 +48,17 @@ export interface MexcSubscription {
   params: string[];
 }
 
-export type SubscriptionInfo = 
+export interface MexcOrderParams {
+  symbol: string;
+  side: string;
+  type: string;
+  quantity: string;
+  price?: string;
+  timeInForce?: string;
+  [key: string]: string | undefined;
+}
+
+export type SubscriptionInfo =
   | {
       callback: (data: Ticker) => void;
       type: 'ticker';

@@ -9,7 +9,6 @@ import { toStandardFormat } from '../../utils/symbol-utils';
  * This class focuses on MEXC-specific utilities and WebSocket message processing
  */
 export class MexcUtils {
-
   /**
    * Unified order transformation function
    * Handles all MEXC order formats: REST API, WebSocket, Protobuf, User Data
@@ -34,41 +33,59 @@ export class MexcUtils {
   }
 
   private static isProtobufOrder(data: any): boolean {
-    return data && typeof data.orderId === 'string' && typeof data.symbol === 'string' && 
-           typeof data.price === 'number' && typeof data.quantity === 'number' && 
-           typeof data.side === 'string' && typeof data.status === 'string';
+    return (
+      data &&
+      typeof data.orderId === 'string' &&
+      typeof data.symbol === 'string' &&
+      typeof data.price === 'number' &&
+      typeof data.quantity === 'number' &&
+      typeof data.side === 'string' &&
+      typeof data.status === 'string'
+    );
   }
 
   private static isUserDataOrder(data: any): boolean {
-    return data && (data.i !== undefined || data.c !== undefined) && 
-           (data.S !== undefined || data.s !== undefined);
+    return (
+      data &&
+      (data.i !== undefined || data.c !== undefined) &&
+      (data.S !== undefined || data.s !== undefined)
+    );
   }
 
   private static isRestApiOrder(data: any): boolean {
-    return data && (data.orderId !== undefined || data.id !== undefined) && 
-           typeof data.symbol === 'string' && 
-           (data.origQty !== undefined || data.quantity !== undefined || data.status !== undefined);
+    return (
+      data &&
+      (data.orderId !== undefined || data.id !== undefined) &&
+      typeof data.symbol === 'string' &&
+      (data.origQty !== undefined || data.quantity !== undefined || data.status !== undefined)
+    );
   }
 
   private static isWebSocketUserOrder(data: any): boolean {
-    return data && (data.i !== undefined || data.orderId !== undefined) && 
-           (data.s !== undefined || data.symbol !== undefined) && 
-           (data.q !== undefined || data.origQty !== undefined) && 
-           (data.X !== undefined || data.orderStatus !== undefined);
+    return (
+      data &&
+      (data.i !== undefined || data.orderId !== undefined) &&
+      (data.s !== undefined || data.symbol !== undefined) &&
+      (data.q !== undefined || data.origQty !== undefined) &&
+      (data.X !== undefined || data.orderStatus !== undefined)
+    );
   }
 
   private static transformProtobufOrderInternal(decodedOrder: DecodedMexcOrder): Order {
     const status = MexcDataMapper.mapToOrderStatus(decodedOrder.status);
-    
+
     let filled = 0;
     if (status === 'filled') {
       filled = decodedOrder.quantity;
     } else if (status === 'open' && decodedOrder.status.includes('partial')) {
       filled = decodedOrder.quantity;
-    } else if (decodedOrder.status === 'filled' || decodedOrder.status.toLowerCase().includes('fill')) {
+    } else if (
+      decodedOrder.status === 'filled' ||
+      decodedOrder.status.toLowerCase().includes('fill')
+    ) {
       filled = decodedOrder.quantity;
     }
-    
+
     const remaining = Math.max(0, decodedOrder.quantity - filled);
 
     return {
@@ -81,7 +98,7 @@ export class MexcUtils {
       filled,
       remaining,
       status,
-      timestamp: decodedOrder.timestamp
+      timestamp: decodedOrder.timestamp,
     };
   }
 
@@ -91,21 +108,23 @@ export class MexcUtils {
       2: 'filled',
       3: 'partially_filled',
       4: 'cancelled',
-      5: 'cancelled'
+      5: 'cancelled',
     };
 
     const statusCode = userDataOrder.s;
     const mexcStatus = statusMap[statusCode || 1] || 'new';
     const status = MexcDataMapper.mapToOrderStatus(mexcStatus);
-    
+
     const mexcSymbol = userDataOrder.c || userDataOrder.symbol;
-    const symbol = mexcSymbol ? (() => {
-      try {
-        return toStandardFormat(mexcSymbol);
-      } catch {
-        return mexcSymbol;
-      }
-    })() : '';
+    const symbol = mexcSymbol
+      ? (() => {
+          try {
+            return toStandardFormat(mexcSymbol);
+          } catch {
+            return mexcSymbol;
+          }
+        })()
+      : '';
 
     return {
       id: userDataOrder.i?.toString() || Date.now().toString(),
@@ -117,7 +136,7 @@ export class MexcUtils {
       filled: parseFloat(userDataOrder.z || '0'),
       remaining: parseFloat(userDataOrder.v || '0') - parseFloat(userDataOrder.z || '0'),
       status,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -136,7 +155,7 @@ export class MexcUtils {
       filled,
       remaining: amount - filled,
       status,
-      timestamp: parseInt(mexcOrder.time || mexcOrder.updateTime) || Date.now()
+      timestamp: parseInt(mexcOrder.time || mexcOrder.updateTime) || Date.now(),
     };
   }
 
@@ -159,10 +178,9 @@ export class MexcUtils {
       filled: parseFloat(data.z || data.executedQty || '0'),
       remaining: parseFloat(data.q || '0') - parseFloat(data.z || '0'),
       status: MexcDataMapper.mapToOrderStatus(data.X || data.orderStatus || 'NEW'),
-      timestamp: parseInt(data.T || data.transactTime) || Date.now()
+      timestamp: parseInt(data.T || data.transactTime) || Date.now(),
     };
   }
-
 
   /**
    * Determine order side from protobuf message patterns

@@ -1,6 +1,6 @@
 import { BaseExchangeConnector } from '../core/exchange/base-exchange-connector';
 import { MexcConnector } from '../exchanges/mexc/mexc-connector';
-import { BitgetConnector } from "../exchanges/bitget/bitget-connector";
+import { BitgetConnector } from '../exchanges/bitget/bitget-connector';
 
 /**
  * Supported exchanges
@@ -26,9 +26,9 @@ export class ExchangeFactory {
 
     const connector = await this.createExchangeConnector(exchangeName);
     await connector.connect();
-    
+
     this.connectors.set(exchangeName, connector);
-    
+
     return connector;
   }
 
@@ -37,15 +37,17 @@ export class ExchangeFactory {
    * @param exchangeName Name of the exchange
    * @returns Exchange connector instance
    */
-  private static async createExchangeConnector(exchangeName: SupportedExchange): Promise<BaseExchangeConnector> {
+  private static async createExchangeConnector(
+    exchangeName: SupportedExchange
+  ): Promise<BaseExchangeConnector> {
     switch (exchangeName) {
       case 'mexc':
         return new MexcConnector();
-      
+
       case 'gateio':
         // TODO: Implement GateIO connector
         throw new Error('GateIO connector not yet implemented');
-      
+
       case 'bitget':
         // TODO: Implement Bitget connector
         return new BitgetConnector();
@@ -53,7 +55,7 @@ export class ExchangeFactory {
       case 'kraken':
         // TODO: Implement Kraken connector
         throw new Error('Kraken connector not yet implemented');
-      
+
       default:
         throw new Error(`Unsupported exchange: ${exchangeName}`);
     }

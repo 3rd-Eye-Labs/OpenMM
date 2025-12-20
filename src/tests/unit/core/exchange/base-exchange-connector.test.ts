@@ -18,7 +18,13 @@ class MockExchangeConnector extends BaseExchangeConnector {
     return {};
   }
 
-  async createOrder(symbol: string, type: OrderType, side: OrderSide, amount: number, price?: number) {
+  async createOrder(
+    symbol: string,
+    type: OrderType,
+    side: OrderSide,
+    amount: number,
+    price?: number
+  ) {
     return {
       id: 'test-order',
       symbol,
@@ -29,34 +35,69 @@ class MockExchangeConnector extends BaseExchangeConnector {
       status: 'open' as const,
       timestamp: Date.now(),
       filled: 0,
-      remaining: amount
+      remaining: amount,
     };
   }
 
   async cancelOrder(): Promise<void> {}
   async cancelAllOrders(): Promise<void> {}
-  async getOrder() { return this.createOrder('BTCUSDT', 'limit', 'buy', 1, 50000); }
-  async getOpenOrders() { return []; }
-  async getTicker() { return { symbol: 'BTCUSDT', bid: 50000, ask: 50001, last: 50000.5, baseVolume: 1000, timestamp: Date.now() }; }
-  async getOrderBook() { return { symbol: 'BTCUSDT', bids: [], asks: [], timestamp: Date.now() }; }
-  async getRecentTrades() { return []; }
+  async getOrder() {
+    return this.createOrder('BTCUSDT', 'limit', 'buy', 1, 50000);
+  }
+  async getOpenOrders() {
+    return [];
+  }
+  async getTicker() {
+    return {
+      symbol: 'BTCUSDT',
+      bid: 50000,
+      ask: 50001,
+      last: 50000.5,
+      baseVolume: 1000,
+      timestamp: Date.now(),
+    };
+  }
+  async getOrderBook() {
+    return { symbol: 'BTCUSDT', bids: [], asks: [], timestamp: Date.now() };
+  }
+  async getRecentTrades() {
+    return [];
+  }
 
   async connectWebSocket(): Promise<void> {}
   async disconnectWebSocket(): Promise<void> {}
-  async subscribeTicker() { return 'ticker-sub-id'; }
-  async subscribeOrderBook() { return 'orderbook-sub-id'; }
-  async subscribeTrades() { return 'trades-sub-id'; }
-  async subscribeOrders() { return 'orders-sub-id'; }
+  async subscribeTicker() {
+    return 'ticker-sub-id';
+  }
+  async subscribeOrderBook() {
+    return 'orderbook-sub-id';
+  }
+  async subscribeTrades() {
+    return 'trades-sub-id';
+  }
+  async subscribeOrders() {
+    return 'orders-sub-id';
+  }
   async unsubscribe(): Promise<void> {}
-  
-  isWebSocketConnected() { return false; }
-  getWebSocketStatus(): WebSocketStatus { return 'disconnected'; }
+
+  isWebSocketConnected() {
+    return false;
+  }
+  getWebSocketStatus(): WebSocketStatus {
+    return 'disconnected';
+  }
 
   async connectUserDataStream(): Promise<void> {}
   async disconnectUserDataStream(): Promise<void> {}
-  async subscribeUserOrders() { return 'user-orders-sub-id'; }
-  async subscribeUserTrades() { return 'user-trades-sub-id'; }
-  isUserDataStreamConnected() { return false; }
+  async subscribeUserOrders() {
+    return 'user-orders-sub-id';
+  }
+  async subscribeUserTrades() {
+    return 'user-trades-sub-id';
+  }
+  isUserDataStreamConnected() {
+    return false;
+  }
 
   testHandleError(error: unknown, operation: string) {
     return this.handleError(error, operation);
@@ -94,7 +135,7 @@ describe('BaseExchangeConnector', () => {
     it('should update connected state on disconnect', async () => {
       await connector.connect();
       expect(connector.isConnected()).toBe(true);
-      
+
       await connector.disconnect();
       expect(connector.isConnected()).toBe(false);
     });
@@ -106,7 +147,7 @@ describe('BaseExchangeConnector', () => {
         apiKey: 'test-key',
         secret: 'test-secret',
         passphrase: 'test-passphrase',
-        uid: 'test-uid'
+        uid: 'test-uid',
       };
 
       connector.setCredentials(credentials);
@@ -114,16 +155,14 @@ describe('BaseExchangeConnector', () => {
     });
 
     it('should throw error when getting credentials without setting them', () => {
-      expect(() => connector.testGetCredentials()).toThrow(
-        'No credentials set for Test Exchange'
-      );
+      expect(() => connector.testGetCredentials()).toThrow('No credentials set for Test Exchange');
     });
   });
 
   describe('error handling', () => {
     it('should handle Error objects correctly', () => {
       const error = new Error('Test error message');
-      
+
       expect(() => connector.testHandleError(error, 'testOperation')).toThrow(
         'Test Exchange testOperation failed: Test error message'
       );
@@ -131,7 +170,7 @@ describe('BaseExchangeConnector', () => {
 
     it('should handle string errors correctly', () => {
       const error = 'String error message';
-      
+
       expect(() => connector.testHandleError(error, 'testOperation')).toThrow(
         'Test Exchange testOperation failed: String error message'
       );
@@ -139,7 +178,7 @@ describe('BaseExchangeConnector', () => {
 
     it('should handle unknown error types', () => {
       const error = { some: 'object' };
-      
+
       expect(() => connector.testHandleError(error, 'testOperation')).toThrow(
         'Test Exchange testOperation failed: Unknown error'
       );
@@ -159,7 +198,7 @@ describe('BaseExchangeConnector', () => {
   describe('abstract method implementations', () => {
     it('should implement order creation', async () => {
       const order = await connector.createOrder('BTCUSDT', 'limit', 'buy', 1, 50000);
-      
+
       expect(order.id).toBe('test-order');
       expect(order.symbol).toBe('BTCUSDT');
       expect(order.type).toBe('limit');

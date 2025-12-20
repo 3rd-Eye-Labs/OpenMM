@@ -1,11 +1,21 @@
-import {GridStrategy} from '../../../../strategies/grid/grid-strategy';
-import {BaseExchangeConnector} from '../../../../core/exchange/base-exchange-connector';
-import {Balance, Order, OrderBook, OrderSide, OrderType, Ticker, Trade, WebSocketStatus, GridStrategyConfig} from '../../../../types';
+import { GridStrategy } from '../../../../strategies/grid/grid-strategy';
+import { BaseExchangeConnector } from '../../../../core/exchange/base-exchange-connector';
+import {
+  Balance,
+  Order,
+  OrderBook,
+  OrderSide,
+  OrderType,
+  Ticker,
+  Trade,
+  WebSocketStatus,
+  GridStrategyConfig,
+} from '../../../../types';
 jest.mock('../../../../core/price-aggregation/cardano-price-service');
 
 class MockExchangeConnector extends BaseExchangeConnector {
   private mockBalance: Record<string, Balance> = {
-    'USDT': { asset: 'USDT', free: 1000, used: 0, total: 1000, available: 1000 }
+    USDT: { asset: 'USDT', free: 1000, used: 0, total: 1000, available: 1000 },
   };
   private mockOrders: Order[] = [];
   private userOrderCallback?: (order: Order) => void;
@@ -21,7 +31,13 @@ class MockExchangeConnector extends BaseExchangeConnector {
   async getBalance(): Promise<Record<string, Balance>> {
     return this.mockBalance;
   }
-  async createOrder(symbol: string, type: OrderType, side: OrderSide, amount: number, price?: number): Promise<Order> {
+  async createOrder(
+    symbol: string,
+    type: OrderType,
+    side: OrderSide,
+    amount: number,
+    price?: number
+  ): Promise<Order> {
     const order: Order = {
       id: `order-${Date.now()}-${Math.random()}`,
       symbol,
@@ -32,7 +48,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
       status: 'open',
       timestamp: Date.now(),
       filled: 0,
-      remaining: amount
+      remaining: amount,
     };
     this.mockOrders.push(order);
     return order;
@@ -58,7 +74,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
       ask: 101,
       last: 100.5,
       baseVolume: 1000,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
   async getOrderBook(symbol: string): Promise<OrderBook> {
@@ -66,7 +82,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
       symbol,
       bids: [{ price: 100, amount: 10 }],
       asks: [{ price: 101, amount: 10 }],
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
   async getRecentTrades(symbol: string): Promise<Trade[]> {
@@ -74,21 +90,37 @@ class MockExchangeConnector extends BaseExchangeConnector {
   }
   async connectWebSocket(): Promise<void> {}
   async disconnectWebSocket(): Promise<void> {}
-  async subscribeTicker(): Promise<string> { return 'ticker-sub'; }
-  async subscribeOrderBook(): Promise<string> { return 'orderbook-sub'; }
-  async subscribeTrades(): Promise<string> { return 'trades-sub'; }
-  async subscribeOrders(): Promise<string> { return 'orders-sub'; }
+  async subscribeTicker(): Promise<string> {
+    return 'ticker-sub';
+  }
+  async subscribeOrderBook(): Promise<string> {
+    return 'orderbook-sub';
+  }
+  async subscribeTrades(): Promise<string> {
+    return 'trades-sub';
+  }
+  async subscribeOrders(): Promise<string> {
+    return 'orders-sub';
+  }
   async unsubscribe(): Promise<void> {}
-  isWebSocketConnected(): boolean { return false; }
-  getWebSocketStatus(): WebSocketStatus { return 'disconnected'; }
+  isWebSocketConnected(): boolean {
+    return false;
+  }
+  getWebSocketStatus(): WebSocketStatus {
+    return 'disconnected';
+  }
   async connectUserDataStream(): Promise<void> {}
   async disconnectUserDataStream(): Promise<void> {}
   async subscribeUserOrders(callback: (order: Order) => void): Promise<string> {
     this.userOrderCallback = callback;
     return 'user-orders-sub';
   }
-  async subscribeUserTrades(): Promise<string> { return 'user-trades-sub'; }
-  isUserDataStreamConnected(): boolean { return true; }
+  async subscribeUserTrades(): Promise<string> {
+    return 'user-trades-sub';
+  }
+  isUserDataStreamConnected(): boolean {
+    return true;
+  }
   simulateOrderFill(orderId: string, fillAmount?: number): void {
     const order = this.mockOrders.find(o => o.id === orderId);
     if (order && this.userOrderCallback) {
@@ -97,7 +129,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
         ...order,
         status: filled >= order.amount ? 'filled' : 'partially_filled',
         filled,
-        remaining: order.amount - filled
+        remaining: order.amount - filled,
       } as Order;
       this.userOrderCallback(filledOrder);
     }
@@ -124,15 +156,15 @@ describe('GridStrategy', () => {
       orderSize: 100,
       minConfidence: 0.6,
       priceDeviationThreshold: 0.015,
-      adjustmentDebounce: 2000
+      adjustmentDebounce: 2000,
     },
     parameters: {
       gridLevels: 3,
       gridSpacing: 0.02,
       orderSize: 100,
       upperPrice: 999999,
-      lowerPrice: 0
-    }
+      lowerPrice: 0,
+    },
   };
   beforeEach(async () => {
     strategy = new GridStrategy('test-grid');
@@ -141,8 +173,8 @@ describe('GridStrategy', () => {
       getTokenPrice: jest.fn().mockResolvedValue({
         price: 100,
         confidence: 0.8,
-        sources: ['dex']
-      })
+        sources: ['dex'],
+      }),
     };
     strategy.setExchangeConnector(mockExchange);
     await mockExchange.connect();
@@ -175,7 +207,7 @@ describe('GridStrategy', () => {
       (strategy as any).priceService.getTokenPrice.mockResolvedValue({
         price: 100,
         confidence: 0.3,
-        sources: ['dex']
+        sources: ['dex'],
       });
       await expect(strategy.start()).rejects.toThrow(/Price confidence too low/);
     });
@@ -183,7 +215,9 @@ describe('GridStrategy', () => {
     it('should throw error if exchange connector not set', async () => {
       const strategyWithoutExchange = new GridStrategy('no-exchange');
       await strategyWithoutExchange.initialize(validConfig);
-      await expect(strategyWithoutExchange.start()).rejects.toThrow('Strategy not properly initialized');
+      await expect(strategyWithoutExchange.start()).rejects.toThrow(
+        'Strategy not properly initialized'
+      );
     });
   });
 
@@ -203,7 +237,7 @@ describe('GridStrategy', () => {
       (strategy as any).priceService.getTokenPrice.mockResolvedValue({
         price: 100,
         confidence: 0.8,
-        sources: ['dex']
+        sources: ['dex'],
       });
       await strategy.start();
     });
@@ -233,7 +267,7 @@ describe('GridStrategy', () => {
         status: 'filled',
         timestamp: Date.now(),
         filled: 1,
-        remaining: 0
+        remaining: 0,
       };
       const initialOrderCount = mockExchange.getCreatedOrders().length;
       await strategy.onOrderUpdate(wrongSymbolOrder);
@@ -246,7 +280,7 @@ describe('GridStrategy', () => {
       (strategy as any).priceService.getTokenPrice.mockResolvedValue({
         price: 100,
         confidence: 0.8,
-        sources: ['dex']
+        sources: ['dex'],
       });
       await strategy.start();
     });
@@ -258,7 +292,7 @@ describe('GridStrategy', () => {
     });
 
     it('should ignore small price changes within threshold', async () => {
-    const initialOrderCount = mockExchange.getCreatedOrders().length;
+      const initialOrderCount = mockExchange.getCreatedOrders().length;
       await strategy.onPriceUpdate('INDY/USDT', 101);
       await new Promise(resolve => setTimeout(resolve, 50));
       expect(mockExchange.getCreatedOrders().length).toBe(initialOrderCount);
@@ -287,7 +321,7 @@ describe('GridStrategy', () => {
       (strategy as any).priceService.getTokenPrice.mockResolvedValue({
         price: 100,
         confidence: 0.8,
-        sources: ['dex']
+        sources: ['dex'],
       });
       await strategy.start();
       expect(connectSpy).toHaveBeenCalled();
@@ -299,7 +333,7 @@ describe('GridStrategy', () => {
       (strategy as any).priceService.getTokenPrice.mockResolvedValue({
         price: 100,
         confidence: 0.8,
-        sources: ['dex']
+        sources: ['dex'],
       });
       await strategy.start();
       const firstOrder = mockExchange.getCreatedOrders()[0];
@@ -311,7 +345,6 @@ describe('GridStrategy', () => {
 
   describe('Edge Cases', () => {
     describe('initialization edge cases', () => {
-
       it('should handle initialization with minimal config', async () => {
         const newStrategy = new GridStrategy('minimal-test');
         const minimalConfig: GridStrategyConfig = {
@@ -324,8 +357,8 @@ describe('GridStrategy', () => {
             orderSize: 10,
             minConfidence: 0.1,
             priceDeviationThreshold: 0.001,
-            adjustmentDebounce: 100
-          }
+            adjustmentDebounce: 100,
+          },
         };
         newStrategy.setExchangeConnector(mockExchange);
         await mockExchange.connect();
@@ -336,7 +369,9 @@ describe('GridStrategy', () => {
 
     describe('start edge cases', () => {
       it('should handle price service failure', async () => {
-        (strategy as any).priceService.getTokenPrice.mockRejectedValue(new Error('Price service unavailable'));
+        (strategy as any).priceService.getTokenPrice.mockRejectedValue(
+          new Error('Price service unavailable')
+        );
         await expect(strategy.start()).rejects.toThrow('Price service unavailable');
       });
 
@@ -344,7 +379,7 @@ describe('GridStrategy', () => {
         (strategy as any).priceService.getTokenPrice.mockResolvedValue({
           price: 100,
           confidence: 0.8,
-          sources: ['dex']
+          sources: ['dex'],
         });
         const originalGetBalance = mockExchange.getBalance;
         mockExchange.getBalance = jest.fn().mockRejectedValue(new Error('Balance unavailable'));
@@ -356,10 +391,12 @@ describe('GridStrategy', () => {
         (strategy as any).priceService.getTokenPrice.mockResolvedValue({
           price: 100,
           confidence: 0.8,
-          sources: ['dex']
+          sources: ['dex'],
         });
         const originalConnect = mockExchange.connectUserDataStream;
-        mockExchange.connectUserDataStream = jest.fn().mockRejectedValue(new Error('Stream connection failed'));
+        mockExchange.connectUserDataStream = jest
+          .fn()
+          .mockRejectedValue(new Error('Stream connection failed'));
         await expect(strategy.start()).resolves.not.toThrow();
         expect(strategy.currentStatus).toBe('running');
         mockExchange.connectUserDataStream = originalConnect;
@@ -408,7 +445,7 @@ describe('GridStrategy', () => {
           filled: 0,
           remaining: 100,
           status: 'open',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
         const initialOrderCount = mockExchange.getCreatedOrders().length;
         await strategy.onOrderUpdate(order);
@@ -417,10 +454,12 @@ describe('GridStrategy', () => {
 
       it('should throw error when quote asset balance is not found', async () => {
         const originalGetBalance = mockExchange.getBalance;
-        mockExchange.getBalance = jest.fn().mockResolvedValue({ 
-          BTC: { asset: 'BTC', free: 1, used: 0, total: 1, available: 1 } 
+        mockExchange.getBalance = jest.fn().mockResolvedValue({
+          BTC: { asset: 'BTC', free: 1, used: 0, total: 1, available: 1 },
         });
-        await expect((strategy as any).getAvailableBalance()).rejects.toThrow('No balance found for USDT');
+        await expect((strategy as any).getAvailableBalance()).rejects.toThrow(
+          'No balance found for USDT'
+        );
         mockExchange.getBalance = originalGetBalance;
       });
     });
@@ -430,7 +469,7 @@ describe('GridStrategy', () => {
         const newRiskConfig = {
           maxPositionSize: 0.9,
           safetyReservePercentage: 0.1,
-          minConfidence: 0.7
+          minConfidence: 0.7,
         };
         expect(() => strategy.setRiskConfig(newRiskConfig)).not.toThrow();
       });
@@ -439,14 +478,14 @@ describe('GridStrategy', () => {
     describe('complex symbol parsing', () => {
       it('should handle complex symbol formats', async () => {
         const complexStrategy = new GridStrategy('complex-symbol');
-        const complexConfig = { 
-          ...validConfig, 
+        const complexConfig = {
+          ...validConfig,
           id: 'complex-symbol',
           symbol: 'BTC/USDT',
           gridConfig: {
             ...validConfig.gridConfig,
-            symbol: 'BTC/USDT'
-          }
+            symbol: 'BTC/USDT',
+          },
         };
         complexStrategy.setExchangeConnector(mockExchange);
         await mockExchange.connect();

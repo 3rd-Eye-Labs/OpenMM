@@ -2,13 +2,11 @@ import { toStandardFormat, toExchangeFormat } from '../../utils/symbol-utils';
 
 /**
  * Bitget Utility Functions
- * 
+ *
  * Handles data transformation between Bitget API responses and OpenMM standard formats.
  * Focuses on core transformations needed for market data and trading operations.
  */
 export class BitgetUtils {
-
-
   /**
    * Map Bitget error codes to standardized error messages
    */
@@ -35,7 +33,7 @@ export class BitgetUtils {
       '43028': 'Order not found',
       '50001': 'Internal server error',
       '50002': 'Service unavailable',
-      '50003': 'Rate limit exceeded'
+      '50003': 'Rate limit exceeded',
     };
 
     const mappedMessage = errorMap[errorCode];

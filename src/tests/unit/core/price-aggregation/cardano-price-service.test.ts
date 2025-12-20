@@ -18,9 +18,9 @@ describe('CardanoPriceService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     (global.fetch as jest.Mock).mockClear();
-    
+
     service = new CardanoPriceService();
     mockPoolDiscovery = (service as any).poolDiscovery;
     mockIrisClient = (service as any).irisClient;
@@ -33,8 +33,8 @@ describe('CardanoPriceService', () => {
         {
           dex: 'MinswapV2',
           identifier: 'pool1',
-          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 }
-        }
+          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 },
+        },
       ];
       mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
       mockIrisClient.fetchPrices.mockResolvedValue([0.5]);
@@ -44,26 +44,26 @@ describe('CardanoPriceService', () => {
         confidence: 0.8,
         poolsUsed: 1,
         totalLiquidity: 1000000,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       mockPriceCalculator.calculateLiquidityWeightedPrice.mockReturnValue(mockPriceResult);
 
       (global.fetch as jest.Mock)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ price: '0.45' })
+          json: async () => ({ price: '0.45' }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ price: '0.46' })
+          json: async () => ({ price: '0.46' }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ cardano: { usd: 0.44 } })
+          json: async () => ({ cardano: { usd: 0.44 } }),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ result: { ADAUSD: { c: ['0.47'] } } })
+          json: async () => ({ result: { ADAUSD: { c: ['0.47'] } } }),
         });
 
       const result = await service.getTokenPrice('INDY');
@@ -85,17 +85,15 @@ describe('CardanoPriceService', () => {
     it('should throw error when no pools found', async () => {
       mockPoolDiscovery.discoverPools.mockResolvedValue([]);
 
-      await expect(service.getTokenPrice('INDY')).rejects.toThrow(
-        'No pools found for INDY'
-      );
+      await expect(service.getTokenPrice('INDY')).rejects.toThrow('No pools found for INDY');
     });
 
     it('should throw error when no valid pools with liquidity', async () => {
       const mockPools: LiquidityPool[] = [
         {
           dex: 'MinswapV2',
-          identifier: 'pool1'
-        }
+          identifier: 'pool1',
+        },
       ];
       mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
 
@@ -109,8 +107,8 @@ describe('CardanoPriceService', () => {
         {
           dex: 'MinswapV2',
           identifier: 'pool1',
-          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 }
-        }
+          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 },
+        },
       ];
       mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
       mockIrisClient.fetchPrices.mockResolvedValue([0.5]); // Mock Iris API price
@@ -120,7 +118,7 @@ describe('CardanoPriceService', () => {
         confidence: 0.8,
         poolsUsed: 1,
         totalLiquidity: 1000000,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       mockPriceCalculator.calculateLiquidityWeightedPrice.mockReturnValue(mockPriceResult);
 
@@ -129,7 +127,7 @@ describe('CardanoPriceService', () => {
         .mockRejectedValueOnce(new Error('MEXC API down'))
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ cardano: { usd: 0.45 } })
+          json: async () => ({ cardano: { usd: 0.45 } }),
         })
         .mockRejectedValueOnce(new Error('Kraken API down'));
 
@@ -141,7 +139,11 @@ describe('CardanoPriceService', () => {
     });
 
     it('should throw error when all CEX APIs fail', async () => {
-      mockPoolDiscovery.discoverPools.mockRejectedValue(new Error('Failed to get INDY/ADA price from Iris: Cannot read properties of undefined (reading \'price\')'));
+      mockPoolDiscovery.discoverPools.mockRejectedValue(
+        new Error(
+          "Failed to get INDY/ADA price from Iris: Cannot read properties of undefined (reading 'price')"
+        )
+      );
 
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
@@ -155,7 +157,7 @@ describe('CardanoPriceService', () => {
     it('should parse Binance API response correctly', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ price: '0.4567' })
+        json: async () => ({ price: '0.4567' }),
       });
 
       const price = await (service as any).fetchADAUSDT('binance');
@@ -165,7 +167,7 @@ describe('CardanoPriceService', () => {
     it('should parse MEXC API response correctly', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ price: '0.4568' })
+        json: async () => ({ price: '0.4568' }),
       });
 
       const price = await (service as any).fetchADAUSDT('mexc');
@@ -175,7 +177,7 @@ describe('CardanoPriceService', () => {
     it('should parse CoinGecko API response correctly', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ cardano: { usd: 0.4569 } })
+        json: async () => ({ cardano: { usd: 0.4569 } }),
       });
 
       const price = await (service as any).fetchADAUSDT('coingecko');
@@ -186,8 +188,8 @@ describe('CardanoPriceService', () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
-          result: { ADAUSD: { c: ['0.4570'] } }
-        })
+          result: { ADAUSD: { c: ['0.4570'] } },
+        }),
       });
 
       const price = await (service as any).fetchADAUSDT('kraken');
@@ -197,7 +199,7 @@ describe('CardanoPriceService', () => {
     it('should throw error for HTTP error responses', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
-        status: 429
+        status: 429,
       });
 
       await expect((service as any).fetchADAUSDT('binance')).rejects.toThrow(
@@ -208,7 +210,7 @@ describe('CardanoPriceService', () => {
     it('should throw error for invalid price data', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ price: 'invalid' })
+        json: async () => ({ price: 'invalid' }),
       });
 
       await expect((service as any).fetchADAUSDT('binance')).rejects.toThrow(
@@ -219,7 +221,7 @@ describe('CardanoPriceService', () => {
     it('should throw error for zero or negative prices', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ price: '0' })
+        json: async () => ({ price: '0' }),
       });
 
       await expect((service as any).fetchADAUSDT('binance')).rejects.toThrow(

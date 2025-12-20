@@ -1,5 +1,15 @@
 import { BaseExchangeConnector } from '../../core/exchange/base-exchange-connector';
-import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide, Balance, ExchangeCredentials, WebSocketStatus } from '../../types';
+import {
+  Order,
+  OrderBook,
+  Ticker,
+  Trade,
+  OrderType,
+  OrderSide,
+  Balance,
+  ExchangeCredentials,
+  WebSocketStatus,
+} from '../../types';
 import { BitgetAuth, BitgetCredentials } from './bitget-auth';
 import { BitgetUtils } from './bitget-utils';
 import { BitgetDataMapper } from './bitget-data-mapper';
@@ -11,7 +21,7 @@ import config from '../../config/environment';
 
 /**
  * Bitget Exchange Connector
- * 
+ *
  * Implements the BaseExchangeConnector interface for Bitget exchange.
  * Provides trading operations, market data access, and WebSocket streaming.
  */
@@ -26,48 +36,48 @@ export class BitgetConnector extends BaseExchangeConnector {
   constructor() {
     super('bitget', 'Bitget');
     this.logger.info('BitgetConnector initialized');
-    
+
     if (config.bitget) {
       this.setCredentials({
         apiKey: config.bitget.apiKey,
         secret: config.bitget.secret,
-        passphrase: config.bitget.passphrase
+        passphrase: config.bitget.passphrase,
       });
     }
   }
 
   /**
    * Set API credentials and initialize authentication handler
-   * 
+   *
    * @param credentials - Bitget API credentials including apiKey, secret, and passphrase
    * @throws Error if credentials are missing required Bitget fields (passphrase)
    */
   setCredentials(credentials: ExchangeCredentials): void {
     super.setCredentials(credentials);
-    
+
     if (!this.isValidBitgetCredentials(credentials)) {
       throw new Error('Invalid Bitget credentials: missing passphrase');
     }
-    
+
     this.auth = new BitgetAuth(credentials as BitgetCredentials, this.baseUrl);
     this.logger.info('Bitget credentials set and authentication initialized');
   }
 
   /**
    * Connect to Bitget API by testing server time and validating credentials
-   * 
+   *
    * @returns Promise that resolves when successfully connected to Bitget API
    * @throws Error if connection fails or credentials are invalid
    */
   async connect(): Promise<void> {
     try {
       this.logger.info('Connecting to Bitget API...');
-      
+
       const credentials = this.getCredentials();
       this.auth = new BitgetAuth(credentials as BitgetCredentials, this.baseUrl);
 
       const timeResponse = await this.auth.makePublicRequest('/api/v2/public/time');
-      
+
       if (!timeResponse || !timeResponse.data) {
         throw new Error('Invalid response from Bitget time endpoint');
       }
@@ -90,9 +100,8 @@ export class BitgetConnector extends BaseExchangeConnector {
       this.connected = true;
       this.logger.info('Successfully connected to Bitget API', {
         serverTime: timeResponse.data.serverTime,
-        localTime: Date.now()
+        localTime: Date.now(),
       });
-      
     } catch (error) {
       this.connected = false;
       this.handleError(error, 'connect');
@@ -101,23 +110,22 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Disconnect from Bitget API and clean up resources
-   * 
+   *
    * @returns Promise that resolves when successfully disconnected from Bitget API
    */
   async disconnect(): Promise<void> {
     try {
       this.logger.info('Disconnecting from Bitget API...');
-      
+
       // Disconnect WebSocket if connected
       await this.disconnectWebSocket();
       await this.disconnectUserDataStream();
-      
+
       this.connected = false;
       this.auth = undefined;
       this.userStream = undefined;
-      
+
       this.logger.info('Successfully disconnected from Bitget API');
-      
     } catch (error) {
       this.handleError(error, 'disconnect');
     }
@@ -126,13 +134,15 @@ export class BitgetConnector extends BaseExchangeConnector {
   /**
    * Validate if credentials contain required Bitget fields
    */
-  private isValidBitgetCredentials(credentials: ExchangeCredentials): credentials is BitgetCredentials {
+  private isValidBitgetCredentials(
+    credentials: ExchangeCredentials
+  ): credentials is BitgetCredentials {
     return !!(credentials as BitgetCredentials).passphrase;
   }
 
   /**
    * Get account balance for all assets or a specific asset
-   * 
+   *
    * @returns Promise resolving to balance data - either all balances or single asset balance
    * @throws Error if API request fails or credentials are invalid
    */
@@ -141,13 +151,13 @@ export class BitgetConnector extends BaseExchangeConnector {
   async getBalance(asset?: string): Promise<Record<string, Balance> | Balance> {
     try {
       const assetsData = await this.makeRequest('/api/v2/spot/account/assets');
-      
+
       if (!assetsData || !assetsData.data) {
         throw new Error('Invalid response from Bitget assets endpoint');
       }
 
       const balances: Record<string, Balance> = {};
-      
+
       for (const assetInfo of assetsData.data) {
         const available = parseFloat(assetInfo.available || '0');
         const frozen = parseFloat(assetInfo.frozen || '0');
@@ -158,18 +168,20 @@ export class BitgetConnector extends BaseExchangeConnector {
           free: available,
           used: frozen,
           total: total,
-          available: available
+          available: available,
         };
       }
 
       if (asset) {
-        return balances[asset] || {
-          asset,
-          free: 0,
-          used: 0,
-          total: 0,
-          available: 0
-        };
+        return (
+          balances[asset] || {
+            asset,
+            free: 0,
+            used: 0,
+            total: 0,
+            available: 0,
+          }
+        );
       }
 
       return balances;
@@ -181,7 +193,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Create a new order on Bitget exchange
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param type - Order type ('market' or 'limit')
    * @param side - Order side ('buy' or 'sell')
@@ -190,7 +202,13 @@ export class BitgetConnector extends BaseExchangeConnector {
    * @returns Promise resolving to the created order details
    * @throws Error if order creation fails or parameters are invalid
    */
-  async createOrder(symbol: string, type: OrderType, side: OrderSide, amount: number, price?: number): Promise<Order> {
+  async createOrder(
+    symbol: string,
+    type: OrderType,
+    side: OrderSide,
+    amount: number,
+    price?: number
+  ): Promise<Order> {
     try {
       if (!ExchangeUtils.isValidSymbol(symbol)) {
         throw new Error(`Invalid symbol format: ${symbol}`);
@@ -220,7 +238,7 @@ export class BitgetConnector extends BaseExchangeConnector {
         size: amount.toString(),
         filledQty: '0',
         state: 'NEW',
-        cTime: Date.now()
+        cTime: Date.now(),
       };
 
       return this.dataMapper.mapOrder(orderData);
@@ -232,7 +250,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Cancel an existing order on Bitget exchange
-   * 
+   *
    * @param orderId - The ID of the order to cancel
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise that resolves when order is successfully cancelled
@@ -249,16 +267,11 @@ export class BitgetConnector extends BaseExchangeConnector {
       }
 
       const bitgetSymbol = toExchangeFormat(symbol);
-      
-      const response = await this.makeRequest(
-        '/api/v2/spot/trade/cancel-order',
-        {},
-        'POST',
-        {
-          symbol: bitgetSymbol,
-          orderId: orderId
-        }
-      );
+
+      const response = await this.makeRequest('/api/v2/spot/trade/cancel-order', {}, 'POST', {
+        symbol: bitgetSymbol,
+        orderId: orderId,
+      });
 
       if (!response || response.code !== '00000') {
         throw new Error('Failed to cancel order');
@@ -266,7 +279,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
       this.logger.info('Order cancelled successfully', {
         orderId,
-        symbol: bitgetSymbol
+        symbol: bitgetSymbol,
       });
     } catch (error: unknown) {
       const errorMessage = BitgetUtils.mapErrorMessage(error);
@@ -276,7 +289,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Cancel all open orders for a specific symbol
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise that resolves when all orders are cancelled
    * @throws Error if cancellation fails
@@ -288,51 +301,52 @@ export class BitgetConnector extends BaseExchangeConnector {
       }
 
       const bitgetSymbol = toExchangeFormat(symbol);
-      
+
       try {
         const response = await this.makeRequest(
           '/api/v2/spot/trade/cancel-symbol-order',
           {},
           'POST',
           {
-            symbol: bitgetSymbol
+            symbol: bitgetSymbol,
           }
         );
 
         if (response && response.code === '00000') {
           this.logger.info('All orders cancelled successfully via bulk operation', {
-            symbol: bitgetSymbol
+            symbol: bitgetSymbol,
           });
           return;
         }
       } catch (bulkError) {
         this.logger.warn('Bulk cancellation failed, falling back to individual cancellation', {
           symbol: bitgetSymbol,
-          error: bulkError instanceof Error ? bulkError.message : String(bulkError)
+          error: bulkError instanceof Error ? bulkError.message : String(bulkError),
         });
       }
 
       const openOrders = await this.getOpenOrders(symbol);
-      
+
       if (openOrders.length === 0) {
         this.logger.info('No open orders to cancel', { symbol: bitgetSymbol });
         return;
       }
 
-      const cancelPromises = openOrders.map(order => 
+      const cancelPromises = openOrders.map(order =>
         this.cancelOrder(order.id, symbol).catch(error => {
-          this.logger.error(`Failed to cancel order ${order.id}`, { error: error instanceof Error ? error.message : String(error) });
+          this.logger.error(`Failed to cancel order ${order.id}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
           throw error;
         })
       );
 
       await Promise.all(cancelPromises);
-      
+
       this.logger.info(`Successfully cancelled ${openOrders.length} orders`, {
         symbol: bitgetSymbol,
-        orderCount: openOrders.length
+        orderCount: openOrders.length,
       });
-      
     } catch (error: unknown) {
       const errorMessage = BitgetUtils.mapErrorMessage(error);
       this.handleError(new Error(errorMessage), 'cancelAllOrders');
@@ -341,7 +355,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Get details of a specific order by ID
-   * 
+   *
    * @param orderId - The ID of the order to retrieve
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise resolving to order details
@@ -358,14 +372,11 @@ export class BitgetConnector extends BaseExchangeConnector {
       }
 
       const bitgetSymbol = toExchangeFormat(symbol);
-      
-      const response = await this.makeRequest(
-        '/api/v2/spot/trade/orderInfo',
-        {
-          symbol: bitgetSymbol,
-          orderId: orderId
-        }
-      );
+
+      const response = await this.makeRequest('/api/v2/spot/trade/orderInfo', {
+        symbol: bitgetSymbol,
+        orderId: orderId,
+      });
 
       if (!response || !response.data) {
         throw new Error('Order not found');
@@ -380,7 +391,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Get all open orders, optionally filtered by symbol
-   * 
+   *
    * @param symbol - Optional. Trading pair symbol to filter orders (e.g., 'SNEK/USDT')
    * @returns Promise resolving to array of open orders
    * @throws Error if request fails
@@ -388,7 +399,7 @@ export class BitgetConnector extends BaseExchangeConnector {
   async getOpenOrders(symbol?: string): Promise<Order[]> {
     try {
       const params: Record<string, unknown> = {};
-      
+
       if (symbol) {
         if (!BitgetUtils.isValidSymbol(symbol)) {
           throw new Error(`Invalid symbol format: ${symbol}`);
@@ -411,7 +422,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Get ticker information for a trading pair
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise resolving to ticker data including prices and volume
    * @throws Error if ticker data not found or request fails
@@ -423,12 +434,17 @@ export class BitgetConnector extends BaseExchangeConnector {
       }
 
       const bitgetSymbol = toExchangeFormat(symbol);
-      
+
       const response = await this.makePublicRequest('/api/v2/spot/market/tickers', {
-        symbol: bitgetSymbol
+        symbol: bitgetSymbol,
       });
 
-      if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
+      if (
+        !response ||
+        !response.data ||
+        !Array.isArray(response.data) ||
+        response.data.length === 0
+      ) {
         throw new Error('No ticker data found');
       }
 
@@ -441,7 +457,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Get order book data for a trading pair
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise resolving to order book with bids and asks
    * @throws Error if order book data not found or request fails
@@ -453,11 +469,11 @@ export class BitgetConnector extends BaseExchangeConnector {
       }
 
       const bitgetSymbol = toExchangeFormat(symbol);
-      
+
       const response = await this.makePublicRequest('/api/v2/spot/market/orderbook', {
         symbol: bitgetSymbol,
         type: 'step0',
-        limit: '100'
+        limit: '100',
       });
 
       if (!response || !response.data) {
@@ -473,7 +489,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Get recent trades for a trading pair
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @returns Promise resolving to array of recent trade executions
    * @throws Error if request fails
@@ -485,10 +501,10 @@ export class BitgetConnector extends BaseExchangeConnector {
       }
 
       const bitgetSymbol = toExchangeFormat(symbol);
-      
+
       const response = await this.makePublicRequest('/api/v2/spot/market/fills', {
         symbol: bitgetSymbol,
-        limit: '100'
+        limit: '100',
       });
 
       if (!response || !Array.isArray(response.data)) {
@@ -506,7 +522,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Connect to Bitget WebSocket for real-time data
-   * 
+   *
    * @returns Promise that resolves when WebSocket connection is established
    * @throws Error if connection fails
    */
@@ -524,7 +540,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Disconnect from Bitget WebSocket
-   * 
+   *
    * @returns Promise that resolves when WebSocket is disconnected
    */
   async disconnectWebSocket(): Promise<void> {
@@ -541,7 +557,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Subscribe to real-time ticker updates for a trading pair
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when ticker updates are received
    * @returns Promise resolving to subscription ID for managing the subscription
@@ -561,13 +577,16 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Subscribe to real-time order book updates for a trading pair
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when order book updates are received
    * @returns Promise resolving to subscription ID for managing the subscription
    * @throws Error if WebSocket not connected or subscription fails
    */
-  async subscribeOrderBook(symbol: string, callback: (orderbook: OrderBook) => void): Promise<string> {
+  async subscribeOrderBook(
+    symbol: string,
+    callback: (orderbook: OrderBook) => void
+  ): Promise<string> {
     try {
       if (!this.ws) {
         throw new Error('WebSocket not initialized. Call connectWebSocket() first.');
@@ -581,7 +600,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Subscribe to real-time trade updates for a trading pair
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when new trades are executed
    * @returns Promise resolving to subscription ID for managing the subscription
@@ -601,7 +620,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Subscribe to real-time order updates (user data)
-   * 
+   *
    * @param callback - Function called when user's order status changes
    * @returns Promise resolving to subscription ID for managing the subscription
    * @throws Error if WebSocket not connected or subscription fails
@@ -620,7 +639,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Unsubscribe from a WebSocket subscription
-   * 
+   *
    * @param subscriptionId - The ID of the subscription to cancel
    * @returns Promise that resolves when subscription is cancelled
    * @throws Error if WebSocket not connected or unsubscribe fails
@@ -638,7 +657,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Check if WebSocket connection is active
-   * 
+   *
    * @returns Boolean indicating WebSocket connection status
    */
   isWebSocketConnected(): boolean {
@@ -647,7 +666,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Get current WebSocket connection status
-   * 
+   *
    * @returns Current WebSocket status ('connected', 'disconnected', etc.)
    */
   getWebSocketStatus(): WebSocketStatus {
@@ -660,7 +679,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Connect to user data stream for real-time account updates
-   * 
+   *
    * @returns Promise that resolves when user data stream is connected
    * @throws Error if authentication fails or connection cannot be established
    */
@@ -669,11 +688,11 @@ export class BitgetConnector extends BaseExchangeConnector {
       if (!this.auth) {
         throw new Error('Authentication required. Call connect() first.');
       }
-      
+
       if (!this.userStream) {
         this.userStream = new BitgetUserDataStream(this.auth);
       }
-      
+
       await this.userStream.connectUserDataStream();
       this.logger.info('Successfully connected to Bitget User Data Stream');
     } catch (error: unknown) {
@@ -683,7 +702,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Disconnect from user data stream
-   * 
+   *
    * @returns Promise that resolves when user data stream is disconnected
    */
   async disconnectUserDataStream(): Promise<void> {
@@ -700,7 +719,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Subscribe to real-time user order updates (limit/market orders)
-   * 
+   *
    * @param callback - Function called when user's orders change status
    * @returns Promise resolving to subscription ID for managing the subscription
    * @throws Error if user data stream not connected or subscription fails
@@ -720,7 +739,7 @@ export class BitgetConnector extends BaseExchangeConnector {
   /**
    * Subscribe to real-time user trade executions
    * Notifies when user's orders are filled/executed
-   * 
+   *
    * @param callback - Function called when user's trades are executed
    * @returns Promise resolving to subscription ID for managing the subscription
    * @throws Error if user data stream not connected or subscription fails
@@ -739,7 +758,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Subscribe to real-time account balance updates
-   * 
+   *
    * @param callback - Function called when account balance changes
    * @returns Promise resolving to subscription ID for managing the subscription
    * @throws Error if user data stream not connected or subscription fails
@@ -758,7 +777,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Check if user data stream is connected
-   * 
+   *
    * @returns Boolean indicating user data stream connection status
    */
   isUserDataStreamConnected(): boolean {
@@ -767,7 +786,7 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Make authenticated request to Bitget API
-   * 
+   *
    * @param endpoint - API endpoint path
    * @param params - Query parameters for the request
    * @param method - HTTP method ('GET', 'POST', 'PUT', 'DELETE')
@@ -789,13 +808,16 @@ export class BitgetConnector extends BaseExchangeConnector {
 
   /**
    * Make public request to Bitget API (no authentication required)
-   * 
+   *
    * @param endpoint - API endpoint path
    * @param params - Query parameters for the request
    * @returns Promise resolving to API response data
    * @throws Error if request fails
    */
-  private async makePublicRequest(endpoint: string, params: Record<string, unknown> = {}): Promise<any> {
+  private async makePublicRequest(
+    endpoint: string,
+    params: Record<string, unknown> = {}
+  ): Promise<any> {
     if (!this.auth) {
       throw new Error('Bitget connector not authenticated');
     }

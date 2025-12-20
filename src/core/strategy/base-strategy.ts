@@ -31,7 +31,7 @@ export abstract class BaseStrategy {
   abstract initialize(config: StrategyConfig): Promise<void>;
   abstract start(): Promise<void>;
   abstract stop(): Promise<void>;
-  
+
   abstract onPriceUpdate(symbol: string, price: number): Promise<void>;
   abstract onOrderUpdate(order: Order): Promise<void>;
 

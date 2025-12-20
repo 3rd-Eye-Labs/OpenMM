@@ -11,26 +11,29 @@ export class IrisApiClient {
   /**
    * Fetch prices from Iris prices API using pool identifiers
    */
-  async fetchPrices(identifiers: string[], userAgent: string = 'OpenMM-PriceAggregator/1.0'): Promise<number[]> {
+  async fetchPrices(
+    identifiers: string[],
+    userAgent: string = 'OpenMM-PriceAggregator/1.0'
+  ): Promise<number[]> {
     const url = `${this.baseUrl}/api/liquidity-pools/prices`;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': userAgent
+        'User-Agent': userAgent,
       },
       body: JSON.stringify({
-        identifiers: identifiers
-      })
+        identifiers: identifiers,
+      }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Iris prices API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    
+
     if (!Array.isArray(data) || data.length === 0) {
       throw new Error('Invalid response format from Iris prices API');
     }
@@ -53,10 +56,10 @@ export class IrisApiClient {
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': userAgent
-      }
+        'User-Agent': userAgent,
+      },
     });
-    
+
     if (!response.ok) {
       throw new Error(`Iris API error: ${response.status} ${response.statusText}`);
     }

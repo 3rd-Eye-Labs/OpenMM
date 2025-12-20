@@ -1,9 +1,9 @@
-import {MexcWebSocket} from '../../../../exchanges/mexc/mexc-websocket';
-import {MexcProtobufDecoder} from '../../../../exchanges/mexc/mexc-protobuf-decoder';
-import {MexcUtils} from '../../../../exchanges/mexc/mexc-utils';
-import {createLogger} from '../../../../utils';
-import {DecodedMexcMessage, Order} from '../../../../types';
-import {toStandardFormat, toExchangeFormat} from '../../../../utils/symbol-utils';
+import { MexcWebSocket } from '../../../../exchanges/mexc/mexc-websocket';
+import { MexcProtobufDecoder } from '../../../../exchanges/mexc/mexc-protobuf-decoder';
+import { MexcUtils } from '../../../../exchanges/mexc/mexc-utils';
+import { createLogger } from '../../../../utils';
+import { DecodedMexcMessage, Order } from '../../../../types';
+import { toStandardFormat, toExchangeFormat } from '../../../../utils/symbol-utils';
 
 jest.mock('../../../../utils/symbol-utils');
 const MockedToStandardFormat = toStandardFormat as jest.MockedFunction<typeof toStandardFormat>;
@@ -55,7 +55,9 @@ describe('MexcWebSocket', () => {
     }
   };
 
-  const createMockTickerMessage = (overrides: Partial<DecodedMexcMessage> = {}): DecodedMexcMessage => ({
+  const createMockTickerMessage = (
+    overrides: Partial<DecodedMexcMessage> = {}
+  ): DecodedMexcMessage => ({
     type: 'ticker',
     raw: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT',
     channel: 'spot@public.aggre.bookTicker.v3.api.pb',
@@ -64,29 +66,35 @@ describe('MexcWebSocket', () => {
       bidprice: '50000',
       askprice: '50100',
       bidquantity: '1.0',
-      askquantity: '1.5'
+      askquantity: '1.5',
     },
-    ...overrides
+    ...overrides,
   });
 
-  const createMockTradesMessage = (overrides: Partial<DecodedMexcMessage> = {}): DecodedMexcMessage => ({
+  const createMockTradesMessage = (
+    overrides: Partial<DecodedMexcMessage> = {}
+  ): DecodedMexcMessage => ({
     type: 'trades',
     raw: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
     channel: 'spot@public.aggre.deals.v3.api.pb',
     symbol: 'BTCUSDT',
     decoded: {
-      dealsList: [{
-        price: '50000',
-        quantity: '1.0',
-        time: '1640995200000',
-        tradetype: 1
-      }],
-      eventtype: 'trade'
+      dealsList: [
+        {
+          price: '50000',
+          quantity: '1.0',
+          time: '1640995200000',
+          tradetype: 1,
+        },
+      ],
+      eventtype: 'trade',
     },
-    ...overrides
+    ...overrides,
   });
 
-  const createMockOrderMessage = (overrides: Partial<DecodedMexcMessage> = {}): DecodedMexcMessage => ({
+  const createMockOrderMessage = (
+    overrides: Partial<DecodedMexcMessage> = {}
+  ): DecodedMexcMessage => ({
     type: 'order',
     raw: 'spot@private.orders.v3.api.pbBTCUSDT',
     channel: 'spot@private.orders.v3.api.pb',
@@ -99,9 +107,9 @@ describe('MexcWebSocket', () => {
       side: 'buy',
       status: 'filled',
       timestamp: Date.now(),
-      channel: 'spot@private.orders.v3.api.pb'
+      channel: 'spot@private.orders.v3.api.pb',
     },
-    ...overrides
+    ...overrides,
   });
 
   const createMockOrder = (overrides: Partial<Order> = {}): Order => ({
@@ -115,7 +123,7 @@ describe('MexcWebSocket', () => {
     remaining: 0,
     status: 'filled',
     timestamp: Date.now(),
-    ...overrides
+    ...overrides,
   });
 
   beforeEach(() => {
@@ -125,7 +133,7 @@ describe('MexcWebSocket', () => {
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
-      debug: jest.fn()
+      debug: jest.fn(),
     };
 
     MockedCreateLogger.mockReturnValue(mockLogger);
@@ -134,7 +142,9 @@ describe('MexcWebSocket', () => {
       on: jest.fn(),
       send: jest.fn(),
       close: jest.fn(),
-      get readyState() { return WebSocket.OPEN; }
+      get readyState() {
+        return WebSocket.OPEN;
+      },
     } as any;
 
     MockedWebSocket.mockImplementation(() => mockWs);
@@ -195,7 +205,9 @@ describe('MexcWebSocket', () => {
 
       await expect(connectPromise).rejects.toThrow('Connection failed');
       expect(mexcWebSocket.getWebSocketStatus()).toBe('error');
-      expect(mockLogger.error).toHaveBeenCalledWith('❌ WebSocket error:', { error: 'Connection failed' });
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ WebSocket error:', {
+        error: 'Connection failed',
+      });
     });
 
     it('should handle WebSocket close event via onClose()', async () => {
@@ -247,7 +259,9 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(MockedMexcProtobufDecoder.decode).toHaveBeenCalledWith('spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT');
+      expect(MockedMexcProtobufDecoder.decode).toHaveBeenCalledWith(
+        'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT'
+      );
     });
 
     it('should ignore non-spot messages', () => {
@@ -265,7 +279,7 @@ describe('MexcWebSocket', () => {
         type: 'unknown',
         raw: 'invalid-message',
         channel: 'unknown',
-        error: 'Decode error occurred'
+        error: 'Decode error occurred',
       };
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(mockDecodedMessage);
@@ -276,7 +290,9 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('Protobuf decode error:', { error: 'Decode error occurred' });
+      expect(mockLogger.warn).toHaveBeenCalledWith('Protobuf decode error:', {
+        error: 'Decode error occurred',
+      });
     });
 
     it('should handle message processing errors', () => {
@@ -290,7 +306,9 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Message handling error:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Message handling error:', {
+        error: expect.any(Error),
+      });
     });
   });
 
@@ -349,18 +367,22 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(tickerCallback).toHaveBeenCalledWith(expect.objectContaining({
-        symbol: 'BTC/USDT',
-        bid: 50000,
-        ask: 50100,
-        baseVolume: 2.5
-      }));
+      expect(tickerCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'BTC/USDT',
+          bid: 50000,
+          ask: 50100,
+          baseVolume: 2.5,
+        })
+      );
 
-      expect(orderbookCallback).toHaveBeenCalledWith(expect.objectContaining({
-        symbol: 'BTC/USDT',
-        bids: [{ price: 50000, amount: 1.0 }],
-        asks: [{ price: 50100, amount: 1.5 }]
-      }));
+      expect(orderbookCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'BTC/USDT',
+          bids: [{ price: 50000, amount: 1.0 }],
+          asks: [{ price: 50100, amount: 1.5 }],
+        })
+      );
     });
 
     it('should process trades messages via onTradesUpdate()', () => {
@@ -374,20 +396,22 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(tradesCallback).toHaveBeenCalledWith(expect.objectContaining({
-        symbol: 'BTC/USDT',
-        side: 'buy',
-        amount: 1.0,
-        price: 50000,
-        timestamp: 1640995200000
-      }));
+      expect(tradesCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'BTC/USDT',
+          side: 'buy',
+          amount: 1.0,
+          price: 50000,
+          timestamp: 1640995200000,
+        })
+      );
     });
 
     it('should handle unknown message types', () => {
       const decodedMessage: DecodedMexcMessage = {
         type: 'unknown',
         raw: 'spot@unknown.message',
-        channel: 'spot@unknown.message'
+        channel: 'spot@unknown.message',
       };
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
@@ -416,7 +440,10 @@ describe('MexcWebSocket', () => {
         (messageCall[1] as (data: Buffer) => void)(buffer);
       }
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error handling protobuf user data message:', { error: expect.any(Error), message: expect.any(String) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Error handling protobuf user data message:', {
+        error: expect.any(Error),
+        message: expect.any(String),
+      });
     });
 
     it('should handle ticker processing errors gracefully', () => {
@@ -435,11 +462,13 @@ describe('MexcWebSocket', () => {
       }
 
       // Should handle symbol conversion error gracefully by using original symbol
-      expect(tickerCallback).toHaveBeenCalledWith(expect.objectContaining({
-        symbol: 'BTCUSDT', // Falls back to original symbol
-        bid: 50000,
-        ask: 50100
-      }));
+      expect(tickerCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'BTCUSDT', // Falls back to original symbol
+          bid: 50000,
+          ask: 50100,
+        })
+      );
     });
 
     it('should handle trades processing errors gracefully', () => {
@@ -458,22 +487,24 @@ describe('MexcWebSocket', () => {
       }
 
       // Should handle symbol conversion error gracefully by using original symbol
-      expect(tradesCallback).toHaveBeenCalledWith(expect.objectContaining({
-        symbol: 'BTCUSDT', // Falls back to original symbol
-        side: 'buy',
-        amount: 1.0,
-        price: 50000
-      }));
+      expect(tradesCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'BTCUSDT', // Falls back to original symbol
+          side: 'buy',
+          amount: 1.0,
+          price: 50000,
+        })
+      );
     });
 
     it('should skip processing messages without required data in onOrderUpdate(), onTickerUpdate(), onTradesUpdate()', () => {
       const decodedMessages = [
         { type: 'order', raw: 'test', channel: 'test' },
         { type: 'ticker', raw: 'test', channel: 'test', decoded: {} },
-        { type: 'trades', raw: 'test', channel: 'test', symbol: 'BTCUSDT' }
+        { type: 'trades', raw: 'test', channel: 'test', symbol: 'BTCUSDT' },
       ];
 
-      decodedMessages.forEach((decodedMessage) => {
+      decodedMessages.forEach(decodedMessage => {
         MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage as DecodedMexcMessage);
 
         const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
@@ -505,11 +536,15 @@ describe('MexcWebSocket', () => {
       const subscriptionId = await mexcWebSocket.subscribeTicker('BTC/USDT', callback);
 
       expect(subscriptionId).toMatch(/^ticker_BTCUSDT_\d+$/);
-      expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify({
-        method: 'SUBSCRIPTION',
-        params: ['spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT']
-      }));
-      expect(mockLogger.info).toHaveBeenCalledWith('Subscribed to ticker: BTC/USDT (spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT)');
+      expect(mockWs.send).toHaveBeenCalledWith(
+        JSON.stringify({
+          method: 'SUBSCRIPTION',
+          params: ['spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT'],
+        })
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Subscribed to ticker: BTC/USDT (spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT)'
+      );
     });
 
     it('should subscribe to trades updates', async () => {
@@ -518,11 +553,15 @@ describe('MexcWebSocket', () => {
       const subscriptionId = await mexcWebSocket.subscribeTrades('BTC/USDT', callback);
 
       expect(subscriptionId).toMatch(/^trades_BTCUSDT_\d+$/);
-      expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify({
-        method: 'SUBSCRIPTION',
-        params: ['spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT']
-      }));
-      expect(mockLogger.info).toHaveBeenCalledWith('Subscribed to trades: BTC/USDT (spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT)');
+      expect(mockWs.send).toHaveBeenCalledWith(
+        JSON.stringify({
+          method: 'SUBSCRIPTION',
+          params: ['spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT'],
+        })
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Subscribed to trades: BTC/USDT (spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT)'
+      );
     });
 
     it('should subscribe to orderbook updates', async () => {
@@ -531,11 +570,15 @@ describe('MexcWebSocket', () => {
       const subscriptionId = await mexcWebSocket.subscribeOrderBook('BTC/USDT', callback);
 
       expect(subscriptionId).toMatch(/^orderbook_BTCUSDT_\d+$/);
-      expect(mockWs.send).toHaveBeenCalledWith(JSON.stringify({
-        method: 'SUBSCRIPTION',
-        params: ['spot@public.bookTicker.batch.v3.api.pb@BTCUSDT']
-      }));
-      expect(mockLogger.info).toHaveBeenCalledWith('Subscribed to orderbook: BTC/USDT (spot@public.bookTicker.batch.v3.api.pb@BTCUSDT)');
+      expect(mockWs.send).toHaveBeenCalledWith(
+        JSON.stringify({
+          method: 'SUBSCRIPTION',
+          params: ['spot@public.bookTicker.batch.v3.api.pb@BTCUSDT'],
+        })
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Subscribed to orderbook: BTC/USDT (spot@public.bookTicker.batch.v3.api.pb@BTCUSDT)'
+      );
     });
 
     it('should subscribe to user orders', async () => {
@@ -559,10 +602,16 @@ describe('MexcWebSocket', () => {
       await mexcWebSocket.disconnectWebSocket();
 
       const callback = jest.fn();
-      
-      await expect(mexcWebSocket.subscribeTicker('BTC/USDT', callback)).rejects.toThrow('WebSocket not connected');
-      await expect(mexcWebSocket.subscribeTrades('BTC/USDT', callback)).rejects.toThrow('WebSocket not connected');
-      await expect(mexcWebSocket.subscribeOrderBook('BTC/USDT', callback)).rejects.toThrow('WebSocket not connected');
+
+      await expect(mexcWebSocket.subscribeTicker('BTC/USDT', callback)).rejects.toThrow(
+        'WebSocket not connected'
+      );
+      await expect(mexcWebSocket.subscribeTrades('BTC/USDT', callback)).rejects.toThrow(
+        'WebSocket not connected'
+      );
+      await expect(mexcWebSocket.subscribeOrderBook('BTC/USDT', callback)).rejects.toThrow(
+        'WebSocket not connected'
+      );
     });
   });
 
@@ -646,7 +695,7 @@ describe('MexcWebSocket', () => {
         ...mockWs,
         get readyState() {
           return WebSocket.CLOSED;
-        }
+        },
       };
 
       expect(mexcWebSocket.isConnected()).toBe(false);
@@ -658,11 +707,11 @@ describe('MexcWebSocket', () => {
       await connectWebSocket();
       const callback = await setupTradesSubscription();
 
-      const decodedMessage = createMockTradesMessage({ 
+      const decodedMessage = createMockTradesMessage({
         decoded: {
           dealsList: [],
-          eventtype: 'trade'
-        }
+          eventtype: 'trade',
+        },
       });
 
       triggerMessage('spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT', decodedMessage);
@@ -674,11 +723,11 @@ describe('MexcWebSocket', () => {
       await connectWebSocket();
       const callback = await setupTradesSubscription();
 
-      const decodedMessage = createMockTradesMessage({ 
+      const decodedMessage = createMockTradesMessage({
         decoded: {
           dealsList: null as any,
-          eventtype: 'trade'
-        }
+          eventtype: 'trade',
+        },
       });
 
       triggerMessage('spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT', decodedMessage);
@@ -690,23 +739,25 @@ describe('MexcWebSocket', () => {
       await connectWebSocket();
       const callback = await setupTickerSubscription();
 
-      const decodedMessage = createMockTickerMessage({ 
+      const decodedMessage = createMockTickerMessage({
         decoded: {
           bidprice: '0',
           askprice: '0',
           bidquantity: '0',
-          askquantity: '0'
-        }
+          askquantity: '0',
+        },
       });
 
       triggerMessage('spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT', decodedMessage);
 
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-        symbol: 'BTC/USDT',
-        bid: 0,
-        ask: 0,
-        baseVolume: 0
-      }));
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'BTC/USDT',
+          bid: 0,
+          ask: 0,
+          baseVolume: 0,
+        })
+      );
     });
   });
 
@@ -724,57 +775,65 @@ describe('MexcWebSocket', () => {
         throw new Error('WebSocket constructor failed');
       });
 
-      await expect(mexcWebSocket.connectWebSocket()).rejects.toThrow('WebSocket constructor failed');
+      await expect(mexcWebSocket.connectWebSocket()).rejects.toThrow(
+        'WebSocket constructor failed'
+      );
     });
 
     it('should handle onError with reject callback (line 84-90)', async () => {
       const connectPromise = mexcWebSocket.connectWebSocket();
-      
+
       const errorCall = mockWs.on.mock.calls.find(([event]) => event === 'error');
       expect(errorCall).toBeDefined();
 
       const errorHandler = errorCall![1] as (error: Error) => void;
       const testError = new Error('Connection error');
-      
+
       errorHandler(testError);
 
       await expect(connectPromise).rejects.toThrow('Connection error');
-      expect(mockLogger.error).toHaveBeenCalledWith('❌ WebSocket error:', { error: 'Connection error' });
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ WebSocket error:', {
+        error: 'Connection error',
+      });
     });
 
     it('should handle onError without reject callback after reconnect attempts (line 84-90)', async () => {
       await connectWebSocket();
-      
+
       (mexcWebSocket as any).reconnectAttempts = 1;
-      
+
       const errorCall = mockWs.on.mock.calls.find(([event]) => event === 'error');
       const errorHandler = errorCall![1] as (error: Error) => void;
-      
+
       errorHandler(new Error('Post-connection error'));
 
-      expect(mockLogger.error).toHaveBeenCalledWith('❌ WebSocket error:', { error: 'Post-connection error' });
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ WebSocket error:', {
+        error: 'Post-connection error',
+      });
     });
 
     it('should handle message processing error (line 117-119)', async () => {
       await connectWebSocket();
-      
+
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       const messageHandler = messageCall![1] as (data: Buffer) => void;
 
       const mockBuffer = {
         toString: jest.fn(() => {
           throw new Error('Buffer conversion error');
-        })
+        }),
       } as any;
 
       messageHandler(mockBuffer);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Message handling error:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Message handling error:', {
+        error: expect.any(Error),
+      });
     });
 
     it('should handle protobuf decode error in handleProtobufUserDataMessage (line 145-147)', async () => {
       await connectWebSocket();
-      
+
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       const messageHandler = messageCall![1] as (data: Buffer) => void;
 
@@ -785,30 +844,30 @@ describe('MexcWebSocket', () => {
       const mockBuffer = Buffer.from('spot@private.orders.v3.api.pb');
       messageHandler(mockBuffer);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error handling protobuf user data message:', { 
+      expect(mockLogger.error).toHaveBeenCalledWith('Error handling protobuf user data message:', {
         error: expect.any(Error),
-        message: 'spot@private.orders.v3.api.pb'
+        message: 'spot@private.orders.v3.api.pb',
       });
     });
 
     it('should handle JSON parsing error in handleUserDataMessage (line 169-171)', async () => {
       await connectWebSocket();
-      
+
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       const messageHandler = messageCall![1] as (data: Buffer) => void;
 
       const invalidJsonBuffer = Buffer.from('{"invalid": json}');
       messageHandler(invalidJsonBuffer);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error handling user data message:', { 
+      expect(mockLogger.error).toHaveBeenCalledWith('Error handling user data message:', {
         error: expect.any(Error),
-        message: '{"invalid": json}'
+        message: '{"invalid": json}',
       });
     });
 
     it('should handle symbol conversion error in transformUserOrderUpdate (line 184-185)', async () => {
       await connectWebSocket();
-      
+
       MockedToStandardFormat.mockImplementationOnce(() => {
         throw new Error('Symbol conversion failed');
       });
@@ -819,7 +878,7 @@ describe('MexcWebSocket', () => {
       const orderData = JSON.stringify({
         e: 'executionReport',
         s: 'INVALID_SYMBOL',
-        i: '12345'
+        i: '12345',
       });
 
       const mockBuffer = Buffer.from(orderData);
@@ -830,9 +889,7 @@ describe('MexcWebSocket', () => {
 
     it('should handle order processing error in onOrderUpdate (line 233-235)', async () => {
       await connectWebSocket();
-      
-      const subscription = await mexcWebSocket.subscribeOrders(jest.fn());
-      
+
       MockedMexcUtils.transformOrder.mockImplementationOnce(() => {
         throw new Error('Order transformation failed');
       });
@@ -845,7 +902,7 @@ describe('MexcWebSocket', () => {
         raw: 'spot@test',
         channel: 'spot@test',
         symbol: 'BTCUSDT',
-        decoded: { 
+        decoded: {
           orderId: '123',
           symbol: 'BTCUSDT',
           price: 50000,
@@ -853,22 +910,22 @@ describe('MexcWebSocket', () => {
           side: 'buy' as const,
           status: 'filled',
           timestamp: Date.now(),
-          channel: 'spot@test'
-        }
+          channel: 'spot@test',
+        },
       };
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
       const mockBuffer = Buffer.from('spot@test');
       messageHandler(mockBuffer);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error processing order update:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Error processing order update:', {
+        error: expect.any(Error),
+      });
     });
 
     it('should handle ticker processing error in onTickerUpdate (line 267-269)', async () => {
       await connectWebSocket();
-      
-      const callback = await setupTickerSubscription();
-      
+
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       const messageHandler = messageCall![1] as (data: Buffer) => void;
 
@@ -881,12 +938,12 @@ describe('MexcWebSocket', () => {
           askprice: 'invalid_number',
           bidprice: '50000',
           bidquantity: '1.0',
-          askquantity: '1.5'
-        }
+          askquantity: '1.5',
+        },
       };
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
-      
+
       const originalParseFloat = global.parseFloat;
       global.parseFloat = jest.fn(() => {
         throw new Error('Parse error');
@@ -897,14 +954,14 @@ describe('MexcWebSocket', () => {
 
       global.parseFloat = originalParseFloat;
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error processing ticker update:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Error processing ticker update:', {
+        error: expect.any(Error),
+      });
     });
 
     it('should handle trades processing error in onTradesUpdate (line 306-308)', async () => {
       await connectWebSocket();
-      
-      const callback = await setupTradesSubscription();
-      
+
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       const messageHandler = messageCall![1] as (data: Buffer) => void;
 
@@ -914,18 +971,20 @@ describe('MexcWebSocket', () => {
         channel: 'spot@test',
         symbol: 'BTCUSDT',
         decoded: {
-          dealsList: [{
-            quantity: 'invalid',
-            price: '50000',
-            time: '1234567890',
-            tradetype: 1
-          }],
-          eventtype: 'trade'
-        }
+          dealsList: [
+            {
+              quantity: 'invalid',
+              price: '50000',
+              time: '1234567890',
+              tradetype: 1,
+            },
+          ],
+          eventtype: 'trade',
+        },
       };
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
-      
+
       const originalParseFloat = global.parseFloat;
       global.parseFloat = jest.fn(() => {
         throw new Error('Parse error');
@@ -936,14 +995,14 @@ describe('MexcWebSocket', () => {
 
       global.parseFloat = originalParseFloat;
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error processing trades update:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Error processing trades update:', {
+        error: expect.any(Error),
+      });
     });
 
     it('should handle orderbook processing error in onOrderBookUpdate (line 344-346)', async () => {
       await connectWebSocket();
-      
-      const callback = await setupTickerSubscription();
-      
+
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       const messageHandler = messageCall![1] as (data: Buffer) => void;
 
@@ -956,12 +1015,12 @@ describe('MexcWebSocket', () => {
           askprice: '51000',
           bidprice: '50000',
           bidquantity: '1.0',
-          askquantity: '1.5'
-        }
+          askquantity: '1.5',
+        },
       };
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
-      
+
       // Mock Date.now to throw for testing
       const originalDateNow = Date.now;
       Date.now = jest.fn(() => {
@@ -973,50 +1032,60 @@ describe('MexcWebSocket', () => {
 
       Date.now = originalDateNow;
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Error processing orderbook update:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith('Error processing orderbook update:', {
+        error: expect.any(Error),
+      });
     });
 
     it('should handle subscription error in subscribeToUserData (line 455-457)', async () => {
       await connectWebSocket();
-      
+
       mockWs.send = jest.fn().mockImplementation(() => {
         throw new Error('Send failed');
       });
 
       await mexcWebSocket.subscribeToUserData(jest.fn());
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Failed to subscribe to protobuf user data channels:', { error: expect.any(Error) });
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to subscribe to protobuf user data channels:',
+        { error: expect.any(Error) }
+      );
     });
 
     it('should throw error when subscribing to disconnected WebSocket (line 467)', async () => {
       expect(mexcWebSocket.isConnected()).toBe(false);
 
-      await expect(mexcWebSocket.subscribeTicker('BTC/USDT', jest.fn()))
-        .rejects.toThrow('WebSocket not connected');
+      await expect(mexcWebSocket.subscribeTicker('BTC/USDT', jest.fn())).rejects.toThrow(
+        'WebSocket not connected'
+      );
     });
 
     it('should handle reconnection error in scheduleReconnect callback (line 518-519)', async () => {
       await connectWebSocket();
-      
+
       const closeCall = mockWs.on.mock.calls.find(([event]) => event === 'close');
       const closeHandler = closeCall![1] as () => void;
-      
+
       closeHandler();
 
       const originalConnect = mexcWebSocket.connectWebSocket;
-      mexcWebSocket.connectWebSocket = jest.fn().mockRejectedValue(new Error('Reconnection failed'));
+      mexcWebSocket.connectWebSocket = jest
+        .fn()
+        .mockRejectedValue(new Error('Reconnection failed'));
 
       jest.advanceTimersByTime(5000);
       await jest.runOnlyPendingTimersAsync();
 
       mexcWebSocket.connectWebSocket = originalConnect;
 
-      expect(mockLogger.error).toHaveBeenCalledWith('❌ Reconnection failed:', { error: 'Reconnection failed' });
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Reconnection failed:', {
+        error: 'Reconnection failed',
+      });
     });
 
     it('should handle reconnection error in reconnect method (line 531-533)', async () => {
       await connectWebSocket();
-      
+
       const originalConnect = mexcWebSocket.connectWebSocket;
       mexcWebSocket.connectWebSocket = jest.fn().mockRejectedValue(new Error('Connection failed'));
 
@@ -1024,12 +1093,14 @@ describe('MexcWebSocket', () => {
 
       mexcWebSocket.connectWebSocket = originalConnect;
 
-      expect(mockLogger.error).toHaveBeenCalledWith('❌ Reconnection failed:', { error: 'Connection failed' });
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Reconnection failed:', {
+        error: 'Connection failed',
+      });
     });
 
     it('should handle unknown error type in reconnect method (line 531-533)', async () => {
       await connectWebSocket();
-      
+
       const originalConnect = mexcWebSocket.connectWebSocket;
       mexcWebSocket.connectWebSocket = jest.fn().mockRejectedValue('string error');
 
@@ -1037,12 +1108,14 @@ describe('MexcWebSocket', () => {
 
       mexcWebSocket.connectWebSocket = originalConnect;
 
-      expect(mockLogger.error).toHaveBeenCalledWith('❌ Reconnection failed:', { error: 'Unknown error' });
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Reconnection failed:', {
+        error: 'Unknown error',
+      });
     });
 
     it('should handle symbol conversion errors in various methods', async () => {
       await connectWebSocket();
-      
+
       MockedToStandardFormat.mockImplementationOnce(() => {
         throw new Error('Symbol conversion failed');
       });
@@ -1051,25 +1124,27 @@ describe('MexcWebSocket', () => {
       const decodedMessage = {
         type: 'ticker' as const,
         raw: 'spot@test',
-        channel: 'spot@test', 
+        channel: 'spot@test',
         symbol: 'INVALID_SYMBOL',
-        decoded: { 
-          askprice: '51000', 
+        decoded: {
+          askprice: '51000',
           bidprice: '50000',
           bidquantity: '1.0',
-          askquantity: '1.5'
-        }
+          askquantity: '1.5',
+        },
       };
 
       MockedMexcProtobufDecoder.decode.mockReturnValue(decodedMessage);
       const messageCall = mockWs.on.mock.calls.find(([event]) => event === 'message');
       const messageHandler = messageCall![1] as (data: Buffer) => void;
-      
+
       messageHandler(Buffer.from('spot@test'));
 
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-        symbol: 'INVALID_SYMBOL'
-      }));
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: 'INVALID_SYMBOL',
+        })
+      );
     });
   });
 });

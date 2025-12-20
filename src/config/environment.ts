@@ -11,24 +11,24 @@ interface EnvironmentConfig {
     secret: string;
     uid?: string;
   };
-  
+
   // Future exchanges
   gateio?: {
     apiKey: string;
     secret: string;
   };
-  
+
   bitget?: {
     apiKey: string;
     secret: string;
     passphrase: string;
   };
-  
+
   kraken?: {
     apiKey: string;
     secret: string;
   };
-  
+
   logLevel: string;
   nodeEnv: string;
 }
@@ -53,7 +53,7 @@ class EnvironmentValidator {
           secret: this.validateRequired('MEXC_SECRET', process.env.MEXC_SECRET),
           uid: this.validateOptional(process.env.MEXC_UID),
         },
-        
+
         logLevel: process.env.LOG_LEVEL || 'info',
         nodeEnv: process.env.NODE_ENV || 'development',
       };
@@ -65,7 +65,11 @@ class EnvironmentValidator {
         };
       }
 
-      if (process.env.BITGET_API_KEY && process.env.BITGET_SECRET && process.env.BITGET_PASSPHRASE) {
+      if (
+        process.env.BITGET_API_KEY &&
+        process.env.BITGET_SECRET &&
+        process.env.BITGET_PASSPHRASE
+      ) {
         config.bitget = {
           apiKey: process.env.BITGET_API_KEY,
           secret: process.env.BITGET_SECRET,

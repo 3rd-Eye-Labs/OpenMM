@@ -4,7 +4,7 @@ import { createLogger } from '../../utils';
 
 /**
  * MEXC Authentication and Request Handler
- * 
+ *
  * Handles API authentication, request signing, and HTTP requests to MEXC API.
  * Provides both authenticated and public request methods
  */
@@ -24,7 +24,7 @@ export class MexcAuth {
   createPublicHeaders(): Record<string, string> {
     return {
       'x-mexc-apikey': this.credentials.apiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
   }
 
@@ -36,7 +36,7 @@ export class MexcAuth {
       'Content-Type': 'application/json',
       'x-mexc-apikey': this.credentials.apiKey,
       'X-MEXC-TIMESTAMP': timestamp.toString(),
-      'X-MEXC-SIGNATURE': signature
+      'X-MEXC-SIGNATURE': signature,
     };
   }
 
@@ -51,16 +51,16 @@ export class MexcAuth {
    * Make authenticated request to MEXC API
    */
   async makeRequest(
-      endpoint: string,
-      params: Record<string, unknown> = {},
-      method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'
+    endpoint: string,
+    params: Record<string, unknown> = {},
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'
   ): Promise<any> {
     const timestamp = Date.now();
     const queryParams = { ...params, timestamp };
 
     const queryString = Object.entries(queryParams)
-        .map(([key, value]) => `${key}=${value}`)
-        .join('&');
+      .map(([key, value]) => `${key}=${value}`)
+      .join('&');
 
     const signature = this.generateSignature(queryString);
     const signedQuery = `${queryString}&signature=${signature}`;
@@ -78,7 +78,7 @@ export class MexcAuth {
     const response = await fetch(url, {
       method,
       headers: this.createPrivateHeaders(timestamp, signature),
-      body: method !== 'GET' ? body : undefined
+      body: method !== 'GET' ? body : undefined,
     });
 
     return this.handleResponse(response, endpoint);
@@ -91,7 +91,7 @@ export class MexcAuth {
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `HTTP ${response.status}: ${errorText}`;
-      
+
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.msg) {
@@ -100,13 +100,13 @@ export class MexcAuth {
       } catch {
         // Use original HTTP error message
       }
-      
+
       this.logger.error('MEXC API request failed', {
         endpoint,
         status: response.status,
-        error: errorMessage
+        error: errorMessage,
       });
-      
+
       throw new Error(errorMessage);
     }
 
@@ -120,13 +120,13 @@ export class MexcAuth {
     const queryString = Object.entries(params)
       .map(([key, value]) => `${key}=${value}`)
       .join('&');
-    
-    const url = queryString 
+
+    const url = queryString
       ? `${this.baseUrl}${endpoint}?${queryString}`
       : `${this.baseUrl}${endpoint}`;
 
     const response = await fetch(url, {
-      headers: this.createPublicHeaders()
+      headers: this.createPublicHeaders(),
     });
 
     return this.handleResponse(response, endpoint);

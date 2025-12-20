@@ -4,7 +4,7 @@ import {
   SUPPORTED_TOKENS,
   getTokenConfig,
   isTokenSupported,
-  getSupportedTokens
+  getSupportedTokens,
 } from '../../../config/price-aggregation';
 
 describe('Price Aggregation Config', () => {
@@ -13,29 +13,29 @@ describe('Price Aggregation Config', () => {
       expect(CEX_API_CONFIG.BINANCE).toEqual({
         BASE_URL: 'https://api.binance.com/api/v3',
         ENDPOINTS: {
-          TICKER_PRICE: '/ticker/price'
-        }
+          TICKER_PRICE: '/ticker/price',
+        },
       });
 
       expect(CEX_API_CONFIG.MEXC).toEqual({
         BASE_URL: 'https://api.mexc.com/api/v3',
         ENDPOINTS: {
-          TICKER_PRICE: '/ticker/price'
-        }
+          TICKER_PRICE: '/ticker/price',
+        },
       });
 
       expect(CEX_API_CONFIG.COINGECKO).toEqual({
         BASE_URL: 'https://api.coingecko.com/api/v3',
         ENDPOINTS: {
-          SIMPLE_PRICE: '/simple/price'
-        }
+          SIMPLE_PRICE: '/simple/price',
+        },
       });
 
       expect(CEX_API_CONFIG.KRAKEN).toEqual({
         BASE_URL: 'https://api.kraken.com/0/public',
         ENDPOINTS: {
-          TICKER: '/Ticker'
-        }
+          TICKER: '/Ticker',
+        },
       });
     });
   });
@@ -44,7 +44,7 @@ describe('Price Aggregation Config', () => {
     it('should contain correct Iris configuration', () => {
       expect(IRIS_CONFIG).toEqual({
         BASE_URL: 'https://iris.indigoprotocol.io',
-        TIMEOUT: 10000
+        TIMEOUT: 10000,
       });
     });
   });
@@ -55,28 +55,28 @@ describe('Price Aggregation Config', () => {
         symbol: 'INDY',
         policyId: '533bb94a8850ee3ccbe483106489399112b74c905342cb1792a797a0',
         assetName: '494e4459',
-        minLiquidityThreshold: 100000
+        minLiquidityThreshold: 100000,
       });
 
       expect(SUPPORTED_TOKENS.SNEK).toEqual({
         symbol: 'SNEK',
         policyId: '279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f',
         assetName: '534e454b',
-        minLiquidityThreshold: 50000
+        minLiquidityThreshold: 50000,
       });
 
       expect(SUPPORTED_TOKENS.NIGHT).toEqual({
         symbol: 'NIGHT',
         policyId: '0691b2fecca1ac4f53cb6dfb00b7013e561d1f34403b957cbb5af1fa',
         assetName: '4e49474854',
-        minLiquidityThreshold: 25000
+        minLiquidityThreshold: 25000,
       });
 
       expect(SUPPORTED_TOKENS.MIN).toEqual({
         symbol: 'MIN',
         policyId: '29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c6',
         assetName: '4d494e',
-        minLiquidityThreshold: 100000
+        minLiquidityThreshold: 100000,
       });
     });
   });
@@ -156,11 +156,11 @@ describe('Price Aggregation Config', () => {
   describe('integration', () => {
     it('should work together correctly', () => {
       const supportedTokens = getSupportedTokens();
-      
+
       supportedTokens.forEach(symbol => {
         expect(isTokenSupported(symbol)).toBe(true);
         expect(() => getTokenConfig(symbol)).not.toThrow();
-        
+
         const config = getTokenConfig(symbol);
         expect(config.symbol).toBe(symbol);
         expect(config.policyId).toBeTruthy();

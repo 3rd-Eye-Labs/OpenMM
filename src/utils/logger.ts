@@ -3,7 +3,7 @@ import * as winston from 'winston';
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 export interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -23,25 +23,22 @@ export class Logger {
             const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
             return `${timestamp} [${service}] ${level}: ${message}${metaStr}`;
           })
-        )
-      })
+        ),
+      }),
     ];
 
     if (logFile) {
-      const fileFormat = winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-      );
+      const fileFormat = winston.format.combine(winston.format.timestamp(), winston.format.json());
 
       transports.push(
-        new winston.transports.File({ 
-          filename: logFile, 
-          format: fileFormat 
+        new winston.transports.File({
+          filename: logFile,
+          format: fileFormat,
         }),
-        new winston.transports.File({ 
-          filename: logFile.replace('.log', '-error.log'), 
+        new winston.transports.File({
+          filename: logFile.replace('.log', '-error.log'),
           level: 'error',
-          format: fileFormat 
+          format: fileFormat,
         })
       );
     }
@@ -50,7 +47,7 @@ export class Logger {
       level: 'debug',
       defaultMeta: { service },
       transports,
-      exitOnError: false
+      exitOnError: false,
     });
   }
 
@@ -79,8 +76,8 @@ export class Logger {
       error: {
         name: error.name,
         message: error.message,
-        stack: error.stack
-      }
+        stack: error.stack,
+      },
     });
   }
 }

@@ -8,13 +8,13 @@ import chalk from 'chalk';
 export function handleError(error: Error | string, context?: string): void {
   const errorMessage = typeof error === 'string' ? error : error.message;
   const contextStr = context ? ` [${context}]` : '';
-  
+
   console.error(chalk.red(`❌ Error${contextStr}: ${errorMessage}`));
-  
+
   if (process.env.NODE_ENV === 'development' && typeof error === 'object' && error.stack) {
     console.error(chalk.gray(error.stack));
   }
-  
+
   process.exit(1);
 }
 
@@ -68,29 +68,26 @@ export function displayTable(data: Record<string, any>[], headers?: string[]): v
 
   const keys = headers || Object.keys(data[0]);
   const columnWidths = keys.map(key => {
-    const maxWidth = Math.max(
-      key.length,
-      ...data.map(row => String(row[key] || '').length)
-    );
+    const maxWidth = Math.max(key.length, ...data.map(row => String(row[key] || '').length));
     return Math.min(maxWidth, 20);
   });
 
-  const headerRow = keys.map((key, i) => 
-    chalk.bold(key.padEnd(columnWidths[i]))
-  ).join(' │ ');
+  const headerRow = keys.map((key, i) => chalk.bold(key.padEnd(columnWidths[i]))).join(' │ ');
   console.log(headerRow);
-  
+
   const separator = columnWidths.map(width => '─'.repeat(width)).join('─┼─');
   console.log(separator);
 
   data.forEach(row => {
-    const dataRow = keys.map((key, i) => {
-      let value = String(row[key] || '');
-      if (value.length > columnWidths[i]) {
-        value = value.substring(0, columnWidths[i] - 3) + '...';
-      }
-      return value.padEnd(columnWidths[i]);
-    }).join(' │ ');
+    const dataRow = keys
+      .map((key, i) => {
+        let value = String(row[key] || '');
+        if (value.length > columnWidths[i]) {
+          value = value.substring(0, columnWidths[i] - 3) + '...';
+        }
+        return value.padEnd(columnWidths[i]);
+      })
+      .join(' │ ');
     console.log(dataRow);
   });
 }
@@ -108,14 +105,15 @@ export function displayBalance(balance: any, asset?: string): void {
     console.log(`  Total:     ${chalk.blue(balance.total.toFixed(8))}`);
     console.log(`  Available: ${chalk.green(balance.available.toFixed(8))}`);
   } else {
-    const balances = Object.entries(balance as Record<string, any>)
-      .map(([asset, bal]: [string, any]) => ({
+    const balances = Object.entries(balance as Record<string, any>).map(
+      ([asset, bal]: [string, any]) => ({
         Asset: asset,
         Free: bal.free.toFixed(8),
         Used: bal.used.toFixed(8),
-        Total: bal.total.toFixed(8)
-      }));
-    
+        Total: bal.total.toFixed(8),
+      })
+    );
+
     console.log(`\n${chalk.bold.cyan('Account Balances')}:`);
     displayTable(balances);
   }

@@ -41,11 +41,21 @@ class TestStrategy extends BaseStrategy {
   public testHandleError(error: any, operation: string): void {
     this.handleError(error, operation);
   }
-  public get initializeCalls(): number { return this.initializeCallCount; }
-  public get startCalls(): number { return this.startCallCount; }
-  public get stopCalls(): number { return this.stopCallCount; }
-  public get priceUpdateCalls(): number { return this.priceUpdateCallCount; }
-  public get orderUpdateCalls(): number { return this.orderUpdateCallCount; }
+  public get initializeCalls(): number {
+    return this.initializeCallCount;
+  }
+  public get startCalls(): number {
+    return this.startCallCount;
+  }
+  public get stopCalls(): number {
+    return this.stopCallCount;
+  }
+  public get priceUpdateCalls(): number {
+    return this.priceUpdateCallCount;
+  }
+  public get orderUpdateCalls(): number {
+    return this.orderUpdateCallCount;
+  }
 }
 
 describe('BaseStrategy', () => {
@@ -56,7 +66,7 @@ describe('BaseStrategy', () => {
     symbol: 'BTC/USDT',
     exchange: 'mexc',
     accountId: 'main',
-    enabled: true
+    enabled: true,
   };
   beforeEach(() => {
     strategy = new TestStrategy('test-strategy-1', 'grid');
@@ -127,7 +137,7 @@ describe('BaseStrategy', () => {
         filled: 0,
         remaining: 0.1,
         status: 'open',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       await strategy.onOrderUpdate(order);
       expect(strategy.orderUpdateCalls).toBe(1);
@@ -174,66 +184,77 @@ describe('BaseStrategy', () => {
 
     it('should throw error for missing id', () => {
       const invalidConfig = { ...validConfig, id: '' };
-      expect(() => strategy.testValidateConfig(invalidConfig))
-        .toThrow('Invalid strategy configuration');
+      expect(() => strategy.testValidateConfig(invalidConfig)).toThrow(
+        'Invalid strategy configuration'
+      );
     });
 
     it('should throw error for missing type', () => {
       const invalidConfig = { ...validConfig, type: undefined as any };
-      expect(() => strategy.testValidateConfig(invalidConfig))
-        .toThrow('Invalid strategy configuration');
+      expect(() => strategy.testValidateConfig(invalidConfig)).toThrow(
+        'Invalid strategy configuration'
+      );
     });
 
     it('should throw error for missing symbol', () => {
       const invalidConfig = { ...validConfig, symbol: '' };
-      expect(() => strategy.testValidateConfig(invalidConfig))
-        .toThrow('Invalid strategy configuration');
+      expect(() => strategy.testValidateConfig(invalidConfig)).toThrow(
+        'Invalid strategy configuration'
+      );
     });
 
     it('should throw error for missing exchange', () => {
       const invalidConfig = { ...validConfig, exchange: '' };
-      expect(() => strategy.testValidateConfig(invalidConfig))
-        .toThrow('Invalid strategy configuration');
+      expect(() => strategy.testValidateConfig(invalidConfig)).toThrow(
+        'Invalid strategy configuration'
+      );
     });
 
     it('should throw error for completely missing properties', () => {
       const invalidConfig = {} as StrategyConfig;
-      expect(() => strategy.testValidateConfig(invalidConfig))
-        .toThrow('Invalid strategy configuration');
+      expect(() => strategy.testValidateConfig(invalidConfig)).toThrow(
+        'Invalid strategy configuration'
+      );
     });
   });
 
   describe('protected handleError method', () => {
     it('should handle error with message', () => {
       const error = new Error('Test error message');
-      expect(() => strategy.testHandleError(error, 'testing'))
-        .toThrow('Strategy test-strategy-1 testing failed: Test error message');
+      expect(() => strategy.testHandleError(error, 'testing')).toThrow(
+        'Strategy test-strategy-1 testing failed: Test error message'
+      );
       expect(strategy.currentStatus).toBe('error');
     });
 
     it('should handle error without message', () => {
       const error = { toString: () => 'Error object string' };
-      expect(() => strategy.testHandleError(error, 'processing'))
-        .toThrow('Strategy test-strategy-1 processing failed: Error object string');
+      expect(() => strategy.testHandleError(error, 'processing')).toThrow(
+        'Strategy test-strategy-1 processing failed: Error object string'
+      );
       expect(strategy.currentStatus).toBe('error');
     });
 
     it('should handle null or undefined errors', () => {
-      expect(() => strategy.testHandleError(null, 'operation'))
-        .toThrow('Strategy test-strategy-1 operation failed: Unknown error');
-      strategy.testSetStatus('running'); 
-      expect(() => strategy.testHandleError(undefined, 'operation'))
-        .toThrow('Strategy test-strategy-1 operation failed: Unknown error');
+      expect(() => strategy.testHandleError(null, 'operation')).toThrow(
+        'Strategy test-strategy-1 operation failed: Unknown error'
+      );
+      strategy.testSetStatus('running');
+      expect(() => strategy.testHandleError(undefined, 'operation')).toThrow(
+        'Strategy test-strategy-1 operation failed: Unknown error'
+      );
     });
 
     it('should handle string errors', () => {
-      expect(() => strategy.testHandleError('String error', 'operation'))
-        .toThrow('Strategy test-strategy-1 operation failed: String error');
+      expect(() => strategy.testHandleError('String error', 'operation')).toThrow(
+        'Strategy test-strategy-1 operation failed: String error'
+      );
     });
 
     it('should handle number errors', () => {
-      expect(() => strategy.testHandleError(404, 'operation'))
-        .toThrow('Strategy test-strategy-1 operation failed: 404');
+      expect(() => strategy.testHandleError(404, 'operation')).toThrow(
+        'Strategy test-strategy-1 operation failed: 404'
+      );
     });
 
     it('should always set status to error', () => {
@@ -241,8 +262,7 @@ describe('BaseStrategy', () => {
       expect(strategy.currentStatus).toBe('running');
       try {
         strategy.testHandleError(new Error('test'), 'operation');
-      } catch (e) {
-      }
+      } catch (e) {}
       expect(strategy.currentStatus).toBe('error');
     });
   });
@@ -267,14 +287,15 @@ describe('BaseStrategy', () => {
       expect(strategy.currentStatus).toBe('running');
       try {
         strategy.testHandleError(new Error('Simulated error'), 'price processing');
-      } catch (e) {
-      }
+      } catch (e) {}
       expect(strategy.currentStatus).toBe('error');
     });
 
     it('should validate configuration before initialization', async () => {
       const invalidConfig = { ...validConfig, symbol: '' };
-      await expect(strategy.initialize(invalidConfig)).rejects.toThrow('Invalid strategy configuration');
+      await expect(strategy.initialize(invalidConfig)).rejects.toThrow(
+        'Invalid strategy configuration'
+      );
     });
   });
 });
