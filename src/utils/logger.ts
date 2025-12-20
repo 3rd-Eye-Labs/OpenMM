@@ -3,7 +3,7 @@ import * as winston from 'winston';
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 export interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

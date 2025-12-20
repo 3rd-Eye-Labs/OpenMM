@@ -48,6 +48,16 @@ export interface MexcSubscription {
   params: string[];
 }
 
+export interface MexcOrderParams {
+  symbol: string;
+  side: string;
+  type: string;
+  quantity: string;
+  price?: string;
+  timeInForce?: string;
+  [key: string]: string | undefined;
+}
+
 export type SubscriptionInfo =
   | {
       callback: (data: Ticker) => void;

@@ -4,7 +4,7 @@
  * Type definitions for Bitget exchange-specific data structures and WebSocket messages
  */
 
-import { Order, OrderBook, Ticker, Trade } from './index';
+import { Order, OrderBook, Ticker, Trade, BitgetRawAccount } from './index';
 
 /**
  * Subscription callback information for different data types
@@ -36,7 +36,7 @@ export type BitgetSubscriptionInfo =
       symbol?: string;
     }
   | {
-      callback: (data: any) => void;
+      callback: (data: BitgetRawAccount) => void;
       type: 'account';
       symbol?: string;
     };
