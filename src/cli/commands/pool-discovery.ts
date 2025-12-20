@@ -18,32 +18,30 @@ export const poolDiscoveryCommand = new Command('pool-discovery')
           const discoverOptions = {
             limit: parseInt(options.limit),
             minLiquidity: options.minLiquidity ? parseInt(options.minLiquidity) : undefined,
-            showAll: options.showAll || false
+            showAll: options.showAll || false,
           };
-          
+
           const result = await cli.discoverTokenPools(token, discoverOptions);
           cli.displayResults(result);
         }, 'pool-discovery discover');
       })
   )
   .addCommand(
-    new Command('supported')
-      .description('List all supported tokens')
-      .action(async () => {
-        await executeCommand(async () => {
-          console.log('🎯 Supported Tokens:');
-          console.log('─'.repeat(20));
-          getSupportedTokens().forEach(token => {
-            console.log(`• ${token}`);
-          });
-        }, 'pool-discovery supported');
-      })
+    new Command('supported').description('List all supported tokens').action(async () => {
+      await executeCommand(async () => {
+        console.log('🎯 Supported Tokens:');
+        console.log('─'.repeat(20));
+        getSupportedTokens().forEach(token => {
+          console.log(`• ${token}`);
+        });
+      }, 'pool-discovery supported');
+    })
   )
   .addCommand(
     new Command('prices')
       .description('Get live prices for token pools')
       .argument('<token>', 'Token symbol')
-      .action(async (token) => {
+      .action(async token => {
         await executeCommand(async () => {
           const cli = new PoolDiscoveryCLI();
           const result = await cli.discoverTokenPools(token, { limit: 3 });

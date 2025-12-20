@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import {ExchangeCredentials} from '../../types';
-import {createLogger} from '../../utils';
+import { ExchangeCredentials } from '../../types';
+import { createLogger } from '../../utils';
 
 /**
  * Extended credentials for Bitget that includes passphrase
@@ -11,10 +11,10 @@ export interface BitgetCredentials extends ExchangeCredentials {
 
 /**
  * Bitget Authentication and Request Handler
- * 
+ *
  * Handles API authentication, request signing, and HTTP requests to Bitget API.
  * Implements Bitget's HMAC-SHA256 signature generation with BASE64 encoding.
- * 
+ *
  * @see https://www.bitget.com/api-doc/common/signature
  */
 export class BitgetAuth {
@@ -24,7 +24,7 @@ export class BitgetAuth {
 
   /**
    * Initialize Bitget authentication handler
-   * 
+   *
    * @param credentials - Bitget API credentials including API key, secret, and passphrase
    * @param baseUrl - Base URL for Bitget API (defaults to production)
    */
@@ -46,7 +46,6 @@ export class BitgetAuth {
   ): string {
     const queryPart = queryString ? `?${queryString}` : '';
     const signatureString = `${timestamp}${method.toUpperCase()}${requestPath}${queryPart}${body}`;
-    
 
     try {
       const hmac = crypto.createHmac('sha256', this.credentials.secret);
@@ -69,14 +68,20 @@ export class BitgetAuth {
     timestamp?: number
   ): Record<string, string> {
     const requestTimestamp = timestamp || Date.now();
-    const signature = this.generateSignature(requestTimestamp, method, requestPath, queryString, body);
-    
+    const signature = this.generateSignature(
+      requestTimestamp,
+      method,
+      requestPath,
+      queryString,
+      body
+    );
+
     return {
       'Content-Type': 'application/json',
       'ACCESS-KEY': this.credentials.apiKey,
       'ACCESS-SIGN': signature,
       'ACCESS-TIMESTAMP': requestTimestamp.toString(),
-      'ACCESS-PASSPHRASE': this.credentials.passphrase
+      'ACCESS-PASSPHRASE': this.credentials.passphrase,
     };
   }
 
@@ -85,7 +90,7 @@ export class BitgetAuth {
    */
   getPublicHeaders(): Record<string, string> {
     return {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
   }
 
@@ -99,26 +104,25 @@ export class BitgetAuth {
     body?: Record<string, unknown>
   ): Promise<any> {
     const timestamp = Date.now();
-    
+
     const queryString = Object.entries(params)
       .filter(([, value]) => value !== undefined && value !== null && value !== '')
       .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
       .join('&');
-    
+
     const requestBody = body ? JSON.stringify(body) : '';
-    
+
     const headers = this.getHeaders(method, endpoint, queryString, requestBody, timestamp);
-    
-    const url = queryString 
+
+    const url = queryString
       ? `${this.baseUrl}${endpoint}?${queryString}`
       : `${this.baseUrl}${endpoint}`;
-
 
     try {
       const response = await fetch(url, {
         method,
         headers,
-        body: method !== 'GET' ? requestBody || undefined : undefined
+        body: method !== 'GET' ? requestBody || undefined : undefined,
       });
 
       return await this.handleResponse(response, endpoint);
@@ -131,23 +135,19 @@ export class BitgetAuth {
   /**
    * Make public request to Bitget API
    */
-  async makePublicRequest(
-    endpoint: string,
-    params: Record<string, unknown> = {}
-  ): Promise<any> {
+  async makePublicRequest(endpoint: string, params: Record<string, unknown> = {}): Promise<any> {
     const queryString = Object.entries(params)
       .filter(([, value]) => value !== undefined && value !== null && value !== '')
       .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
       .join('&');
-    
-    const url = queryString 
+
+    const url = queryString
       ? `${this.baseUrl}${endpoint}?${queryString}`
       : `${this.baseUrl}${endpoint}`;
 
-
     try {
       const response = await fetch(url, {
-        headers: this.getPublicHeaders()
+        headers: this.getPublicHeaders(),
       });
 
       return await this.handleResponse(response, endpoint);
@@ -162,10 +162,10 @@ export class BitgetAuth {
    */
   private async handleResponse(response: Response, endpoint: string): Promise<any> {
     const responseText = await response.text();
-    
+
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      
+
       try {
         const errorData = JSON.parse(responseText);
         if (errorData.msg) {
@@ -174,38 +174,41 @@ export class BitgetAuth {
       } catch {
         errorMessage = `HTTP ${response.status}: ${responseText.substring(0, 200)}`;
       }
-      
+
       this.logger.error('Bitget API request failed', {
         endpoint,
         status: response.status,
         statusText: response.statusText,
-        error: errorMessage
+        error: errorMessage,
       });
-      
+
       throw new Error(errorMessage);
     }
 
     try {
       const data = JSON.parse(responseText);
-      
+
       if (data.code && data.code !== '00000') {
         const apiError = `Bitget API Error: ${data.msg || 'Unknown error'} (Code: ${data.code})`;
         this.logger.error('Bitget API returned error', {
           endpoint,
           code: data.code,
           message: data.msg,
-          data: data.data
+          data: data.data,
         });
         throw new Error(apiError);
       }
-      
+
       return data;
     } catch (error) {
       if (error instanceof Error && error.message.includes('Bitget API Error')) {
         throw error;
       }
-      
-      this.logger.error('Failed to parse response JSON', { endpoint, responseText: responseText.substring(0, 200) });
+
+      this.logger.error('Failed to parse response JSON', {
+        endpoint,
+        responseText: responseText.substring(0, 200),
+      });
       throw new Error(`Invalid JSON response from Bitget API: ${error}`);
     }
   }
@@ -215,11 +218,11 @@ export class BitgetAuth {
    */
   private validateCredentials(): void {
     const missing: string[] = [];
-    
+
     if (!this.credentials.apiKey) missing.push('apiKey');
     if (!this.credentials.secret) missing.push('secret');
     if (!this.credentials.passphrase) missing.push('passphrase');
-    
+
     if (missing.length > 0) {
       throw new Error(`Missing required Bitget credentials: ${missing.join(', ')}`);
     }
@@ -239,7 +242,7 @@ export class BitgetAuth {
 
   /**
    * Get credentials for WebSocket authentication
-   * 
+   *
    * @returns The BitgetCredentials object
    */
   getCredentials(): BitgetCredentials {

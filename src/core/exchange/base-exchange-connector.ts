@@ -46,10 +46,10 @@ export abstract class BaseExchangeConnector {
   // Rest API methods Order management
   abstract getBalance(): Promise<Record<string, Balance>>;
   abstract createOrder(
-    symbol: string, 
-    type: OrderType, 
-    side: OrderSide, 
-    amount: number, 
+    symbol: string,
+    type: OrderType,
+    side: OrderSide,
+    amount: number,
     price?: number
   ): Promise<Order>;
 
@@ -66,11 +66,14 @@ export abstract class BaseExchangeConnector {
   abstract connectWebSocket(): Promise<void>;
   abstract disconnectWebSocket(): Promise<void>;
   abstract subscribeTicker(symbol: string, callback: (ticker: Ticker) => void): Promise<string>;
-  abstract subscribeOrderBook(symbol: string, callback: (orderbook: OrderBook) => void): Promise<string>;
+  abstract subscribeOrderBook(
+    symbol: string,
+    callback: (orderbook: OrderBook) => void
+  ): Promise<string>;
   abstract subscribeTrades(symbol: string, callback: (trade: Trade) => void): Promise<string>;
   abstract subscribeOrders(callback: (order: Order) => void): Promise<string>;
   abstract unsubscribe(subscriptionId: string): Promise<void>;
-  
+
   abstract isWebSocketConnected(): boolean;
   abstract getWebSocketStatus(): WebSocketStatus;
 
@@ -84,11 +87,8 @@ export abstract class BaseExchangeConnector {
 
   // Error handling helper
   protected handleError(error: unknown, operation: string): never {
-    const message = error instanceof Error 
-      ? error.message 
-      : typeof error === 'string' 
-        ? error 
-        : 'Unknown error';
+    const message =
+      error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
     throw new Error(`${this.exchangeName} ${operation} failed: ${message}`);
   }
 }

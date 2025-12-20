@@ -8,11 +8,11 @@ jest.mock('../../../config/environment', () => ({
     mexc: {
       apiKey: 'test-key',
       secret: 'test-secret',
-      uid: 'test-uid'
+      uid: 'test-uid',
     },
     logLevel: 'info',
-    nodeEnv: 'test'
-  }
+    nodeEnv: 'test',
+  },
 }));
 
 const MockMexcConnector = MexcConnector as jest.MockedClass<typeof MexcConnector>;
@@ -70,32 +70,35 @@ describe('ExchangeFactory', () => {
     });
 
     it('should throw error for gateio exchange', async () => {
-      await expect(ExchangeFactory.getExchange('gateio'))
-        .rejects.toThrow('GateIO connector not yet implemented');
+      await expect(ExchangeFactory.getExchange('gateio')).rejects.toThrow(
+        'GateIO connector not yet implemented'
+      );
     });
 
     it('should throw error for bitget exchange when no credentials', async () => {
-      await expect(ExchangeFactory.getExchange('bitget'))
-        .rejects.toThrow('Bitget connect failed: No credentials set for Bitget');
+      await expect(ExchangeFactory.getExchange('bitget')).rejects.toThrow(
+        'Bitget connect failed: No credentials set for Bitget'
+      );
     });
 
     it('should throw error for kraken exchange', async () => {
-      await expect(ExchangeFactory.getExchange('kraken'))
-        .rejects.toThrow('Kraken connector not yet implemented');
+      await expect(ExchangeFactory.getExchange('kraken')).rejects.toThrow(
+        'Kraken connector not yet implemented'
+      );
     });
 
     it('should handle connector creation errors', async () => {
       MockMexcConnector.mockImplementationOnce(() => {
         throw new Error('Connector creation failed');
       });
-      await expect(ExchangeFactory.getExchange('mexc'))
-        .rejects.toThrow('Connector creation failed');
+      await expect(ExchangeFactory.getExchange('mexc')).rejects.toThrow(
+        'Connector creation failed'
+      );
     });
 
     it('should handle connection errors', async () => {
       mockConnector.connect.mockRejectedValueOnce(new Error('Connection failed'));
-      await expect(ExchangeFactory.getExchange('mexc'))
-        .rejects.toThrow('Connection failed');
+      await expect(ExchangeFactory.getExchange('mexc')).rejects.toThrow('Connection failed');
     });
   });
 

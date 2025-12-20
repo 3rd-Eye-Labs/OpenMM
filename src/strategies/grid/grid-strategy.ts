@@ -1,5 +1,13 @@
 import { BaseStrategy } from '../../core/strategy/base-strategy';
-import { Order, OrderSide, StrategyConfig, GridConfig, GridStrategyConfig, GridOrderManagerConfig, RiskManagerConfig } from '../../types';
+import {
+  Order,
+  OrderSide,
+  StrategyConfig,
+  GridConfig,
+  GridStrategyConfig,
+  GridOrderManagerConfig,
+  RiskManagerConfig,
+} from '../../types';
 import { BaseExchangeConnector } from '../../core/exchange/base-exchange-connector';
 import { CardanoPriceService } from '../../core/price-aggregation';
 import { RiskManager } from '../../core/risk-management/risk-manager';
@@ -20,27 +28,27 @@ export class GridStrategy extends BaseStrategy {
 
   constructor(id: string) {
     super(id, 'grid');
-    
+
     this.priceService = new CardanoPriceService();
     this.calculator = new GridCalculator();
-    
+
     const riskConfig: RiskManagerConfig = {
       maxPositionSize: 0.8,
       safetyReservePercentage: 0.2,
-      minConfidence: 0.6
+      minConfidence: 0.6,
     };
     this.riskManager = new RiskManager(riskConfig);
-    
+
     const orderManagerConfig: GridOrderManagerConfig = {
       priceDeviationThreshold: 0.015,
-      adjustmentDebounce: 2000
+      adjustmentDebounce: 2000,
     };
     this.orderManager = new GridOrderManager(orderManagerConfig);
   }
 
   protected validateConfig(config: StrategyConfig): void {
     super.validateConfig(config);
-    
+
     const gridStrategyConfig = config as GridStrategyConfig;
     if (!gridStrategyConfig.gridConfig) {
       throw new Error('Grid strategy requires gridConfig');
@@ -49,11 +57,11 @@ export class GridStrategy extends BaseStrategy {
 
   async initialize(config: StrategyConfig): Promise<void> {
     this.validateConfig(config);
-    
+
     const gridStrategyConfig = config as GridStrategyConfig;
     this.config = config;
     this.gridConfig = gridStrategyConfig.gridConfig;
-    
+
     this.setStatus('idle');
   }
 
@@ -66,9 +74,11 @@ export class GridStrategy extends BaseStrategy {
       this.setStatus('running');
       const { base } = parseSymbol(this.getSymbol());
       const aggregatedPrice = await this.priceService.getTokenPrice(base);
-      
+
       if (!this.riskManager.checkPriceConfidence(aggregatedPrice)) {
-        throw new Error(`Price confidence too low: ${aggregatedPrice.confidence} < ${this.gridConfig.minConfidence}`);
+        throw new Error(
+          `Price confidence too low: ${aggregatedPrice.confidence} < ${this.gridConfig.minConfidence}`
+        );
       }
 
       const balance = await this.getAvailableBalance();
@@ -77,11 +87,17 @@ export class GridStrategy extends BaseStrategy {
         this.gridConfig.gridSpacing,
         this.gridConfig.gridLevels
       );
-      
-      const minOrderValue = this.config ? ExchangeUtils.getMinimumOrderValue(this.config.exchange, this.config.symbol) : 0;
-      const orderSize = this.calculator.calculateOrderSizes(balance, this.gridConfig.gridLevels, minOrderValue);
+
+      const minOrderValue = this.config
+        ? ExchangeUtils.getMinimumOrderValue(this.config.exchange, this.config.symbol)
+        : 0;
+      const orderSize = this.calculator.calculateOrderSizes(
+        balance,
+        this.gridConfig.gridLevels,
+        minOrderValue
+      );
       const gridWithSizes = this.calculator.assignOrderSizes(gridLevels, orderSize);
-      
+
       await this.orderManager.placeInitialGrid(
         gridWithSizes,
         (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price)
@@ -89,7 +105,6 @@ export class GridStrategy extends BaseStrategy {
 
       this.startPriceMonitoring();
       await this.setupOrderSubscription();
-      
     } catch (error) {
       this.handleError(error, 'start');
     }
@@ -98,12 +113,12 @@ export class GridStrategy extends BaseStrategy {
   async stop(): Promise<void> {
     try {
       this.setStatus('stopped');
-      
+
       if (this.priceUpdateInterval) {
         clearInterval(this.priceUpdateInterval);
         this.priceUpdateInterval = undefined;
       }
-      
+
       if (this.exchangeConnector) {
         const openOrders = this.orderManager.getActiveOrders();
         for (const order of openOrders) {
@@ -114,7 +129,6 @@ export class GridStrategy extends BaseStrategy {
           }
         }
       }
-      
     } catch (error) {
       this.handleError(error, 'stop');
     }
@@ -127,7 +141,7 @@ export class GridStrategy extends BaseStrategy {
 
     try {
       const balance = await this.getAvailableBalance();
-      
+
       await this.orderManager.handlePriceDeviation(
         price,
         this.gridConfig.gridSpacing,
@@ -146,18 +160,18 @@ export class GridStrategy extends BaseStrategy {
     if (order.symbol !== this.getSymbol()) {
       return;
     }
-    
+
     if ((order.status === 'filled' || order.status === 'partially_filled') && this.gridConfig) {
       if (this.orderManager.isCurrentlyAdjusting()) {
         this.logger.info(`⏸️  Grid adjustment in progress, ignoring ${order.status} event`);
         return;
       }
-      
+
       try {
         const { base } = parseSymbol(this.getSymbol());
         const aggregatedPrice = await this.priceService.getTokenPrice(base);
         const balance = await this.getAvailableBalance();
-        
+
         await this.orderManager.handleOrderFill(
           order,
           aggregatedPrice.price,
@@ -168,7 +182,7 @@ export class GridStrategy extends BaseStrategy {
           (symbol: string) => this.cancelAllOrders(symbol)
         );
       } catch (error) {
-        this.logger.error('Order fill handling failed:',  { error });
+        this.logger.error('Order fill handling failed:', { error });
       }
     }
   }
@@ -207,7 +221,7 @@ export class GridStrategy extends BaseStrategy {
     const symbol = this.getSymbol();
     const quoteAsset = symbol.split('/')[1];
     const balance = balances[quoteAsset];
-    
+
     if (!balance) {
       throw new Error(`No balance found for ${quoteAsset}`);
     }

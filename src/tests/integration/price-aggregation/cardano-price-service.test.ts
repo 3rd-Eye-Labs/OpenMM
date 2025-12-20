@@ -34,7 +34,9 @@ describe('CardanoPriceService Integration', () => {
 
   describe('Price Fetching', () => {
     test('should reject unsupported token', async () => {
-      await expect(priceService.getTokenPrice('UNKNOWN')).rejects.toThrow('Unsupported token: UNKNOWN');
+      await expect(priceService.getTokenPrice('UNKNOWN')).rejects.toThrow(
+        'Unsupported token: UNKNOWN'
+      );
     });
 
     test('should fetch INDY price successfully', async () => {
@@ -56,8 +58,12 @@ describe('CardanoPriceService Integration', () => {
 
   describe('Error Handling', () => {
     test('should handle network errors gracefully', async () => {
-      jest.spyOn(priceService as any, 'getTokenADAPrice').mockRejectedValue(new Error('Network error'));
-      await expect(priceService.getTokenPrice('INDY')).rejects.toThrow('Price aggregation failed for INDY');
+      jest
+        .spyOn(priceService as any, 'getTokenADAPrice')
+        .mockRejectedValue(new Error('Network error'));
+      await expect(priceService.getTokenPrice('INDY')).rejects.toThrow(
+        'Price aggregation failed for INDY'
+      );
     });
   });
 });

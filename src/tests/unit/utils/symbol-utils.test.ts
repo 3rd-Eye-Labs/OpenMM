@@ -2,7 +2,6 @@ import { parseSymbol, toStandardFormat, toExchangeFormat } from '../../../utils/
 
 describe('Symbol Utils', () => {
   describe('parseSymbol', () => {
-
     it('should parse symbols with slash separator', () => {
       const result = parseSymbol('BTC/USDT');
       expect(result).toEqual({ base: 'BTC', quote: 'USDT' });
@@ -138,14 +137,7 @@ describe('Symbol Utils', () => {
   });
   describe('round-trip conversions', () => {
     it('should maintain consistency through round-trip conversions', () => {
-      const testCases = [
-        'BTCUSDT',
-        'BTC/USDT',
-        'ETHUSDC',
-        'ETH/USDC',
-        'LINKBTC',
-        'LINK/BTC'
-      ];
+      const testCases = ['BTCUSDT', 'BTC/USDT', 'ETHUSDC', 'ETH/USDC', 'LINKBTC', 'LINK/BTC'];
       testCases.forEach(symbol => {
         const standard = toStandardFormat(symbol);
         const exchange = toExchangeFormat(standard);

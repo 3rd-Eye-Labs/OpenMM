@@ -8,10 +8,10 @@ import { toExchangeFormat } from '../../utils/symbol-utils';
 
 /**
  * Bitget User Data Stream
- * 
+ *
  * Handles authenticated WebSocket connections for private user data including:
  * - Order updates (order channel)
- * - Trade executions (fill channel) 
+ * - Trade executions (fill channel)
  * - Account balance updates (account channel)
  * - WebSocket trading operations (place/cancel orders)
  */
@@ -31,17 +31,14 @@ export class BitgetUserDataStream {
   private readonly dataMapper = new BitgetDataMapper();
   private auth: BitgetAuth;
 
-  constructor(
-    auth: BitgetAuth,
-    wsUrl: string = 'wss://ws.bitget.com/v2/ws/private'
-  ) {
+  constructor(auth: BitgetAuth, wsUrl: string = 'wss://ws.bitget.com/v2/ws/private') {
     this.wsUrl = wsUrl;
     this.auth = auth;
   }
 
   /**
    * Connect to Bitget private WebSocket with authentication
-   * 
+   *
    * @returns Promise that resolves when connection is established and authenticated
    */
   async connectUserDataStream(): Promise<void> {
@@ -54,8 +51,7 @@ export class BitgetUserDataStream {
         this.ws.on('open', () => this.onOpen(resolve, reject));
         this.ws.on('message', (data: Buffer) => this.onMessage(data));
         this.ws.on('close', () => this.onClose());
-        this.ws.on('error', (error) => this.onError(error, reject));
-
+        this.ws.on('error', error => this.onError(error, reject));
       } catch (error) {
         this.status = 'error';
         reject(error);
@@ -70,14 +66,14 @@ export class BitgetUserDataStream {
     try {
       // Authenticate the WebSocket connection
       await this.authenticate();
-      
+
       this.status = 'connected';
       this.reconnectAttempts = 0;
       this.startPing();
       this.logger.info('✅ Bitget User Data Stream connected and authenticated');
-      
+
       await this.resubscribeAll();
-      
+
       resolve();
     } catch (error) {
       this.logger.error('❌ Authentication failed:', { error });
@@ -95,17 +91,25 @@ export class BitgetUserDataStream {
     const queryString = '';
     const body = '';
 
-    const signature = this.auth.generateSignature(timestamp, method, requestPath, queryString, body);
+    const signature = this.auth.generateSignature(
+      timestamp,
+      method,
+      requestPath,
+      queryString,
+      body
+    );
     const credentials = this.auth.getCredentials();
 
     const authMessage = {
       op: 'login',
-      args: [{
-        apiKey: credentials.apiKey,
-        passphrase: credentials.passphrase,
-        timestamp: timestamp.toString(),
-        sign: signature
-      }]
+      args: [
+        {
+          apiKey: credentials.apiKey,
+          passphrase: credentials.passphrase,
+          timestamp: timestamp.toString(),
+          sign: signature,
+        },
+      ],
     };
 
     if (!this.ws) {
@@ -128,22 +132,26 @@ export class BitgetUserDataStream {
       const messageHandler = (data: Buffer) => {
         try {
           const message = JSON.parse(data.toString());
-          
+
           if (message.event === 'login') {
             clearTimeout(timeout);
             this.ws?.removeListener('message', messageHandler);
-            
+
             if (message.code === '0' || message.code === 0) {
               this.logger.info('🔐 WebSocket authentication successful');
               resolve();
             } else {
-              this.logger.error('🔐 WebSocket authentication failed:', { 
-                code: message.code, 
-                msg: message.msg, 
+              this.logger.error('🔐 WebSocket authentication failed:', {
+                code: message.code,
+                msg: message.msg,
                 data: message.data,
-                fullMessage: JSON.stringify(message)
+                fullMessage: JSON.stringify(message),
               });
-              reject(new Error(`Authentication failed: ${message.msg || `Code ${message.code}` || 'Unknown error'}`));
+              reject(
+                new Error(
+                  `Authentication failed: ${message.msg || `Code ${message.code}` || 'Unknown error'}`
+                )
+              );
             }
           }
         } catch (error) {
@@ -161,9 +169,9 @@ export class BitgetUserDataStream {
   private onClose(): void {
     this.status = 'disconnected';
     this.stopPing();
-    
+
     this.logger.warn('🔌 User Data Stream connection closed');
-    
+
     if (this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
       this.scheduleReconnect();
     } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -177,7 +185,7 @@ export class BitgetUserDataStream {
   private onError(error: Error, reject?: (error: Error) => void): void {
     this.status = 'error';
     this.logger.error('❌ Bitget User Data Stream error:', { error: error.message });
-    
+
     if (this.reconnectAttempts === 0 && reject) {
       reject(error);
     }
@@ -208,9 +216,11 @@ export class BitgetUserDataStream {
       if (parsedMessage.data && parsedMessage.arg) {
         this.processPrivateChannelData(parsedMessage);
       }
-
     } catch (error) {
-      this.logger.error('❌ Error processing private message:', { error, message: data.toString().substring(0, 200) });
+      this.logger.error('❌ Error processing private message:', {
+        error,
+        message: data.toString().substring(0, 200),
+      });
     }
   }
 
@@ -220,7 +230,7 @@ export class BitgetUserDataStream {
   private processPrivateChannelData(message: any): void {
     try {
       const { arg, data } = message;
-      
+
       if (!arg || !data) {
         this.logger.warn('⚠️ Invalid private message format:', { arg, hasData: !!data });
         return;
@@ -235,7 +245,6 @@ export class BitgetUserDataStream {
       } else {
         this.logger.debug('🔄 Unknown private channel data:', { channel: arg.channel });
       }
-
     } catch (error) {
       this.logger.error('❌ Error processing private channel data:', { error, message });
     }
@@ -250,14 +259,13 @@ export class BitgetUserDataStream {
 
       data.forEach(orderData => {
         const order = this.dataMapper.mapOrder(orderData);
-        
-        this.subscriptions.forEach((subscription) => {
+
+        this.subscriptions.forEach(subscription => {
           if (subscription.type === 'orders') {
             subscription.callback(order);
           }
         });
       });
-
     } catch (error) {
       this.logger.error('❌ Error handling order updates:', { error, data });
     }
@@ -272,14 +280,13 @@ export class BitgetUserDataStream {
 
       data.forEach(fillData => {
         const trade = this.dataMapper.mapTrade(fillData, fillData.instId || '');
-        
-        this.subscriptions.forEach((subscription) => {
+
+        this.subscriptions.forEach(subscription => {
           if (subscription.type === 'user_trades') {
             subscription.callback(trade);
           }
         });
       });
-
     } catch (error) {
       this.logger.error('❌ Error handling fill updates:', { error, data });
     }
@@ -294,14 +301,13 @@ export class BitgetUserDataStream {
 
       data.forEach(accountData => {
         this.logger.info('💰 Account update received:', { accountData });
-        
-        this.subscriptions.forEach((subscription) => {
+
+        this.subscriptions.forEach(subscription => {
           if (subscription.type === 'account') {
             subscription.callback(accountData);
           }
         });
       });
-
     } catch (error) {
       this.logger.error('❌ Error handling account updates:', { error, data });
     }
@@ -309,7 +315,7 @@ export class BitgetUserDataStream {
 
   /**
    * Subscribe to real-time order updates
-   * 
+   *
    * @param callback - Function called when user's order status changes
    * @param symbol - Optional trading pair symbol (e.g., 'SNEK/USDT'). If not provided, subscribes to all symbols
    * @returns Promise resolving to subscription ID
@@ -317,19 +323,21 @@ export class BitgetUserDataStream {
   async subscribeUserOrders(callback: (order: Order) => void, symbol?: string): Promise<string> {
     const instId = symbol ? toExchangeFormat(symbol) : 'default';
     const subscriptionId = `orders_${instId}_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'orders'
+      type: 'orders',
     } as BitgetSubscriptionInfo);
 
     await this.subscribe({
       op: 'subscribe',
-      args: [{
-        instType: 'SPOT',
-        channel: 'orders',
-        instId
-      }]
+      args: [
+        {
+          instType: 'SPOT',
+          channel: 'orders',
+          instId,
+        },
+      ],
     });
 
     const symbolText = symbol ? ` for ${symbol} (${instId})` : ' for all symbols';
@@ -339,7 +347,7 @@ export class BitgetUserDataStream {
 
   /**
    * Subscribe to real-time trade execution updates
-   * 
+   *
    * @param callback - Function called when user's trades are executed
    * @param symbol - Optional trading pair symbol (e.g., 'SNEK/USDT'). If not provided, subscribes to all symbols
    * @returns Promise resolving to subscription ID
@@ -347,19 +355,21 @@ export class BitgetUserDataStream {
   async subscribeUserTrades(callback: (trade: Trade) => void, symbol?: string): Promise<string> {
     const instId = symbol ? toExchangeFormat(symbol) : 'default';
     const subscriptionId = `user_trades_${instId}_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'user_trades'
+      type: 'user_trades',
     } as BitgetSubscriptionInfo);
 
     await this.subscribe({
       op: 'subscribe',
-      args: [{
-        instType: 'SPOT',
-        channel: 'fill',
-        instId
-      }]
+      args: [
+        {
+          instType: 'SPOT',
+          channel: 'fill',
+          instId,
+        },
+      ],
     });
 
     const symbolText = symbol ? ` for ${symbol} (${instId})` : ' for all symbols';
@@ -369,25 +379,27 @@ export class BitgetUserDataStream {
 
   /**
    * Subscribe to account balance updates
-   * 
+   *
    * @param callback - Function called when account balance changes
    * @returns Promise resolving to subscription ID
    */
   async subscribeAccountUpdates(callback: (accountData: any) => void): Promise<string> {
     const subscriptionId = `account_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'account'
+      type: 'account',
     } as BitgetSubscriptionInfo);
 
     await this.subscribe({
       op: 'subscribe',
-      args: [{
-        instType: 'SPOT',
-        channel: 'account',
-        coin: 'default' // Subscribe to all coins
-      }]
+      args: [
+        {
+          instType: 'SPOT',
+          channel: 'account',
+          coin: 'default', // Subscribe to all coins
+        },
+      ],
     });
 
     this.logger.info(`💰 Subscribed to account updates`);
@@ -410,7 +422,9 @@ export class BitgetUserDataStream {
    */
   private scheduleReconnect(): void {
     this.reconnectAttempts++;
-    this.logger.info(`🔄 Scheduling user stream reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectDelay}ms`);
+    this.logger.info(
+      `🔄 Scheduling user stream reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectDelay}ms`
+    );
 
     this.reconnectTimer = setTimeout(async () => {
       try {
@@ -434,32 +448,37 @@ export class BitgetUserDataStream {
         if (subscription.type === 'orders') {
           await this.subscribe({
             op: 'subscribe',
-            args: [{
-              instType: 'SPOT',
-              channel: 'orders',
-              instId: 'default'
-            }]
+            args: [
+              {
+                instType: 'SPOT',
+                channel: 'orders',
+                instId: 'default',
+              },
+            ],
           });
         } else if (subscription.type === 'user_trades') {
           await this.subscribe({
             op: 'subscribe',
-            args: [{
-              instType: 'SPOT',
-              channel: 'fill',
-              instId: 'default'
-            }]
+            args: [
+              {
+                instType: 'SPOT',
+                channel: 'fill',
+                instId: 'default',
+              },
+            ],
           });
         } else if (subscription.type === 'account') {
           await this.subscribe({
             op: 'subscribe',
-            args: [{
-              instType: 'SPOT',
-              channel: 'account',
-              coin: 'default'
-            }]
+            args: [
+              {
+                instType: 'SPOT',
+                channel: 'account',
+                coin: 'default',
+              },
+            ],
           });
         }
-
       } catch (error) {
         this.logger.error('❌ Failed to resubscribe to private channel:', { id, error });
       }
@@ -493,12 +512,12 @@ export class BitgetUserDataStream {
    */
   async disconnectUserDataStream(): Promise<void> {
     this.autoReconnect = false;
-    
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = undefined;
     }
-    
+
     this.stopPing();
 
     if (this.ws) {
@@ -508,7 +527,7 @@ export class BitgetUserDataStream {
 
     this.subscriptions.clear();
     this.status = 'disconnected';
-    
+
     this.logger.info('🔌 Bitget User Data Stream disconnected');
   }
 

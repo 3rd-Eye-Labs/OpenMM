@@ -1,6 +1,6 @@
 /**
  * Bitget raw API response types
- * 
+ *
  * This file contains type definitions for raw API responses from Bitget exchange.
  * These types represent the exact structure returned by Bitget's API endpoints
  * before being mapped to OpenMM's standardized format.

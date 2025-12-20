@@ -34,7 +34,7 @@ describe('MexcUserStream', () => {
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
-      debug: jest.fn()
+      debug: jest.fn(),
     };
 
     MockedCreateLogger.mockReturnValue(mockLogger);
@@ -43,7 +43,7 @@ describe('MexcUserStream', () => {
       connectWebSocket: jest.fn().mockResolvedValue(undefined),
       disconnectWebSocket: jest.fn().mockResolvedValue(undefined),
       subscribeToUserData: jest.fn().mockResolvedValue('subscription_id_123'),
-      isConnected: jest.fn().mockReturnValue(true)
+      isConnected: jest.fn().mockReturnValue(true),
     } as any;
 
     MockedMexcWebSocket.mockImplementation(() => mockWebSocket);
@@ -73,20 +73,26 @@ describe('MexcUserStream', () => {
     it('should throw error when no listen key in response', async () => {
       mockMakeRequestFn.mockResolvedValue({});
 
-      await expect(mexcUserStream.getListenKey()).rejects.toThrow('No listen key received from API');
+      await expect(mexcUserStream.getListenKey()).rejects.toThrow(
+        'No listen key received from API'
+      );
     });
 
     it('should handle API request errors', async () => {
       const error = new Error('API request failed');
       mockMakeRequestFn.mockRejectedValue(error);
 
-      await expect(mexcUserStream.getListenKey()).rejects.toThrow('Failed to get listen key: API request failed');
+      await expect(mexcUserStream.getListenKey()).rejects.toThrow(
+        'Failed to get listen key: API request failed'
+      );
     });
 
     it('should handle non-Error exceptions', async () => {
       mockMakeRequestFn.mockRejectedValue('String error');
 
-      await expect(mexcUserStream.getListenKey()).rejects.toThrow('Failed to get listen key: Unknown error');
+      await expect(mexcUserStream.getListenKey()).rejects.toThrow(
+        'Failed to get listen key: Unknown error'
+      );
     });
   });
 
@@ -98,7 +104,9 @@ describe('MexcUserStream', () => {
       await mexcUserStream.connectUserDataStream();
 
       expect(mockMakeRequestFn).toHaveBeenCalledWith('/userDataStream', {}, 'POST');
-      expect(MockedMexcWebSocket).toHaveBeenCalledWith('wss://wbs-api.mexc.com/ws?listenKey=test_listen_key_123');
+      expect(MockedMexcWebSocket).toHaveBeenCalledWith(
+        'wss://wbs-api.mexc.com/ws?listenKey=test_listen_key_123'
+      );
       expect(mockWebSocket.connectWebSocket).toHaveBeenCalled();
     });
 
@@ -138,20 +146,26 @@ describe('MexcUserStream', () => {
 
       await mexcUserStream.keepAliveListenKey();
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('Failed to keep alive listen key', { error: expect.any(Error) });
+      expect(mockLogger.warn).toHaveBeenCalledWith('Failed to keep alive listen key', {
+        error: expect.any(Error),
+      });
     });
 
     it('should handle connection errors', async () => {
       const error = new Error('Connection failed');
       mockMakeRequestFn.mockRejectedValue(error);
 
-      await expect(mexcUserStream.connectUserDataStream()).rejects.toThrow('Failed to connect user data stream: Failed to get listen key: Connection failed');
+      await expect(mexcUserStream.connectUserDataStream()).rejects.toThrow(
+        'Failed to connect user data stream: Failed to get listen key: Connection failed'
+      );
     });
 
     it('should handle non-Error exceptions', async () => {
       mockMakeRequestFn.mockRejectedValue('String error');
 
-      await expect(mexcUserStream.connectUserDataStream()).rejects.toThrow('Failed to connect user data stream: Failed to get listen key: Unknown error');
+      await expect(mexcUserStream.connectUserDataStream()).rejects.toThrow(
+        'Failed to connect user data stream: Failed to get listen key: Unknown error'
+      );
     });
   });
 
@@ -166,17 +180,21 @@ describe('MexcUserStream', () => {
       await mexcUserStream.disconnectUserDataStream();
 
       expect(mockWebSocket.disconnectWebSocket).toHaveBeenCalled();
-      expect(mockMakeRequestFn).toHaveBeenCalledWith('/userDataStream', { listenKey: 'test_listen_key_123' }, 'DELETE');
+      expect(mockMakeRequestFn).toHaveBeenCalledWith(
+        '/userDataStream',
+        { listenKey: 'test_listen_key_123' },
+        'DELETE'
+      );
     });
 
     it('should clear keep alive interval', async () => {
       jest.useFakeTimers();
       const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-      
+
       await mexcUserStream.disconnectUserDataStream();
 
       expect(clearIntervalSpy).toHaveBeenCalled();
-      
+
       clearIntervalSpy.mockRestore();
       jest.useRealTimers();
     });
@@ -187,7 +205,9 @@ describe('MexcUserStream', () => {
 
       await mexcUserStream.disconnectUserDataStream();
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('Error during user data stream disconnect', { error: expect.any(Error) });
+      expect(mockLogger.warn).toHaveBeenCalledWith('Error during user data stream disconnect', {
+        error: expect.any(Error),
+      });
     });
 
     it('should handle disconnect when not connected', async () => {
@@ -208,7 +228,11 @@ describe('MexcUserStream', () => {
       mockMakeRequestFn.mockResolvedValueOnce({});
       await mexcUserStream.keepAliveListenKey();
 
-      expect(mockMakeRequestFn).toHaveBeenCalledWith('/userDataStream', { listenKey: 'test_listen_key_123' }, 'PUT');
+      expect(mockMakeRequestFn).toHaveBeenCalledWith(
+        '/userDataStream',
+        { listenKey: 'test_listen_key_123' },
+        'PUT'
+      );
     });
 
     it('should do nothing when no listen key', async () => {
@@ -240,7 +264,11 @@ describe('MexcUserStream', () => {
       mockMakeRequestFn.mockResolvedValueOnce({});
       await mexcUserStream.deleteListenKey();
 
-      expect(mockMakeRequestFn).toHaveBeenCalledWith('/userDataStream', { listenKey: 'test_listen_key_123' }, 'DELETE');
+      expect(mockMakeRequestFn).toHaveBeenCalledWith(
+        '/userDataStream',
+        { listenKey: 'test_listen_key_123' },
+        'DELETE'
+      );
     });
 
     it('should do nothing when no listen key', async () => {
@@ -272,7 +300,7 @@ describe('MexcUserStream', () => {
 
     it('should successfully subscribe to user orders', async () => {
       const callback = jest.fn();
-      
+
       const subscriptionId = await mexcUserStream.subscribeUserOrders(callback);
 
       expect(mockWebSocket.subscribeToUserData).toHaveBeenCalledWith(callback);
@@ -283,7 +311,9 @@ describe('MexcUserStream', () => {
       const freshUserStream = new MexcUserStream(mockMakeRequestFn);
       const callback = jest.fn();
 
-      await expect(freshUserStream.subscribeUserOrders(callback)).rejects.toThrow('User data stream not connected. Call connect() first.');
+      await expect(freshUserStream.subscribeUserOrders(callback)).rejects.toThrow(
+        'User data stream not connected. Call connect() first.'
+      );
     });
 
     it('should handle subscription errors', async () => {
@@ -291,14 +321,18 @@ describe('MexcUserStream', () => {
       mockWebSocket.subscribeToUserData.mockRejectedValue(error);
       const callback = jest.fn();
 
-      await expect(mexcUserStream.subscribeUserOrders(callback)).rejects.toThrow('Failed to subscribe to user orders: Subscription failed');
+      await expect(mexcUserStream.subscribeUserOrders(callback)).rejects.toThrow(
+        'Failed to subscribe to user orders: Subscription failed'
+      );
     });
 
     it('should handle non-Error exceptions', async () => {
       mockWebSocket.subscribeToUserData.mockRejectedValue('String error');
       const callback = jest.fn();
 
-      await expect(mexcUserStream.subscribeUserOrders(callback)).rejects.toThrow('Failed to subscribe to user orders: Unknown error');
+      await expect(mexcUserStream.subscribeUserOrders(callback)).rejects.toThrow(
+        'Failed to subscribe to user orders: Unknown error'
+      );
     });
   });
 
@@ -311,7 +345,7 @@ describe('MexcUserStream', () => {
 
     it('should successfully subscribe to user trades', async () => {
       const callback = jest.fn();
-      
+
       const subscriptionId = await mexcUserStream.subscribeUserTrades(callback);
 
       expect(mockWebSocket.subscribeToUserData).toHaveBeenCalledWith(expect.any(Function));
@@ -333,20 +367,22 @@ describe('MexcUserStream', () => {
         amount: 1.0,
         price: 50000,
         remaining: 0,
-        timestamp: 1640995200000
+        timestamp: 1640995200000,
       };
 
       wrappedCallback(mockTradeData);
 
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-        id: expect.stringContaining('order123'),
-        orderId: 'order123',
-        symbol: 'BTC/USDT',
-        side: 'buy',
-        amount: 1.0,
-        price: 50000,
-        timestamp: 1640995200000
-      }));
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringContaining('order123'),
+          orderId: 'order123',
+          symbol: 'BTC/USDT',
+          side: 'buy',
+          amount: 1.0,
+          price: 50000,
+          timestamp: 1640995200000,
+        })
+      );
       expect(mockLogger.info).toHaveBeenCalledWith('✅ User data stream connected successfully');
     });
 
@@ -367,7 +403,7 @@ describe('MexcUserStream', () => {
         amount: 1.0,
         price: 50000,
         remaining: 1.0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       (wrappedCallback as any)(mockNonTradeData);
@@ -381,7 +417,9 @@ describe('MexcUserStream', () => {
       const freshUserStream = new MexcUserStream(mockMakeRequestFn);
       const callback = jest.fn();
 
-      await expect(freshUserStream.subscribeUserTrades(callback)).rejects.toThrow('User data stream not connected. Call connect() first.');
+      await expect(freshUserStream.subscribeUserTrades(callback)).rejects.toThrow(
+        'User data stream not connected. Call connect() first.'
+      );
     });
 
     it('should handle subscription errors', async () => {
@@ -389,14 +427,18 @@ describe('MexcUserStream', () => {
       mockWebSocket.subscribeToUserData.mockRejectedValue(error);
       const callback = jest.fn();
 
-      await expect(mexcUserStream.subscribeUserTrades(callback)).rejects.toThrow('Failed to subscribe to user trades: Subscription failed');
+      await expect(mexcUserStream.subscribeUserTrades(callback)).rejects.toThrow(
+        'Failed to subscribe to user trades: Subscription failed'
+      );
     });
 
     it('should handle non-Error exceptions', async () => {
       mockWebSocket.subscribeToUserData.mockRejectedValue('String error');
       const callback = jest.fn();
 
-      await expect(mexcUserStream.subscribeUserTrades(callback)).rejects.toThrow('Failed to subscribe to user trades: Unknown error');
+      await expect(mexcUserStream.subscribeUserTrades(callback)).rejects.toThrow(
+        'Failed to subscribe to user trades: Unknown error'
+      );
     });
   });
 
@@ -425,7 +467,7 @@ describe('MexcUserStream', () => {
 
     it('should return false when WebSocket is undefined', async () => {
       const freshUserStream = new MexcUserStream(mockMakeRequestFn);
-      
+
       expect(freshUserStream.isUserDataStreamConnected()).toBe(false);
     });
   });
@@ -444,7 +486,7 @@ describe('MexcUserStream', () => {
         amount: 1.0,
         price: 50000,
         remaining: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       (wrappedCallback as any)(mockData);
@@ -465,7 +507,7 @@ describe('MexcUserStream', () => {
         amount: 1.0,
         price: 50000,
         remaining: 0.5,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       (wrappedCallback as any)(mockData);
@@ -486,7 +528,7 @@ describe('MexcUserStream', () => {
         filled: 1.0,
         price: 50000,
         remaining: 1.0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       (wrappedCallback as any)(mockData);
@@ -497,10 +539,10 @@ describe('MexcUserStream', () => {
     it('should not detect non-execution events', async () => {
       await setupUserStream();
       const { callback, wrappedCallback } = await setupTradeSubscription();
-      const mockData = { 
+      const mockData = {
         status: 'open',
         filled: 0,
-        amount: 1.0
+        amount: 1.0,
       };
 
       (wrappedCallback as any)(mockData);
@@ -522,7 +564,7 @@ describe('MexcUserStream', () => {
         price: '50000.00',
         fee: '0.01',
         timestamp: 1640995200000,
-        status: 'filled'
+        status: 'filled',
       };
 
       (wrappedCallback as any)(mockData);
@@ -533,9 +575,9 @@ describe('MexcUserStream', () => {
         symbol: 'BTC/USDT',
         side: 'buy',
         amount: 1.5,
-        price: 50000.00,
+        price: 50000.0,
         fee: 0.01,
-        timestamp: 1640995200000
+        timestamp: 1640995200000,
       });
     });
 
@@ -546,22 +588,24 @@ describe('MexcUserStream', () => {
         id: 'order123',
         symbol: 'BTC/USDT',
         side: 'sell',
-        status: 'filled'
+        status: 'filled',
       };
 
       const currentTime = Date.now();
       (wrappedCallback as any)(mockData);
 
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-        id: expect.stringMatching(/order123_\d+/),
-        orderId: 'order123',
-        symbol: 'BTC/USDT',
-        side: 'sell',
-        amount: 0,
-        price: 0,
-        fee: 0,
-        timestamp: expect.any(Number)
-      }));
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringMatching(/order123_\d+/),
+          orderId: 'order123',
+          symbol: 'BTC/USDT',
+          side: 'sell',
+          amount: 0,
+          price: 0,
+          fee: 0,
+          timestamp: expect.any(Number),
+        })
+      );
 
       const actualCall = callback.mock.calls[0][0];
       expect(actualCall.timestamp).toBeGreaterThanOrEqual(currentTime);
@@ -575,14 +619,16 @@ describe('MexcUserStream', () => {
         symbol: 'BTC/USDT',
         side: 'buy',
         executedQty: '2.5',
-        status: 'filled'
+        status: 'filled',
       };
 
       (wrappedCallback as any)(mockData);
 
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-        amount: 2.5
-      }));
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 2.5,
+        })
+      );
     });
   });
 
@@ -609,16 +655,18 @@ describe('MexcUserStream', () => {
         filled: 'invalid_number',
         price: 'invalid_price',
         fee: 'invalid_fee',
-        status: 'filled'
+        status: 'filled',
       };
 
       (wrappedCallback as any)(mockData);
 
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-        amount: NaN,
-        price: NaN,
-        fee: NaN
-      }));
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: NaN,
+          price: NaN,
+          fee: NaN,
+        })
+      );
     });
 
     it('should handle zero filled amounts correctly', async () => {
@@ -627,7 +675,7 @@ describe('MexcUserStream', () => {
       const mockData = {
         status: 'open',
         filled: 0,
-        amount: 1.0
+        amount: 1.0,
       };
 
       (wrappedCallback as any)(mockData);
