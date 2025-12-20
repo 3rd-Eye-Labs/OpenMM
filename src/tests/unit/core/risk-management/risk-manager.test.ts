@@ -10,7 +10,7 @@ describe('RiskManager', () => {
     riskManager = new RiskManager({
       maxPositionSize: 0.8,
       safetyReservePercentage: 0.2,
-      minConfidence: 0.6
+      minConfidence: 0.6,
     });
   });
 
@@ -26,7 +26,7 @@ describe('RiskManager', () => {
         filled: 0,
         remaining: 100,
         status: 'open',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const balance: Balance = {
@@ -34,7 +34,7 @@ describe('RiskManager', () => {
         free: 600,
         used: 200,
         total: 1000,
-        available: 600
+        available: 600,
       };
 
       const isValid = riskManager.validatePosition(order, balance);
@@ -53,7 +53,7 @@ describe('RiskManager', () => {
         filled: 0,
         remaining: 1000,
         status: 'open',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const balance: Balance = {
@@ -61,7 +61,7 @@ describe('RiskManager', () => {
         free: 200,
         used: 400,
         total: 1000,
-        available: 200
+        available: 200,
       };
 
       const isValid = riskManager.validatePosition(order, balance);
@@ -77,7 +77,7 @@ describe('RiskManager', () => {
         price: 0.42,
         confidence: 0.8,
         timestamp: new Date(),
-        sources: []
+        sources: [],
       };
 
       const isValid = riskManager.checkPriceConfidence(aggregatedPrice);
@@ -91,7 +91,7 @@ describe('RiskManager', () => {
         price: 0.42,
         confidence: 0.4,
         timestamp: new Date(),
-        sources: []
+        sources: [],
       };
 
       const isValid = riskManager.checkPriceConfidence(aggregatedPrice);
@@ -107,7 +107,7 @@ describe('RiskManager', () => {
         free: 800,
         used: 200,
         total: 1000,
-        available: 800
+        available: 800,
       };
 
       const available = riskManager.calculateAvailableBalance(balance);
@@ -128,7 +128,7 @@ describe('RiskManager', () => {
         filled: 0,
         remaining: 100,
         status: 'open',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const balance: Balance = {
@@ -136,7 +136,7 @@ describe('RiskManager', () => {
         free: 600,
         used: 200,
         total: 1000,
-        available: 600
+        available: 600,
       };
 
       const aggregatedPrice: AggregatedPrice = {
@@ -144,7 +144,7 @@ describe('RiskManager', () => {
         price: 0.42,
         confidence: 0.8,
         timestamp: new Date(),
-        sources: []
+        sources: [],
       };
 
       const result = riskManager.validateTrade(order, balance, aggregatedPrice);
@@ -164,7 +164,7 @@ describe('RiskManager', () => {
         filled: 0,
         remaining: 100,
         status: 'open',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const balance: Balance = {
@@ -172,7 +172,7 @@ describe('RiskManager', () => {
         free: 600,
         used: 200,
         total: 1000,
-        available: 600
+        available: 600,
       };
 
       const aggregatedPrice: AggregatedPrice = {
@@ -180,7 +180,7 @@ describe('RiskManager', () => {
         price: 0.42,
         confidence: 0.4,
         timestamp: new Date(),
-        sources: []
+        sources: [],
       };
 
       const result = riskManager.validateTrade(order, balance, aggregatedPrice);
@@ -200,7 +200,7 @@ describe('RiskManager', () => {
         filled: 0,
         remaining: 2000,
         status: 'open',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const balance: Balance = {
@@ -208,7 +208,7 @@ describe('RiskManager', () => {
         free: 200,
         used: 600,
         total: 1000,
-        available: 200
+        available: 200,
       };
 
       const aggregatedPrice: AggregatedPrice = {
@@ -216,7 +216,7 @@ describe('RiskManager', () => {
         price: 0.42,
         confidence: 0.8,
         timestamp: new Date(),
-        sources: []
+        sources: [],
       };
 
       const result = riskManager.validateTrade(order, balance, aggregatedPrice);

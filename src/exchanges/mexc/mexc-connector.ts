@@ -1,5 +1,14 @@
 import { BaseExchangeConnector } from '../../core/exchange/base-exchange-connector';
-import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide, Balance, WebSocketStatus } from '../../types';
+import {
+  Order,
+  OrderBook,
+  Ticker,
+  Trade,
+  OrderType,
+  OrderSide,
+  Balance,
+  WebSocketStatus,
+} from '../../types';
 import { MexcAuth } from './mexc-auth';
 import { MexcWebSocket } from './mexc-websocket';
 import { MexcUserStream } from './mexc-user-stream';
@@ -22,11 +31,11 @@ export class MexcConnector extends BaseExchangeConnector {
   constructor() {
     super('mexc', 'MEXC');
     this.baseUrl = 'https://api.mexc.com/api/v3';
-    
+
     this.setCredentials({
       apiKey: config.mexc.apiKey,
       secret: config.mexc.secret,
-      uid: config.mexc.uid
+      uid: config.mexc.uid,
     });
   }
 
@@ -38,10 +47,10 @@ export class MexcConnector extends BaseExchangeConnector {
       const credentials = this.getCredentials();
       this.auth = new MexcAuth(credentials, this.baseUrl);
       this.userStream = new MexcUserStream(
-        (endpoint: string, params: Record<string, unknown>, method: string) => 
+        (endpoint: string, params: Record<string, unknown>, method: string) =>
           this.auth!.makeRequest(endpoint, params, method as 'GET' | 'POST' | 'PUT' | 'DELETE')
       );
-      
+
       if (!this.auth.validateCredentials()) {
         this.connected = false;
         this.handleError(new Error('Invalid MEXC credentials'), 'connect');
@@ -77,13 +86,15 @@ export class MexcConnector extends BaseExchangeConnector {
       const balances = this.dataMapper.mapAccountBalances(account);
 
       if (asset) {
-        return balances[asset] || {
-          asset,
-          free: 0,
-          used: 0,
-          total: 0,
-          available: 0
-        };
+        return (
+          balances[asset] || {
+            asset,
+            free: 0,
+            used: 0,
+            total: 0,
+            available: 0,
+          }
+        );
       }
 
       return balances;
@@ -116,7 +127,7 @@ export class MexcConnector extends BaseExchangeConnector {
         price: price?.toString(),
         executedQty: '0',
         status: 'NEW',
-        time: Date.now()
+        time: Date.now(),
       });
     } catch (error: unknown) {
       this.handleError(error, 'createOrder');
@@ -128,10 +139,14 @@ export class MexcConnector extends BaseExchangeConnector {
    */
   async cancelOrder(orderId: string, symbol: string): Promise<void> {
     try {
-      await this.makeRequest('/order', { 
-        symbol: toExchangeFormat(symbol), 
-        orderId 
-      }, 'DELETE');
+      await this.makeRequest(
+        '/order',
+        {
+          symbol: toExchangeFormat(symbol),
+          orderId,
+        },
+        'DELETE'
+      );
     } catch (error: unknown) {
       this.handleError(error, 'cancelOrder');
     }
@@ -142,9 +157,13 @@ export class MexcConnector extends BaseExchangeConnector {
    */
   async cancelAllOrders(symbol: string): Promise<void> {
     try {
-      await this.makeRequest('/openOrders', { 
-        symbol: toExchangeFormat(symbol)
-      }, 'DELETE');
+      await this.makeRequest(
+        '/openOrders',
+        {
+          symbol: toExchangeFormat(symbol),
+        },
+        'DELETE'
+      );
     } catch (error: unknown) {
       this.handleError(error, 'cancelAllOrders');
     }
@@ -155,9 +174,9 @@ export class MexcConnector extends BaseExchangeConnector {
    */
   async getOrder(orderId: string, symbol: string): Promise<Order> {
     try {
-      const orders = await this.makeRequest('/allOrders', { 
+      const orders = await this.makeRequest('/allOrders', {
         symbol: toExchangeFormat(symbol),
-        orderId 
+        orderId,
       });
 
       if (!orders || orders.length === 0) {
@@ -195,10 +214,10 @@ export class MexcConnector extends BaseExchangeConnector {
   async getTicker(symbol: string): Promise<Ticker> {
     try {
       const mexcSymbol = toExchangeFormat(symbol);
-      
+
       const [priceData, statsData] = await Promise.all([
         this.makePublicRequest('/ticker/price', { symbol: mexcSymbol }),
-        this.makePublicRequest('/ticker/24hr', { symbol: mexcSymbol })
+        this.makePublicRequest('/ticker/24hr', { symbol: mexcSymbol }),
       ]);
 
       return this.dataMapper.mapTicker({ priceData, statsData });
@@ -213,10 +232,10 @@ export class MexcConnector extends BaseExchangeConnector {
   async getOrderBook(symbol: string): Promise<OrderBook> {
     try {
       const mexcSymbol = toExchangeFormat(symbol);
-      
-      const orderBook = await this.makePublicRequest('/depth', { 
+
+      const orderBook = await this.makePublicRequest('/depth', {
         symbol: mexcSymbol,
-        limit: 100 
+        limit: 100,
       });
 
       return this.dataMapper.mapOrderBook(orderBook, symbol);
@@ -231,10 +250,10 @@ export class MexcConnector extends BaseExchangeConnector {
   async getRecentTrades(symbol: string): Promise<Trade[]> {
     try {
       const mexcSymbol = toExchangeFormat(symbol);
-      
-      const trades = await this.makePublicRequest('/trades', { 
+
+      const trades = await this.makePublicRequest('/trades', {
         symbol: mexcSymbol,
-        limit: 100 
+        limit: 100,
       });
 
       return trades.map((trade: any) => this.dataMapper.mapTrade(trade, symbol));
@@ -243,9 +262,8 @@ export class MexcConnector extends BaseExchangeConnector {
     }
   }
 
-
   // WebSocket Methods Implementation
-  
+
   /**
    * Connect to MEXC WebSocket for real-time data
    */
@@ -280,7 +298,10 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeTicker(symbol: string, callback: (ticker: Ticker) => void): Promise<string> {
     try {
       if (!this.ws) {
-        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeTicker');
+        this.handleError(
+          new Error('WebSocket not connected. Call connectWebSocket() first.'),
+          'subscribeTicker'
+        );
         return '';
       }
       return await this.ws.subscribeTicker(symbol, callback);
@@ -293,10 +314,16 @@ export class MexcConnector extends BaseExchangeConnector {
   /**
    * Subscribe to real-time order book updates
    */
-  async subscribeOrderBook(symbol: string, callback: (orderbook: OrderBook) => void): Promise<string> {
+  async subscribeOrderBook(
+    symbol: string,
+    callback: (orderbook: OrderBook) => void
+  ): Promise<string> {
     try {
       if (!this.ws) {
-        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeOrderBook');
+        this.handleError(
+          new Error('WebSocket not connected. Call connectWebSocket() first.'),
+          'subscribeOrderBook'
+        );
         return '';
       }
       return await this.ws.subscribeOrderBook(symbol, callback);
@@ -312,7 +339,10 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeTrades(symbol: string, callback: (trade: Trade) => void): Promise<string> {
     try {
       if (!this.ws) {
-        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeTrades');
+        this.handleError(
+          new Error('WebSocket not connected. Call connectWebSocket() first.'),
+          'subscribeTrades'
+        );
         return '';
       }
       return await this.ws.subscribeTrades(symbol, callback);
@@ -328,7 +358,10 @@ export class MexcConnector extends BaseExchangeConnector {
   async subscribeOrders(callback: (order: Order) => void): Promise<string> {
     try {
       if (!this.ws) {
-        this.handleError(new Error('WebSocket not connected. Call connectWebSocket() first.'), 'subscribeOrders');
+        this.handleError(
+          new Error('WebSocket not connected. Call connectWebSocket() first.'),
+          'subscribeOrders'
+        );
         return '';
       }
       return await this.ws.subscribeOrders(callback);
@@ -441,9 +474,9 @@ export class MexcConnector extends BaseExchangeConnector {
    * Make authenticated request to MEXC API
    */
   private async makeRequest(
-      endpoint: string,
-      params: Record<string, unknown> = {},
-      method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'
+    endpoint: string,
+    params: Record<string, unknown> = {},
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'
   ): Promise<any> {
     if (!this.auth) {
       throw new Error('MEXC connector not authenticated');
@@ -454,7 +487,10 @@ export class MexcConnector extends BaseExchangeConnector {
   /**
    * Make public request (no authentication required)
    */
-  private async makePublicRequest(endpoint: string, params: Record<string, unknown> = {}): Promise<any> {
+  private async makePublicRequest(
+    endpoint: string,
+    params: Record<string, unknown> = {}
+  ): Promise<any> {
     if (!this.auth) {
       throw new Error('MEXC connector not authenticated');
     }

@@ -23,5 +23,5 @@ export const DEFAULT_GRID_PARAMS: GridLauncherParams = {
   priceDeviationThreshold: 0.015,
   adjustmentDebounce: 2000,
   maxPositionSize: 0.8,
-  safetyReservePercentage: 0.2
+  safetyReservePercentage: 0.2,
 };

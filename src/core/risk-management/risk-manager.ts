@@ -11,7 +11,7 @@ export class RiskManager {
     const currentExposure = this.getCurrentExposure(balance);
     const orderValue = newOrder.amount * (newOrder.price || 0);
     const totalExposure = currentExposure + orderValue;
-    
+
     return totalExposure <= balance.total * this.config.maxPositionSize;
   }
 
@@ -27,21 +27,25 @@ export class RiskManager {
     return balance.used;
   }
 
-  validateTrade(order: Order, balance: Balance, aggregatedPrice: AggregatedPrice): {
+  validateTrade(
+    order: Order,
+    balance: Balance,
+    aggregatedPrice: AggregatedPrice
+  ): {
     valid: boolean;
     reason?: string;
   } {
     if (!this.checkPriceConfidence(aggregatedPrice)) {
       return {
         valid: false,
-        reason: `Price confidence too low: ${aggregatedPrice.confidence} < ${this.config.minConfidence}`
+        reason: `Price confidence too low: ${aggregatedPrice.confidence} < ${this.config.minConfidence}`,
       };
     }
 
     if (!this.validatePosition(order, balance)) {
       return {
         valid: false,
-        reason: `Position size would exceed ${this.config.maxPositionSize * 100}% limit`
+        reason: `Position size would exceed ${this.config.maxPositionSize * 100}% limit`,
       };
     }
 

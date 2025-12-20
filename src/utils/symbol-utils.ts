@@ -5,14 +5,14 @@
 
 export function parseSymbol(symbol: string): { base: string; quote: string } {
   const symbolUpper = symbol.toUpperCase().trim();
-  
+
   if (symbolUpper.includes('/')) {
     const [base, quote] = symbolUpper.split('/');
     return { base: base.trim(), quote: quote.trim() };
   }
-  
+
   const quoteCurrencies = ['USDT', 'USDC', 'BUSD', 'USD', 'BTC', 'ETH', 'BNB'];
-  
+
   for (const quote of quoteCurrencies) {
     if (symbolUpper.endsWith(quote)) {
       const base = symbolUpper.slice(0, -quote.length);
@@ -21,7 +21,7 @@ export function parseSymbol(symbol: string): { base: string; quote: string } {
       }
     }
   }
-  
+
   throw new Error(`Unable to parse symbol: ${symbol}`);
 }
 

@@ -12,7 +12,7 @@ export abstract class BaseExchangeDataMapper<
   TRawTicker = unknown,
   TRawOrderBook = unknown,
   TRawTrade = unknown,
-  TRawAccount = unknown
+  TRawAccount = unknown,
 > {
   /**
    * Map exchange-specific order format to OpenMM Order
@@ -85,10 +85,12 @@ export abstract class BaseExchangeDataMapper<
   /**
    * Parse order book entries from exchange format
    */
-  protected parseOrderBookEntries(entries: [string, string][]): Array<{ price: number; amount: number }> {
+  protected parseOrderBookEntries(
+    entries: [string, string][]
+  ): Array<{ price: number; amount: number }> {
     return entries.map(([price, amount]) => ({
       price: this.parsePrice(price),
-      amount: this.parseAmount(amount)
+      amount: this.parseAmount(amount),
     }));
   }
 }

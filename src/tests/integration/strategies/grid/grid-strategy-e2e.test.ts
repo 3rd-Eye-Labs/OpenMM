@@ -1,5 +1,16 @@
 import { GridStrategy } from '../../../../strategies/grid/grid-strategy';
-import { Order, OrderSide, OrderType, OrderStatus, Balance, Ticker, OrderBook, Trade, WebSocketStatus, GridStrategyConfig } from '../../../../types';
+import {
+  Order,
+  OrderSide,
+  OrderType,
+  OrderStatus,
+  Balance,
+  Ticker,
+  OrderBook,
+  Trade,
+  WebSocketStatus,
+  GridStrategyConfig,
+} from '../../../../types';
 import { BaseExchangeConnector } from '../../../../core/exchange/base-exchange-connector';
 /**
  * Mock Exchange Connector for End-to-End Testing
@@ -9,9 +20,9 @@ class MockExchangeConnector extends BaseExchangeConnector {
   private orderIdCounter = 1000;
   private openOrders: Order[] = [];
   private orderUpdateCallbacks: ((order: Order) => void)[] = [];
-  private balances: Record<string, Balance> = { 
+  private balances: Record<string, Balance> = {
     USDT: { asset: 'USDT', free: 1000, used: 0, total: 1000, available: 1000 },
-    INDY: { asset: 'INDY', free: 0, used: 0, total: 0, available: 0 }
+    INDY: { asset: 'INDY', free: 0, used: 0, total: 0, available: 0 },
   };
   protected userDataStreamConnected = false;
   private testProtobufMessages: string[] = [];
@@ -59,7 +70,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
       filled: 0,
       remaining: amount,
       status: 'open' as OrderStatus,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     this.openOrders.push(order);
     const timeout = setTimeout(() => {
@@ -88,9 +99,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
     }
   }
   async getOpenOrders(symbol?: string): Promise<Order[]> {
-    return symbol ? 
-      this.openOrders.filter(o => o.symbol === symbol) : 
-      this.openOrders;
+    return symbol ? this.openOrders.filter(o => o.symbol === symbol) : this.openOrders;
   }
   async getBalance(): Promise<Record<string, Balance>> {
     return { ...this.balances };
@@ -103,36 +112,42 @@ class MockExchangeConnector extends BaseExchangeConnector {
   async getTicker(symbol: string): Promise<Ticker> {
     return {
       symbol,
-      last: 0.30,
+      last: 0.3,
       bid: 0.299,
       ask: 0.301,
       baseVolume: 100000,
       quoteVolume: 30000,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
   async getOrderBook(symbol: string): Promise<OrderBook> {
     return {
       symbol,
-      bids: [{ price: 0.299, amount: 1000 }, { price: 0.298, amount: 2000 }],
-      asks: [{ price: 0.301, amount: 1500 }, { price: 0.302, amount: 1200 }],
-      timestamp: Date.now()
+      bids: [
+        { price: 0.299, amount: 1000 },
+        { price: 0.298, amount: 2000 },
+      ],
+      asks: [
+        { price: 0.301, amount: 1500 },
+        { price: 0.302, amount: 1200 },
+      ],
+      timestamp: Date.now(),
     };
   }
   async getRecentTrades(symbol: string): Promise<Trade[]> {
-    return [{
-      id: 'trade-1',
-      symbol,
-      side: 'buy',
-      amount: 100,
-      price: 0.30,
-      timestamp: Date.now()
-    }];
+    return [
+      {
+        id: 'trade-1',
+        symbol,
+        side: 'buy',
+        amount: 100,
+        price: 0.3,
+        timestamp: Date.now(),
+      },
+    ];
   }
-  async connectWebSocket(): Promise<void> {
-  }
-  async disconnectWebSocket(): Promise<void> {
-  }
+  async connectWebSocket(): Promise<void> {}
+  async disconnectWebSocket(): Promise<void> {}
   async subscribeTicker(): Promise<string> {
     return 'ticker-sub-1';
   }
@@ -145,8 +160,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
   async subscribeOrders(): Promise<string> {
     return 'orders-sub-1';
   }
-  async unsubscribe(): Promise<void> {
-  }
+  async unsubscribe(): Promise<void> {}
   isWebSocketConnected(): boolean {
     return true;
   }
@@ -218,7 +232,7 @@ class MockExchangeConnector extends BaseExchangeConnector {
     this.testProtobufMessages.push(protobufMessage);
     const orderUpdate: Order = {
       ...order,
-      status: actualStatus
+      status: actualStatus,
     };
     this.orderUpdateCallbacks.forEach(callback => {
       callback(orderUpdate);
@@ -244,19 +258,19 @@ describe('Grid Strategy End-to-End Workflow', () => {
     gridConfig: {
       symbol: 'INDY/USDT',
       gridLevels: 5,
-      gridSpacing: 0.02, 
+      gridSpacing: 0.02,
       orderSize: 10,
       minConfidence: 0.6,
       priceDeviationThreshold: 0.015,
-      adjustmentDebounce: 1000
+      adjustmentDebounce: 1000,
     },
     parameters: {
       gridLevels: 5,
       gridSpacing: 0.02,
       orderSize: 10,
       upperPrice: 999999,
-      lowerPrice: 0
-    }
+      lowerPrice: 0,
+    },
   };
   beforeEach(async () => {
     orderUpdates = [];
@@ -305,8 +319,8 @@ describe('Grid Strategy End-to-End Workflow', () => {
       const orderToFill = initialOrders[0];
       mockExchange.simulateOrderFill(orderToFill.id);
       await new Promise(resolve => setTimeout(resolve, 2000));
-      const fillUpdate = orderUpdates.find(update =>
-        update.id === orderToFill.id && update.status === 'filled'
+      const fillUpdate = orderUpdates.find(
+        update => update.id === orderToFill.id && update.status === 'filled'
       );
       expect(fillUpdate).toBeDefined();
       expect(fillUpdate?.status).toBe('filled');
@@ -323,8 +337,8 @@ describe('Grid Strategy End-to-End Workflow', () => {
       const orderToCancel = initialOrders[0];
       await mockExchange.cancelOrder(orderToCancel.id, 'INDY/USDT');
       await new Promise(resolve => setTimeout(resolve, 1000));
-      const cancelUpdate = orderUpdates.find(update =>
-        update.id === orderToCancel.id && update.status === 'cancelled'
+      const cancelUpdate = orderUpdates.find(
+        update => update.id === orderToCancel.id && update.status === 'cancelled'
       );
       expect(cancelUpdate).toBeDefined();
       expect(cancelUpdate?.status).toBe('cancelled');
@@ -342,7 +356,7 @@ describe('Grid Strategy End-to-End Workflow', () => {
       const testSequence = [
         { action: 'fill', orderId: initialOrders[0]?.id },
         { action: 'cancel', orderId: initialOrders[1]?.id },
-        { action: 'fill', orderId: initialOrders[2]?.id }
+        { action: 'fill', orderId: initialOrders[2]?.id },
       ];
       for (const step of testSequence) {
         if (step.action === 'fill' && step.orderId) {
@@ -370,9 +384,11 @@ describe('Grid Strategy End-to-End Workflow', () => {
       await mockExchange.cancelOrder(initialOrders[1].id, 'INDY/USDT');
       await new Promise(resolve => setTimeout(resolve, 500));
       const protobufMessages = mockExchange.getTestProtobufMessages();
-      expect(protobufMessages.length).toBeGreaterThanOrEqual(3); 
+      expect(protobufMessages.length).toBeGreaterThanOrEqual(3);
       expect(orderUpdates.length).toBeGreaterThanOrEqual(3);
-      const fillMessage = protobufMessages.find(msg => msg.includes('\u0002') && !msg.includes('\u0004'));
+      const fillMessage = protobufMessages.find(
+        msg => msg.includes('\u0002') && !msg.includes('\u0004')
+      );
       const cancelMessage = protobufMessages.find(msg => msg.includes('\u0004'));
       expect(fillMessage).toBeDefined();
       expect(cancelMessage).toBeDefined();

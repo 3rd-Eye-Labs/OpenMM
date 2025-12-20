@@ -7,7 +7,7 @@ import { toExchangeFormat } from '../../utils/symbol-utils';
 
 /**
  * Bitget WebSocket Client
- * 
+ *
  * Provides real-time market data streaming for Bitget exchange.
  * Implements public market data channels including ticker, orderbook, and trades.
  */
@@ -32,7 +32,7 @@ export class BitgetWebSocket {
 
   /**
    * Connect to Bitget WebSocket
-   * 
+   *
    * @returns Promise that resolves when connection is established
    */
   async connectWebSocket(): Promise<void> {
@@ -45,8 +45,7 @@ export class BitgetWebSocket {
         this.ws.on('open', () => this.onOpen(resolve));
         this.ws.on('message', (data: Buffer) => this.onMessage(data));
         this.ws.on('close', () => this.onClose());
-        this.ws.on('error', (error) => this.onError(error, reject));
-
+        this.ws.on('error', error => this.onError(error, reject));
       } catch (error) {
         this.status = 'error';
         reject(error);
@@ -62,9 +61,9 @@ export class BitgetWebSocket {
     this.reconnectAttempts = 0;
     this.startPing();
     this.logger.info('✅ Bitget WebSocket connected successfully');
-    
+
     this.resubscribeAll();
-    
+
     resolve();
   }
 
@@ -74,9 +73,9 @@ export class BitgetWebSocket {
   private onClose(): void {
     this.status = 'disconnected';
     this.stopPing();
-    
+
     this.logger.warn('🔌 WebSocket connection closed');
-    
+
     if (this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
       this.scheduleReconnect();
     } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -90,7 +89,7 @@ export class BitgetWebSocket {
   private onError(error: Error, reject?: (error: Error) => void): void {
     this.status = 'error';
     this.logger.error('❌ Bitget WebSocket error:', { error: error.message });
-    
+
     if (this.reconnectAttempts === 0 && reject) {
       reject(error);
     }
@@ -117,9 +116,11 @@ export class BitgetWebSocket {
       if (parsedMessage.data) {
         this.processSubscriptionData(parsedMessage);
       }
-
     } catch (error) {
-      this.logger.error('❌ Error processing message:', { error, message: data.toString().substring(0, 200) });
+      this.logger.error('❌ Error processing message:', {
+        error,
+        message: data.toString().substring(0, 200),
+      });
     }
   }
 
@@ -129,7 +130,7 @@ export class BitgetWebSocket {
   private processSubscriptionData(message: any): void {
     try {
       const { arg, data } = message;
-      
+
       if (!arg || !data) {
         this.logger.warn('⚠️ Invalid message format:', { arg, hasData: !!data });
         return;
@@ -144,7 +145,6 @@ export class BitgetWebSocket {
       } else {
         this.logger.debug('🔄 Unknown channel data:', { channel: arg.channel, instId: arg.instId });
       }
-
     } catch (error) {
       this.logger.error('❌ Error processing subscription data:', { error, message });
     }
@@ -160,17 +160,16 @@ export class BitgetWebSocket {
       const tickerData = data[0];
       const tickerForMapping = {
         ...tickerData,
-        symbol: tickerData.instId || instId
+        symbol: tickerData.instId || instId,
       };
-      
+
       const ticker = this.dataMapper.mapTicker(tickerForMapping);
-      
+
       this.subscriptions.forEach((subscription, id) => {
         if (subscription.type === 'ticker' && id.includes(instId)) {
           subscription.callback(ticker);
         }
       });
-
     } catch (error) {
       this.logger.error('❌ Error handling ticker data:', { error, instId, data });
     }
@@ -185,13 +184,12 @@ export class BitgetWebSocket {
 
       const orderBookData = data[0];
       const orderBook = this.dataMapper.mapOrderBook(orderBookData, instId);
-      
+
       this.subscriptions.forEach((subscription, id) => {
         if (subscription.type === 'orderbook' && id.includes(instId)) {
           subscription.callback(orderBook);
         }
       });
-
     } catch (error) {
       this.logger.error('❌ Error handling order book data:', { error, instId, data });
     }
@@ -206,14 +204,13 @@ export class BitgetWebSocket {
 
       data.forEach(tradeData => {
         const trade = this.dataMapper.mapTrade(tradeData, instId);
-        
+
         this.subscriptions.forEach((subscription, id) => {
           if (subscription.type === 'trades' && id.includes(instId)) {
             subscription.callback(trade);
           }
         });
       });
-
     } catch (error) {
       this.logger.error('❌ Error handling trade data:', { error, instId, data });
     }
@@ -221,7 +218,7 @@ export class BitgetWebSocket {
 
   /**
    * Subscribe to ticker updates for a symbol
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when ticker updates are received
    * @returns Promise resolving to subscription ID
@@ -229,20 +226,22 @@ export class BitgetWebSocket {
   async subscribeTicker(symbol: string, callback: (ticker: Ticker) => void): Promise<string> {
     const bitgetSymbol = toExchangeFormat(symbol);
     const subscriptionId = `ticker_${bitgetSymbol}_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
       type: 'ticker',
-      symbol: bitgetSymbol
+      symbol: bitgetSymbol,
     });
 
     await this.subscribe({
       op: 'subscribe',
-      args: [{
-        instType: 'SPOT',
-        channel: 'ticker',
-        instId: bitgetSymbol
-      }]
+      args: [
+        {
+          instType: 'SPOT',
+          channel: 'ticker',
+          instId: bitgetSymbol,
+        },
+      ],
     });
 
     this.logger.info(`📈 Subscribed to ticker: ${symbol} (${bitgetSymbol})`);
@@ -251,28 +250,33 @@ export class BitgetWebSocket {
 
   /**
    * Subscribe to order book updates for a symbol
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when order book updates are received
    * @returns Promise resolving to subscription ID
    */
-  async subscribeOrderBook(symbol: string, callback: (orderbook: OrderBook) => void): Promise<string> {
+  async subscribeOrderBook(
+    symbol: string,
+    callback: (orderbook: OrderBook) => void
+  ): Promise<string> {
     const bitgetSymbol = toExchangeFormat(symbol);
     const subscriptionId = `orderbook_${bitgetSymbol}_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
       type: 'orderbook',
-      symbol: bitgetSymbol
+      symbol: bitgetSymbol,
     });
 
     await this.subscribe({
       op: 'subscribe',
-      args: [{
-        instType: 'SPOT',
-        channel: 'books15',
-        instId: bitgetSymbol
-      }]
+      args: [
+        {
+          instType: 'SPOT',
+          channel: 'books15',
+          instId: bitgetSymbol,
+        },
+      ],
     });
 
     this.logger.info(`📊 Subscribed to order book: ${symbol} (${bitgetSymbol})`);
@@ -281,7 +285,7 @@ export class BitgetWebSocket {
 
   /**
    * Subscribe to trade updates for a symbol
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param callback - Function called when new trades are received
    * @returns Promise resolving to subscription ID
@@ -289,30 +293,31 @@ export class BitgetWebSocket {
   async subscribeTrades(symbol: string, callback: (trade: Trade) => void): Promise<string> {
     const bitgetSymbol = toExchangeFormat(symbol);
     const subscriptionId = `trades_${bitgetSymbol}_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
       type: 'trades',
-      symbol: bitgetSymbol
+      symbol: bitgetSymbol,
     });
 
     await this.subscribe({
       op: 'subscribe',
-      args: [{
-        instType: 'SPOT',
-        channel: 'trade',
-        instId: bitgetSymbol
-      }]
+      args: [
+        {
+          instType: 'SPOT',
+          channel: 'trade',
+          instId: bitgetSymbol,
+        },
+      ],
     });
 
     this.logger.info(`💱 Subscribed to trades: ${symbol} (${bitgetSymbol})`);
     return subscriptionId;
   }
 
-
   /**
    * Unsubscribe from a subscription
-   * 
+   *
    * @param subscriptionId - The ID of the subscription to cancel
    */
   async unsubscribe(subscriptionId: string): Promise<void> {
@@ -339,11 +344,13 @@ export class BitgetWebSocket {
 
     await this.subscribe({
       op: 'unsubscribe',
-      args: [{
-        instType: 'SPOT',
-        channel,
-        instId: symbol
-      }]
+      args: [
+        {
+          instType: 'SPOT',
+          channel,
+          instId: symbol,
+        },
+      ],
     });
 
     this.logger.info(`❌ Unsubscribed: ${subscriptionId}`);
@@ -400,13 +407,14 @@ export class BitgetWebSocket {
 
         await this.subscribe({
           op: 'subscribe',
-          args: [{
-            instType: 'SPOT',
-            channel,
-            instId: symbol
-          }]
+          args: [
+            {
+              instType: 'SPOT',
+              channel,
+              instId: symbol,
+            },
+          ],
         });
-
       } catch (error) {
         this.logger.error('❌ Failed to resubscribe:', { id, error });
       }
@@ -440,12 +448,12 @@ export class BitgetWebSocket {
    */
   async disconnectWebSocket(): Promise<void> {
     this.autoReconnect = false;
-    
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = undefined;
     }
-    
+
     this.stopPing();
 
     if (this.ws) {

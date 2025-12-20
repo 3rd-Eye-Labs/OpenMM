@@ -22,21 +22,21 @@ describe('MexcAuth', () => {
 
     mockCredentials = {
       apiKey: 'test-api-key',
-      secret: 'test-secret-key'
+      secret: 'test-secret-key',
     };
 
     mockLogger = {
       error: jest.fn(),
       info: jest.fn(),
       warn: jest.fn(),
-      debug: jest.fn()
+      debug: jest.fn(),
     };
 
     MockedCreateLogger.mockReturnValue(mockLogger);
 
     const mockHmac = {
       update: jest.fn().mockReturnThis(),
-      digest: jest.fn().mockReturnValue('mocked-signature')
+      digest: jest.fn().mockReturnValue('mocked-signature'),
     };
     MockedCrypto.createHmac.mockReturnValue(mockHmac as any);
 
@@ -52,7 +52,7 @@ describe('MexcAuth', () => {
     it('should initialize with custom base URL', () => {
       const customBaseUrl = 'https://api.custom.mexc.com/api/v3';
       const customAuth = new MexcAuth(mockCredentials, customBaseUrl);
-      
+
       expect(customAuth).toBeInstanceOf(MexcAuth);
     });
   });
@@ -63,14 +63,14 @@ describe('MexcAuth', () => {
 
       expect(headers).toEqual({
         'x-mexc-apikey': 'test-api-key',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       });
     });
 
     it('should include API key from credentials', () => {
       const customCredentials: ExchangeCredentials = {
         apiKey: 'custom-api-key',
-        secret: 'custom-secret'
+        secret: 'custom-secret',
       };
       const customAuth = new MexcAuth(customCredentials);
 
@@ -83,7 +83,7 @@ describe('MexcAuth', () => {
   describe('generateSignature()', () => {
     it('should generate HMAC-SHA256 signature', () => {
       const params = 'symbol=BTCUSDT&side=BUY&type=LIMIT';
-      
+
       const signature = (auth as any).generateSignature(params);
 
       expect(MockedCrypto.createHmac).toHaveBeenCalledWith('sha256', 'test-secret-key');
@@ -93,10 +93,10 @@ describe('MexcAuth', () => {
     it('should use correct secret key for signature generation', () => {
       const customCredentials: ExchangeCredentials = {
         apiKey: 'api-key',
-        secret: 'different-secret'
+        secret: 'different-secret',
       };
       const customAuth = new MexcAuth(customCredentials);
-      
+
       (customAuth as any).generateSignature('test-params');
 
       expect(MockedCrypto.createHmac).toHaveBeenCalledWith('sha256', 'different-secret');
@@ -110,7 +110,7 @@ describe('MexcAuth', () => {
 
     it('should handle special characters in parameters', () => {
       const params = 'symbol=BTC/USDT&data=special%20chars!@#$%^&*()';
-      
+
       const signature = (auth as any).generateSignature(params);
 
       expect(signature).toBe('mocked-signature');
@@ -129,7 +129,7 @@ describe('MexcAuth', () => {
     it('should make authenticated GET request successfully', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({ success: true })
+        json: jest.fn().mockResolvedValue({ success: true }),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -143,9 +143,9 @@ describe('MexcAuth', () => {
             'Content-Type': 'application/json',
             'x-mexc-apikey': 'test-api-key',
             'X-MEXC-TIMESTAMP': '1640995200000',
-            'X-MEXC-SIGNATURE': 'mocked-signature'
+            'X-MEXC-SIGNATURE': 'mocked-signature',
           },
-          body: undefined
+          body: undefined,
         }
       );
       expect(result).toEqual({ success: true });
@@ -154,33 +154,30 @@ describe('MexcAuth', () => {
     it('should make authenticated POST request successfully', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({ orderId: '12345' })
+        json: jest.fn().mockResolvedValue({ orderId: '12345' }),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
       const params = { symbol: 'BTCUSDT', side: 'BUY', type: 'LIMIT' };
       const result = await auth.makeRequest('/order', params, 'POST');
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.mexc.com/api/v3/order',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-mexc-apikey': 'test-api-key',
-            'X-MEXC-TIMESTAMP': '1640995200000',
-            'X-MEXC-SIGNATURE': 'mocked-signature'
-          },
-          body: 'symbol=BTCUSDT&side=BUY&type=LIMIT&timestamp=1640995200000&signature=mocked-signature'
-        }
-      );
+      expect(mockFetch).toHaveBeenCalledWith('https://api.mexc.com/api/v3/order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mexc-apikey': 'test-api-key',
+          'X-MEXC-TIMESTAMP': '1640995200000',
+          'X-MEXC-SIGNATURE': 'mocked-signature',
+        },
+        body: 'symbol=BTCUSDT&side=BUY&type=LIMIT&timestamp=1640995200000&signature=mocked-signature',
+      });
       expect(result).toEqual({ orderId: '12345' });
     });
 
     it('should handle PUT and DELETE requests', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({ success: true })
+        json: jest.fn().mockResolvedValue({ success: true }),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -200,27 +197,29 @@ describe('MexcAuth', () => {
     it('should add timestamp to parameters', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
       const params = { symbol: 'BTCUSDT' };
       await auth.makeRequest('/test', params);
 
-      const expectedUrl = 'https://api.mexc.com/api/v3/test?symbol=BTCUSDT&timestamp=1640995200000&signature=mocked-signature';
+      const expectedUrl =
+        'https://api.mexc.com/api/v3/test?symbol=BTCUSDT&timestamp=1640995200000&signature=mocked-signature';
       expect(mockFetch).toHaveBeenCalledWith(expectedUrl, expect.any(Object));
     });
 
     it('should handle empty parameters', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
       await auth.makeRequest('/test');
 
-      const expectedUrl = 'https://api.mexc.com/api/v3/test?timestamp=1640995200000&signature=mocked-signature';
+      const expectedUrl =
+        'https://api.mexc.com/api/v3/test?timestamp=1640995200000&signature=mocked-signature';
       expect(mockFetch).toHaveBeenCalledWith(expectedUrl, expect.any(Object));
     });
 
@@ -228,7 +227,7 @@ describe('MexcAuth', () => {
       const mockResponse = {
         ok: false,
         status: 400,
-        text: jest.fn().mockResolvedValue('Bad Request')
+        text: jest.fn().mockResolvedValue('Bad Request'),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -236,44 +235,48 @@ describe('MexcAuth', () => {
       expect(mockLogger.error).toHaveBeenCalledWith('MEXC API request failed', {
         endpoint: '/account',
         status: 400,
-        error: 'HTTP 400: Bad Request'
+        error: 'HTTP 400: Bad Request',
       });
     });
 
     it('should handle MEXC API error responses with JSON format', async () => {
       const errorResponse = {
         code: 1001,
-        msg: 'Invalid symbol'
+        msg: 'Invalid symbol',
       };
       const mockResponse = {
         ok: false,
         status: 400,
-        text: jest.fn().mockResolvedValue(JSON.stringify(errorResponse))
+        text: jest.fn().mockResolvedValue(JSON.stringify(errorResponse)),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      await expect(auth.makeRequest('/account')).rejects.toThrow('MEXC API Error: Invalid symbol (Code: 1001)');
+      await expect(auth.makeRequest('/account')).rejects.toThrow(
+        'MEXC API Error: Invalid symbol (Code: 1001)'
+      );
     });
 
     it('should handle MEXC API error responses without error code', async () => {
       const errorResponse = {
-        msg: 'Rate limit exceeded'
+        msg: 'Rate limit exceeded',
       };
       const mockResponse = {
         ok: false,
         status: 429,
-        text: jest.fn().mockResolvedValue(JSON.stringify(errorResponse))
+        text: jest.fn().mockResolvedValue(JSON.stringify(errorResponse)),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
-      await expect(auth.makeRequest('/account')).rejects.toThrow('MEXC API Error: Rate limit exceeded (Code: Unknown)');
+      await expect(auth.makeRequest('/account')).rejects.toThrow(
+        'MEXC API Error: Rate limit exceeded (Code: Unknown)'
+      );
     });
 
     it('should handle malformed JSON error responses', async () => {
       const mockResponse = {
         ok: false,
         status: 500,
-        text: jest.fn().mockResolvedValue('Invalid JSON {')
+        text: jest.fn().mockResolvedValue('Invalid JSON {'),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -289,7 +292,7 @@ describe('MexcAuth', () => {
     it('should create proper query string from parameters', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -297,7 +300,7 @@ describe('MexcAuth', () => {
         symbol: 'BTCUSDT',
         side: 'BUY',
         quantity: 1.5,
-        price: 50000
+        price: 50000,
       };
       await auth.makeRequest('/order', params);
 
@@ -312,28 +315,25 @@ describe('MexcAuth', () => {
     it('should make public GET request successfully', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue([{ symbol: 'BTCUSDT', price: '50000' }])
+        json: jest.fn().mockResolvedValue([{ symbol: 'BTCUSDT', price: '50000' }]),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
       const result = await auth.makePublicRequest('/ticker/price');
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.mexc.com/api/v3/ticker/price',
-        {
-          headers: {
-            'x-mexc-apikey': 'test-api-key',
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      expect(mockFetch).toHaveBeenCalledWith('https://api.mexc.com/api/v3/ticker/price', {
+        headers: {
+          'x-mexc-apikey': 'test-api-key',
+          'Content-Type': 'application/json',
+        },
+      });
       expect(result).toEqual([{ symbol: 'BTCUSDT', price: '50000' }]);
     });
 
     it('should include query parameters in URL', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -349,7 +349,7 @@ describe('MexcAuth', () => {
     it('should handle empty parameters', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -365,7 +365,7 @@ describe('MexcAuth', () => {
       const mockResponse = {
         ok: false,
         status: 404,
-        text: jest.fn().mockResolvedValue('Not Found')
+        text: jest.fn().mockResolvedValue('Not Found'),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -375,27 +375,24 @@ describe('MexcAuth', () => {
     it('should use public headers', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
       await auth.makePublicRequest('/test');
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        {
-          headers: {
-            'x-mexc-apikey': 'test-api-key',
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.any(String), {
+        headers: {
+          'x-mexc-apikey': 'test-api-key',
+          'Content-Type': 'application/json',
+        },
+      });
     });
 
     it('should handle special characters in parameters', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -413,7 +410,7 @@ describe('MexcAuth', () => {
     it('should return true for valid credentials', () => {
       const validCredentials: ExchangeCredentials = {
         apiKey: 'valid-api-key',
-        secret: 'valid-secret-key'
+        secret: 'valid-secret-key',
       };
       const validAuth = new MexcAuth(validCredentials);
 
@@ -423,7 +420,7 @@ describe('MexcAuth', () => {
     it('should return false for missing API key', () => {
       const invalidCredentials: ExchangeCredentials = {
         apiKey: '',
-        secret: 'valid-secret-key'
+        secret: 'valid-secret-key',
       };
       const invalidAuth = new MexcAuth(invalidCredentials);
 
@@ -433,7 +430,7 @@ describe('MexcAuth', () => {
     it('should return false for missing secret', () => {
       const invalidCredentials: ExchangeCredentials = {
         apiKey: 'valid-api-key',
-        secret: ''
+        secret: '',
       };
       const invalidAuth = new MexcAuth(invalidCredentials);
 
@@ -443,7 +440,7 @@ describe('MexcAuth', () => {
     it('should return false for both missing', () => {
       const invalidCredentials: ExchangeCredentials = {
         apiKey: '',
-        secret: ''
+        secret: '',
       };
       const invalidAuth = new MexcAuth(invalidCredentials);
 
@@ -453,7 +450,7 @@ describe('MexcAuth', () => {
     it('should return false for undefined credentials', () => {
       const invalidCredentials: ExchangeCredentials = {
         apiKey: undefined as any,
-        secret: undefined as any
+        secret: undefined as any,
       };
       const invalidAuth = new MexcAuth(invalidCredentials);
 
@@ -463,7 +460,7 @@ describe('MexcAuth', () => {
     it('should return false for null credentials', () => {
       const invalidCredentials: ExchangeCredentials = {
         apiKey: null as any,
-        secret: null as any
+        secret: null as any,
       };
       const invalidAuth = new MexcAuth(invalidCredentials);
 
@@ -475,7 +472,7 @@ describe('MexcAuth', () => {
     it('should handle response parsing errors', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockRejectedValue(new Error('Invalid JSON'))
+        json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -491,22 +488,22 @@ describe('MexcAuth', () => {
     it('should handle large parameter values', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
       const largeParams = {
         data: 'x'.repeat(10000),
-        number: Number.MAX_SAFE_INTEGER
+        number: Number.MAX_SAFE_INTEGER,
       };
-      
+
       await expect(auth.makeRequest('/test', largeParams)).resolves.not.toThrow();
     });
 
     it('should handle non-string parameter values', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -515,16 +512,16 @@ describe('MexcAuth', () => {
         quantity: 1.5,
         active: true,
         tags: null,
-        nested: { key: 'value' }
+        nested: { key: 'value' },
       };
-      
+
       await expect(auth.makeRequest('/test', mixedParams)).resolves.not.toThrow();
     });
 
     it('should maintain timestamp precision', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
@@ -539,14 +536,14 @@ describe('MexcAuth', () => {
     it('should handle concurrent requests', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({ success: true })
+        json: jest.fn().mockResolvedValue({ success: true }),
       };
       mockFetch.mockResolvedValue(mockResponse as any);
 
       const promises = [
         auth.makeRequest('/account'),
         auth.makeRequest('/orders'),
-        auth.makeRequest('/trades')
+        auth.makeRequest('/trades'),
       ];
 
       const results = await Promise.all(promises);
@@ -570,14 +567,14 @@ describe('MexcAuth', () => {
         'Content-Type': 'application/json',
         'x-mexc-apikey': 'test-api-key',
         'X-MEXC-TIMESTAMP': '1640995200000',
-        'X-MEXC-SIGNATURE': 'test-signature'
+        'X-MEXC-SIGNATURE': 'test-signature',
       });
     });
 
     it('should access handleResponse method with successful response', async () => {
       const mockResponse = {
         ok: true,
-        json: jest.fn().mockResolvedValue({ data: 'success' })
+        json: jest.fn().mockResolvedValue({ data: 'success' }),
       };
 
       const result = await (auth as any).handleResponse(mockResponse, '/test');

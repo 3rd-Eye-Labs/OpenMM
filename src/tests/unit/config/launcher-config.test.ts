@@ -1,7 +1,7 @@
 import {
   LauncherConfig,
   GridLauncherParams,
-  DEFAULT_GRID_PARAMS
+  DEFAULT_GRID_PARAMS,
 } from '../../../config/launcher-config';
 
 describe('Launcher Config', () => {
@@ -10,7 +10,7 @@ describe('Launcher Config', () => {
       const config: LauncherConfig = {
         exchange: 'mexc',
         strategy: 'grid',
-        symbol: 'BTCUSDT'
+        symbol: 'BTCUSDT',
       };
       expect(config.exchange).toBe('mexc');
       expect(config.strategy).toBe('grid');
@@ -28,7 +28,7 @@ describe('Launcher Config', () => {
         priceDeviationThreshold: 0.02,
         adjustmentDebounce: 3000,
         maxPositionSize: 0.9,
-        safetyReservePercentage: 0.1
+        safetyReservePercentage: 0.1,
       };
       expect(params.gridLevels).toBe(10);
       expect(params.gridSpacing).toBe(0.01);
@@ -43,7 +43,7 @@ describe('Launcher Config', () => {
     it('should allow partial parameters', () => {
       const params: GridLauncherParams = {
         gridLevels: 7,
-        orderSize: 75
+        orderSize: 75,
       };
       expect(params.gridLevels).toBe(7);
       expect(params.orderSize).toBe(75);
@@ -55,7 +55,6 @@ describe('Launcher Config', () => {
       const params: GridLauncherParams = {};
       expect(Object.keys(params)).toHaveLength(0);
     });
-
   });
   describe('DEFAULT_GRID_PARAMS', () => {
     it('should contain all expected default values', () => {
@@ -67,7 +66,7 @@ describe('Launcher Config', () => {
         priceDeviationThreshold: 0.015,
         adjustmentDebounce: 2000,
         maxPositionSize: 0.8,
-        safetyReservePercentage: 0.2
+        safetyReservePercentage: 0.2,
       });
     });
 
@@ -112,11 +111,11 @@ describe('Launcher Config', () => {
     it('should allow merging with custom params', () => {
       const customParams: GridLauncherParams = {
         gridLevels: 10,
-        orderSize: 100
+        orderSize: 100,
       };
       const mergedParams: GridLauncherParams = {
         ...DEFAULT_GRID_PARAMS,
-        ...customParams
+        ...customParams,
       };
       expect(mergedParams.gridLevels).toBe(10);
       expect(mergedParams.orderSize).toBe(100);

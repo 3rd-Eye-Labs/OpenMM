@@ -12,10 +12,7 @@ import { tradeCommand } from './commands/trade';
 
 const program = new Command();
 
-program
-  .name('openmm')
-  .description('OpenMM - Universal Market Making Toolkit')
-  .version('1.0.0');
+program.name('openmm').description('OpenMM - Universal Market Making Toolkit').version('1.0.0');
 
 program.addCommand(balanceCommand);
 program.addCommand(ordersCommand);
@@ -25,7 +22,7 @@ program.addCommand(tradesCommand);
 program.addCommand(poolDiscoveryCommand);
 program.addCommand(tradeCommand);
 
-program.exitOverride((err) => {
+program.exitOverride(err => {
   if (err.code === 'commander.unknownCommand') {
     console.error(chalk.red(`Unknown command: ${err.message}`));
     console.log(chalk.yellow('Run "openmm --help" to see available commands'));

@@ -8,7 +8,7 @@ import {
   MexcRawPrice,
   MexcRaw24hrStats,
   MexcRawOrderBook,
-  MexcRawTrade
+  MexcRawTrade,
 } from '../../types';
 
 /**
@@ -23,7 +23,6 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
   MexcRawTrade,
   MexcRawAccount
 > {
-
   /**
    * Map MEXC order to OpenMM Order format
    */
@@ -31,7 +30,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
     if (!mexcOrder) {
       throw new Error('MEXC order data is required');
     }
-    
+
     const status = MexcDataMapper.mapToOrderStatus(mexcOrder.status || 'NEW');
     const filled = this.parseAmount(mexcOrder.executedQty);
     const amount = this.parseAmount(mexcOrder.origQty || mexcOrder.quantity);
@@ -46,7 +45,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
       filled,
       remaining: amount - filled,
       status,
-      timestamp: this.parseTimestamp(mexcOrder.time || mexcOrder.updateTime)
+      timestamp: this.parseTimestamp(mexcOrder.time || mexcOrder.updateTime),
     };
   }
 
@@ -56,14 +55,14 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
    */
   static mapToOrderStatus(status: string): OrderStatus {
     const upperStatus = status.toUpperCase();
-    
+
     if (upperStatus.includes('NEW')) return 'open';
     if (upperStatus.includes('PARTIAL')) return 'open';
     if (upperStatus.includes('FILL')) return 'filled';
     if (upperStatus.includes('CANCEL')) return 'cancelled';
     if (upperStatus.includes('REJECT') || upperStatus.includes('EXPIRED')) return 'rejected';
     if (upperStatus.includes('EXEC')) return 'filled';
-    
+
     return 'open';
   }
 
@@ -79,7 +78,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
       free,
       used,
       total: free + used,
-      available: free
+      available: free,
     };
   }
 
@@ -88,14 +87,14 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
    */
   mapTicker(tickerData: { priceData: MexcRawPrice; statsData?: MexcRaw24hrStats }): Ticker {
     const { priceData, statsData } = tickerData;
-    
+
     return {
       symbol: this.normalizeSymbol(priceData.symbol),
       last: this.parsePrice(priceData.price),
       bid: this.parsePrice(statsData?.bidPrice || priceData.price),
       ask: this.parsePrice(statsData?.askPrice || priceData.price),
       baseVolume: this.parseAmount(statsData?.volume || '0'),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -107,7 +106,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
       symbol: this.normalizeSymbol(symbol),
       bids: this.parseOrderBookEntries(mexcOrderBook.bids),
       asks: this.parseOrderBookEntries(mexcOrderBook.asks),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -121,7 +120,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
       side: mexcTrade.isBuyerMaker === false ? 'buy' : 'sell',
       amount: this.parseAmount(mexcTrade.qty || mexcTrade.quantity),
       price: this.parsePrice(mexcTrade.price),
-      timestamp: this.parseTimestamp(mexcTrade.time)
+      timestamp: this.parseTimestamp(mexcTrade.time),
     };
   }
 
@@ -133,7 +132,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
 
     mexcAccount.balances.forEach((mexcBalance: MexcRawBalance) => {
       const balance = this.mapBalance(mexcBalance);
-      
+
       if (balance.total > 0) {
         balances[balance.asset] = balance;
       }
@@ -146,7 +145,7 @@ export class MexcDataMapper extends BaseExchangeDataMapper<
    * Override symbol normalization for MEXC format
    */
   protected normalizeSymbol(symbol: string): string {
-    // MEXC uses format like 'BTCUSDT' 
+    // MEXC uses format like 'BTCUSDT'
     return symbol.toUpperCase();
   }
 }

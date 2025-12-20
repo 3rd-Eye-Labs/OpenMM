@@ -6,7 +6,7 @@ import {
   MexcRawPrice,
   MexcRaw24hrStats,
   MexcRawOrderBook,
-  MexcRawTrade
+  MexcRawTrade,
 } from '../../../../types';
 
 describe('MexcDataMapper', () => {
@@ -27,7 +27,7 @@ describe('MexcDataMapper', () => {
         price: '50000.00',
         status: 'PARTIALLY_FILLED',
         time: 1640995200000,
-        updateTime: 1640995300000
+        updateTime: 1640995300000,
       };
       const result = mapper.mapOrder(mexcOrder);
       expect(result).toEqual({
@@ -40,7 +40,7 @@ describe('MexcDataMapper', () => {
         filled: 0.5,
         remaining: 1.0,
         status: 'open',
-        timestamp: 1640995200000
+        timestamp: 1640995200000,
       });
     });
 
@@ -49,7 +49,7 @@ describe('MexcDataMapper', () => {
         symbol: 'ETHUSDT',
         status: 'NEW',
         type: 'LIMIT',
-        side: 'BUY'
+        side: 'BUY',
       };
       const result = mapper.mapOrder(mexcOrder);
       expect(result.symbol).toBe('ETHUSDT');
@@ -68,7 +68,7 @@ describe('MexcDataMapper', () => {
         side: 'BUY',
         quantity: '100',
         executedQty: '25',
-        status: 'FILLED'
+        status: 'FILLED',
       };
       const result = mapper.mapOrder(mexcOrder);
       expect(result.id).toBe('67890');
@@ -86,7 +86,7 @@ describe('MexcDataMapper', () => {
         side: 'SELL',
         origQty: '2.0',
         executedQty: '2.0',
-        status: 'FILLED'
+        status: 'FILLED',
       };
       const result = mapper.mapOrder(mexcOrder);
       expect(result.type).toBe('market');
@@ -107,7 +107,7 @@ describe('MexcDataMapper', () => {
         status: 'PARTIALLY_FILLED',
         origQty: '1.23456789',
         executedQty: '0.12345678',
-        price: '3000.12345678'
+        price: '3000.12345678',
       };
       const result = mapper.mapOrder(mexcOrder);
       expect(result.amount).toBe(1.23456789);
@@ -164,7 +164,7 @@ describe('MexcDataMapper', () => {
       const mexcBalance: MexcRawBalance = {
         asset: 'BTC',
         free: '1.5',
-        locked: '0.5'
+        locked: '0.5',
       };
       const result = mapper.mapBalance(mexcBalance);
       expect(result).toEqual({
@@ -172,7 +172,7 @@ describe('MexcDataMapper', () => {
         free: 1.5,
         used: 0.5,
         total: 2.0,
-        available: 1.5
+        available: 1.5,
       });
     });
 
@@ -180,7 +180,7 @@ describe('MexcDataMapper', () => {
       const mexcBalance: MexcRawBalance = {
         asset: 'ETH',
         free: '0',
-        locked: '0'
+        locked: '0',
       };
       const result = mapper.mapBalance(mexcBalance);
       expect(result.free).toBe(0);
@@ -193,7 +193,7 @@ describe('MexcDataMapper', () => {
       const mexcBalance: MexcRawBalance = {
         asset: 'ADA',
         free: undefined as any,
-        locked: undefined as any
+        locked: undefined as any,
       };
       const result = mapper.mapBalance(mexcBalance);
       expect(result.free).toBe(0);
@@ -207,8 +207,8 @@ describe('MexcDataMapper', () => {
       const tickerData = {
         priceData: {
           symbol: 'BTCUSDT',
-          price: '50000.00'
-        } as MexcRawPrice
+          price: '50000.00',
+        } as MexcRawPrice,
       };
       const result = mapper.mapTicker(tickerData);
       expect(result.symbol).toBe('BTCUSDT');
@@ -222,13 +222,13 @@ describe('MexcDataMapper', () => {
       const tickerData = {
         priceData: {
           symbol: 'ETHUSDT',
-          price: '3000.00'
+          price: '3000.00',
         } as MexcRawPrice,
         statsData: {
           bidPrice: '2999.50',
           askPrice: '3000.50',
-          volume: '1000.123'
-        } as MexcRaw24hrStats
+          volume: '1000.123',
+        } as MexcRaw24hrStats,
       };
       const result = mapper.mapTicker(tickerData);
       expect(result.symbol).toBe('ETHUSDT');
@@ -245,22 +245,22 @@ describe('MexcDataMapper', () => {
       const mexcOrderBook: MexcRawOrderBook = {
         bids: [
           ['49900.00', '1.5'],
-          ['49800.00', '2.0']
+          ['49800.00', '2.0'],
         ],
         asks: [
           ['50100.00', '1.0'],
-          ['50200.00', '0.5']
-        ]
+          ['50200.00', '0.5'],
+        ],
       };
       const result = mapper.mapOrderBook(mexcOrderBook, 'BTCUSDT');
       expect(result.symbol).toBe('BTCUSDT');
       expect(result.bids).toEqual([
         { price: 49900, amount: 1.5 },
-        { price: 49800, amount: 2.0 }
+        { price: 49800, amount: 2.0 },
       ]);
       expect(result.asks).toEqual([
         { price: 50100, amount: 1.0 },
-        { price: 50200, amount: 0.5 }
+        { price: 50200, amount: 0.5 },
       ]);
       expect(result.timestamp).toBeGreaterThan(0);
     });
@@ -268,7 +268,7 @@ describe('MexcDataMapper', () => {
     it('should handle empty order book', () => {
       const mexcOrderBook: MexcRawOrderBook = {
         bids: [],
-        asks: []
+        asks: [],
       };
       const result = mapper.mapOrderBook(mexcOrderBook, 'ETHUSDT');
       expect(result.symbol).toBe('ETHUSDT');
@@ -284,7 +284,7 @@ describe('MexcDataMapper', () => {
         qty: '1.5',
         price: '50000.00',
         time: 1640995200000,
-        isBuyerMaker: false
+        isBuyerMaker: false,
       };
       const result = mapper.mapTrade(mexcTrade, 'BTCUSDT');
       expect(result).toEqual({
@@ -293,7 +293,7 @@ describe('MexcDataMapper', () => {
         side: 'buy',
         amount: 1.5,
         price: 50000,
-        timestamp: 1640995200000
+        timestamp: 1640995200000,
       });
     });
 
@@ -303,7 +303,7 @@ describe('MexcDataMapper', () => {
         quantity: '2.0',
         price: '3000.00',
         time: 1640995300000,
-        isBuyerMaker: true
+        isBuyerMaker: true,
       };
       const result = mapper.mapTrade(mexcTrade, 'ETHUSDT');
       expect(result.id).toBe('67890');
@@ -317,7 +317,7 @@ describe('MexcDataMapper', () => {
         qty: '1.0',
         price: '1000.00',
         time: 1640995400000,
-        isBuyerMaker: false
+        isBuyerMaker: false,
       };
       const result = mapper.mapTrade(mexcTrade, 'ADAUSDT');
       expect(result.id).toBe('');
@@ -329,13 +329,13 @@ describe('MexcDataMapper', () => {
         isBuyerMaker: false,
         qty: '1.0',
         price: '1000.00',
-        time: 1640995400000
+        time: 1640995400000,
       };
       const sellTrade: MexcRawTrade = {
         isBuyerMaker: true,
         qty: '1.0',
         price: '1000.00',
-        time: 1640995400000
+        time: 1640995400000,
       };
       expect(mapper.mapTrade(buyTrade, 'TEST').side).toBe('buy');
       expect(mapper.mapTrade(sellTrade, 'TEST').side).toBe('sell');
@@ -349,8 +349,8 @@ describe('MexcDataMapper', () => {
           { asset: 'BTC', free: '1.5', locked: '0.5' },
           { asset: 'ETH', free: '0', locked: '0' },
           { asset: 'ADA', free: '100', locked: '0' },
-          { asset: 'DOT', free: '0', locked: '10' }
-        ]
+          { asset: 'DOT', free: '0', locked: '10' },
+        ],
       };
       const result = mapper.mapAccountBalances(mexcAccount);
       expect(Object.keys(result)).toHaveLength(3);
@@ -359,28 +359,28 @@ describe('MexcDataMapper', () => {
         free: 1.5,
         used: 0.5,
         total: 2.0,
-        available: 1.5
+        available: 1.5,
       });
       expect(result['ADA']).toEqual({
         asset: 'ADA',
         free: 100,
         used: 0,
         total: 100,
-        available: 100
+        available: 100,
       });
       expect(result['DOT']).toEqual({
         asset: 'DOT',
         free: 0,
         used: 10,
         total: 10,
-        available: 0
+        available: 0,
       });
       expect(result['ETH']).toBeUndefined();
     });
 
     it('should handle empty account balances', () => {
       const mexcAccount: MexcRawAccount = {
-        balances: []
+        balances: [],
       };
       const result = mapper.mapAccountBalances(mexcAccount);
       expect(Object.keys(result)).toHaveLength(0);
@@ -390,8 +390,8 @@ describe('MexcDataMapper', () => {
       const mexcAccount: MexcRawAccount = {
         balances: [
           { asset: 'BTC', free: '0', locked: '0' },
-          { asset: 'ETH', free: '0', locked: '0' }
-        ]
+          { asset: 'ETH', free: '0', locked: '0' },
+        ],
       };
       const result = mapper.mapAccountBalances(mexcAccount);
       expect(Object.keys(result)).toHaveLength(0);
@@ -424,19 +424,19 @@ describe('MexcDataMapper', () => {
         executedQty: '0',
         price: '50000.00',
         status: 'NEW',
-        time: 1640995200000
+        time: 1640995200000,
       };
       const partialOrder: MexcRawOrder = {
         ...newOrder,
         executedQty: '0.5',
         status: 'PARTIALLY_FILLED',
-        updateTime: 1640995300000
+        updateTime: 1640995300000,
       };
       const filledOrder: MexcRawOrder = {
         ...newOrder,
         executedQty: '1.0',
         status: 'FILLED',
-        updateTime: 1640995400000
+        updateTime: 1640995400000,
       };
       const newResult = mapper.mapOrder(newOrder);
       const partialResult = mapper.mapOrder(partialOrder);
@@ -456,11 +456,11 @@ describe('MexcDataMapper', () => {
       const malformedOrder: MexcRawOrder = {
         symbol: '',
         type: 'LIMIT',
-        side: 'BUY', 
+        side: 'BUY',
         status: 'NEW',
         origQty: 'invalid',
         executedQty: null as any,
-        price: undefined as any
+        price: undefined as any,
       };
       const result = mapper.mapOrder(malformedOrder);
       expect(result.symbol).toBe('');

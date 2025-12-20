@@ -3,11 +3,11 @@ jest.mock('../../../utils', () => ({
     error: jest.fn(),
     warn: jest.fn(),
     info: jest.fn(),
-    debug: jest.fn()
-  }))
+    debug: jest.fn(),
+  })),
 }));
 jest.mock('dotenv', () => ({
-  config: jest.fn()
+  config: jest.fn(),
 }));
 
 describe('Environment Configuration', () => {
@@ -86,7 +86,7 @@ describe('Environment Configuration', () => {
       const { config } = await import('../../../config/environment');
       expect(config.gateio).toEqual({
         apiKey: 'gateio-key',
-        secret: 'gateio-secret'
+        secret: 'gateio-secret',
       });
     });
 
@@ -100,7 +100,7 @@ describe('Environment Configuration', () => {
       expect(config.bitget).toEqual({
         apiKey: 'bitget-key',
         secret: 'bitget-secret',
-        passphrase: 'bitget-passphrase'
+        passphrase: 'bitget-passphrase',
       });
     });
 
@@ -112,7 +112,7 @@ describe('Environment Configuration', () => {
       const { config } = await import('../../../config/environment');
       expect(config.kraken).toEqual({
         apiKey: 'kraken-key',
-        secret: 'kraken-secret'
+        secret: 'kraken-secret',
       });
     });
 

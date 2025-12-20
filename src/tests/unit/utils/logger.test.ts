@@ -1,4 +1,4 @@
-import { Logger, createLogger, logger, LogLevel, LogContext } from '../../../utils/logger';
+import { Logger, createLogger, logger, LogLevel, LogContext } from '../../../utils';
 import * as winston from 'winston';
 jest.mock('winston', () => ({
   createLogger: jest.fn(() => ({
@@ -11,7 +11,7 @@ jest.mock('winston', () => ({
     combine: jest.fn((...formats) => formats),
     timestamp: jest.fn(() => 'timestamp-format'),
     colorize: jest.fn(() => 'colorize-format'),
-    printf: jest.fn((callback) => callback),
+    printf: jest.fn(callback => callback),
     json: jest.fn(() => 'json-format'),
   },
   transports: {
@@ -39,10 +39,8 @@ describe('Logger', () => {
       expect(winston.createLogger).toHaveBeenCalledWith({
         level: 'debug',
         defaultMeta: { service: 'test-service' },
-        transports: expect.arrayContaining([
-          expect.any(winston.transports.Console)
-        ]),
-        exitOnError: false
+        transports: expect.arrayContaining([expect.any(winston.transports.Console)]),
+        exitOnError: false,
       });
     });
     it('should create logger with console and file transports when logFile provided', () => {
@@ -53,16 +51,16 @@ describe('Logger', () => {
         transports: expect.arrayContaining([
           expect.any(winston.transports.Console),
           expect.any(winston.transports.File),
-          expect.any(winston.transports.File) 
+          expect.any(winston.transports.File),
         ]),
-        exitOnError: false
+        exitOnError: false,
       });
     });
     it('should create file transport with correct filename', () => {
       new Logger('test-service', 'test.log');
       expect(winston.transports.File).toHaveBeenCalledWith({
         filename: 'test.log',
-        format: expect.any(Array)
+        format: expect.any(Array),
       });
     });
     it('should create error file transport with correct filename', () => {
@@ -70,7 +68,7 @@ describe('Logger', () => {
       expect(winston.transports.File).toHaveBeenCalledWith({
         filename: 'test-error.log',
         level: 'error',
-        format: expect.any(Array)
+        format: expect.any(Array),
       });
     });
     it('should handle complex filename for error file', () => {
@@ -78,7 +76,7 @@ describe('Logger', () => {
       expect(winston.transports.File).toHaveBeenCalledWith({
         filename: 'path/to/application-error.log',
         level: 'error',
-        format: expect.any(Array)
+        format: expect.any(Array),
       });
     });
     describe('logging methods', () => {
@@ -127,8 +125,8 @@ describe('Logger', () => {
             error: {
               name: 'Error',
               message: 'Test error',
-              stack: 'Error stack trace'
-            }
+              stack: 'Error stack trace',
+            },
           });
         });
         it('should log error objects without context', () => {
@@ -138,8 +136,8 @@ describe('Logger', () => {
             error: {
               name: 'Error',
               message: 'Test error without context',
-              stack: error.stack
-            }
+              stack: error.stack,
+            },
           });
         });
         it('should handle custom error types', () => {
@@ -155,8 +153,8 @@ describe('Logger', () => {
             error: {
               name: 'CustomError',
               message: 'Custom error message',
-              stack: error.stack
-            }
+              stack: error.stack,
+            },
           });
         });
       });
@@ -204,17 +202,17 @@ describe('Logger', () => {
         sessionId: 'abc123',
         component: 'auth',
         nested: {
-          prop: 'value'
+          prop: 'value',
         },
         array: [1, 2, 3],
         boolean: true,
         nullable: null,
-        undefined: undefined
+        undefined: undefined,
       };
       expect(typeof context).toBe('object');
       expect(context.userId).toBe(123);
       expect(context.sessionId).toBe('abc123');
-      expect(context.nested.prop).toBe('value');
+      expect((context.nested as { prop: string }).prop).toBe('value');
     });
     it('should allow empty context', () => {
       const context: LogContext = {};
