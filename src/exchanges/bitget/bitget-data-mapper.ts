@@ -1,12 +1,21 @@
 import { BaseExchangeDataMapper } from '../../core/exchange/base-exchange-data-mapper';
-import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide, OrderStatus, Balance } from '../../types';
-import { 
-  BitgetRawOrder, 
-  BitgetRawBalance, 
-  BitgetRawAccount, 
-  BitgetRawTicker, 
-  BitgetRawOrderBook, 
-  BitgetRawTrade 
+import {
+  Order,
+  OrderBook,
+  Ticker,
+  Trade,
+  OrderType,
+  OrderSide,
+  OrderStatus,
+  Balance,
+} from '../../types';
+import {
+  BitgetRawOrder,
+  BitgetRawBalance,
+  BitgetRawAccount,
+  BitgetRawTicker,
+  BitgetRawOrderBook,
+  BitgetRawTrade,
 } from '../../types';
 import { toStandardFormat } from '../../utils/symbol-utils';
 
@@ -22,7 +31,6 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
   BitgetRawTrade,
   BitgetRawAccount
 > {
-
   /**
    * Map Bitget order to OpenMM Order format
    * Handles both REST API and WebSocket order formats
@@ -31,22 +39,20 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
     if (!bitgetOrder) {
       throw new Error('Bitget order data is required');
     }
-    
+
     // Handle symbol field (REST uses 'symbol', WebSocket uses 'instId')
     const symbol = bitgetOrder.symbol || bitgetOrder.instId;
     if (!symbol) {
       throw new Error('Order missing symbol/instId field');
     }
-    
+
     const status = BitgetDataMapper.mapToOrderStatus(
       bitgetOrder.state || bitgetOrder.status || 'NEW'
     );
-    
+
     // Handle filled quantity (REST uses 'filledQty', WebSocket uses 'accBaseVolume')
-    const filled = this.parseAmount(
-      bitgetOrder.filledQty || bitgetOrder.accBaseVolume || '0'
-    );
-    
+    const filled = this.parseAmount(bitgetOrder.filledQty || bitgetOrder.accBaseVolume || '0');
+
     const amount = this.parseAmount(bitgetOrder.size);
 
     return {
@@ -59,7 +65,7 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
       filled,
       remaining: amount - filled,
       status,
-      timestamp: this.parseTimestamp(bitgetOrder.cTime || bitgetOrder.uTime)
+      timestamp: this.parseTimestamp(bitgetOrder.cTime || bitgetOrder.uTime),
     };
   }
 
@@ -68,7 +74,7 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
    */
   static mapToOrderStatus(status: string): OrderStatus {
     const upperStatus = status.toUpperCase();
-    
+
     switch (upperStatus) {
       case 'NEW':
       case 'LIVE':
@@ -113,7 +119,7 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
       free,
       used,
       total: free + used,
-      available: free
+      available: free,
     };
   }
 
@@ -128,7 +134,7 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
       ask: this.parsePrice(bitgetTicker.askPr),
       baseVolume: this.parseAmount(bitgetTicker.baseVolume),
       quoteVolume: this.parseAmount(bitgetTicker.quoteVolume || bitgetTicker.usdtVolume || '0'),
-      timestamp: this.parseTimestamp(bitgetTicker.ts)
+      timestamp: this.parseTimestamp(bitgetTicker.ts),
     };
   }
 
@@ -140,7 +146,7 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
       symbol: toStandardFormat(symbol),
       bids: this.parseOrderBookEntries(bitgetOrderBook.bids),
       asks: this.parseOrderBookEntries(bitgetOrderBook.asks),
-      timestamp: this.parseTimestamp(bitgetOrderBook.ts)
+      timestamp: this.parseTimestamp(bitgetOrderBook.ts),
     };
   }
 
@@ -154,7 +160,7 @@ export class BitgetDataMapper extends BaseExchangeDataMapper<
       side: bitgetTrade.side.toLowerCase() as OrderSide,
       amount: this.parseAmount(bitgetTrade.size),
       price: this.parsePrice(bitgetTrade.price),
-      timestamp: this.parseTimestamp(bitgetTrade.ts)
+      timestamp: this.parseTimestamp(bitgetTrade.ts),
     };
   }
 

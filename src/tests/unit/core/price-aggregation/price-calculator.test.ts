@@ -17,9 +17,9 @@ describe('PriceCalculator', () => {
           state: {
             tvl: 1000000,
             reserveA: 1000000,
-            reserveB: 500000
+            reserveB: 500000,
           },
-          isActive: true
+          isActive: true,
         },
         {
           dex: 'SundaeSwap',
@@ -27,10 +27,10 @@ describe('PriceCalculator', () => {
           state: {
             tvl: 500000,
             reserveA: 500000,
-            reserveB: 300000
+            reserveB: 300000,
           },
-          isActive: true
-        }
+          isActive: true,
+        },
       ];
 
       const result = calculator.calculateLiquidityWeightedPrice(pools);
@@ -50,10 +50,10 @@ describe('PriceCalculator', () => {
           state: {
             tvl: 2000000,
             reserveA: 1000000,
-            reserveB: 750000  // price = 0.75 ADA/token
+            reserveB: 750000, // price = 0.75 ADA/token
           },
-          isActive: true
-        }
+          isActive: true,
+        },
       ];
 
       const result = calculator.calculateLiquidityWeightedPrice(pools);
@@ -72,9 +72,9 @@ describe('PriceCalculator', () => {
           state: {
             tvl: 1000000,
             reserveA: 1000000,
-            reserveB: 500000
+            reserveB: 500000,
           },
-          isActive: true
+          isActive: true,
         },
         {
           dex: 'InvalidPool',
@@ -82,14 +82,14 @@ describe('PriceCalculator', () => {
           state: {
             tvl: 0,
             reserveA: 0,
-            reserveB: 0
+            reserveB: 0,
           },
-          isActive: true
+          isActive: true,
         },
         {
           dex: 'AnotherInvalid',
-          identifier: 'pool3'
-        }
+          identifier: 'pool3',
+        },
       ];
 
       const result = calculator.calculateLiquidityWeightedPrice(pools);
@@ -112,9 +112,9 @@ describe('PriceCalculator', () => {
           state: {
             tvl: 0,
             reserveA: 0,
-            reserveB: 0
-          }
-        }
+            reserveB: 0,
+          },
+        },
       ];
 
       expect(() => {
@@ -130,9 +130,9 @@ describe('PriceCalculator', () => {
           state: {
             tvl: 0,
             reserveA: 1000000,
-            reserveB: 500000
-          }
-        }
+            reserveB: 500000,
+          },
+        },
       ];
 
       expect(() => {
@@ -145,21 +145,21 @@ describe('PriceCalculator', () => {
         {
           dex: 'MinswapV2',
           identifier: 'pool1',
-          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 }
-        }
+          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 },
+        },
       ];
 
       const multiplePools: LiquidityPool[] = [
         {
           dex: 'MinswapV2',
           identifier: 'pool1',
-          state: { tvl: 600000, reserveA: 1000000, reserveB: 500000 }
+          state: { tvl: 600000, reserveA: 1000000, reserveB: 500000 },
         },
         {
           dex: 'SundaeSwap',
           identifier: 'pool2',
-          state: { tvl: 400000, reserveA: 500000, reserveB: 250000 }
-        }
+          state: { tvl: 400000, reserveA: 500000, reserveB: 250000 },
+        },
       ];
 
       const singleResult = calculator.calculateLiquidityWeightedPrice(singlePool);
@@ -173,26 +173,26 @@ describe('PriceCalculator', () => {
         {
           dex: 'DominantPool',
           identifier: 'pool1',
-          state: { tvl: 9000000, reserveA: 1000000, reserveB: 500000 }
+          state: { tvl: 9000000, reserveA: 1000000, reserveB: 500000 },
         },
         {
           dex: 'SmallPool',
           identifier: 'pool2',
-          state: { tvl: 1000000, reserveA: 500000, reserveB: 250000 }
-        }
+          state: { tvl: 1000000, reserveA: 500000, reserveB: 250000 },
+        },
       ];
 
       const balanced: LiquidityPool[] = [
         {
           dex: 'Pool1',
           identifier: 'pool1',
-          state: { tvl: 5000000, reserveA: 1000000, reserveB: 500000 }
+          state: { tvl: 5000000, reserveA: 1000000, reserveB: 500000 },
         },
         {
           dex: 'Pool2',
           identifier: 'pool2',
-          state: { tvl: 5000000, reserveA: 500000, reserveB: 250000 }
-        }
+          state: { tvl: 5000000, reserveA: 500000, reserveB: 250000 },
+        },
       ];
 
       const concentratedResult = calculator.calculateLiquidityWeightedPrice(highConcentration);
@@ -210,35 +210,35 @@ describe('PriceCalculator', () => {
         state: {
           tvl: 1000000,
           reserveA: 1000000,
-          reserveB: 500000
-        }
+          reserveB: 500000,
+        },
       };
 
       const invalidPools: LiquidityPool[] = [
         {
           dex: 'NoState',
-          identifier: 'pool1'
+          identifier: 'pool1',
         },
         {
           dex: 'ZeroTVL',
           identifier: 'pool2',
-          state: { tvl: 0, reserveA: 1000000, reserveB: 500000 }
+          state: { tvl: 0, reserveA: 1000000, reserveB: 500000 },
         },
         {
           dex: 'ZeroReserveA',
           identifier: 'pool3',
-          state: { tvl: 1000000, reserveA: 0, reserveB: 500000 }
+          state: { tvl: 1000000, reserveA: 0, reserveB: 500000 },
         },
         {
           dex: 'ZeroReserveB',
           identifier: 'pool4',
-          state: { tvl: 1000000, reserveA: 1000000, reserveB: 0 }
+          state: { tvl: 1000000, reserveA: 1000000, reserveB: 0 },
         },
         {
           dex: 'InfiniteReserve',
           identifier: 'pool5',
-          state: { tvl: 1000000, reserveA: Infinity, reserveB: 500000 }
-        }
+          state: { tvl: 1000000, reserveA: Infinity, reserveB: 500000 },
+        },
       ];
 
       expect(() => {

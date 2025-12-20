@@ -1,5 +1,19 @@
 import WebSocket from 'ws';
-import { Order, OrderBook, Ticker, Trade, WebSocketStatus, DecodedMexcMessage, DecodedMexcOrder, DecodedMexcTickerData, DecodedMexcTradesData, MexcSubscription, SubscriptionInfo, OrderType, OrderSide } from '../../types';
+import {
+  Order,
+  OrderBook,
+  Ticker,
+  Trade,
+  WebSocketStatus,
+  DecodedMexcMessage,
+  DecodedMexcOrder,
+  DecodedMexcTickerData,
+  DecodedMexcTradesData,
+  MexcSubscription,
+  SubscriptionInfo,
+  OrderType,
+  OrderSide,
+} from '../../types';
 import { MexcProtobufDecoder } from './mexc-protobuf-decoder';
 import { MexcUtils } from './mexc-utils';
 import { MexcDataMapper } from './mexc-data-mapper';
@@ -9,7 +23,7 @@ import { toStandardFormat, toExchangeFormat } from '../../utils/symbol-utils';
 /**
  * MEXC WebSocket
  *
- * Provides real-time market data streaming and user order updates 
+ * Provides real-time market data streaming and user order updates
  */
 
 export class MexcWebSocket {
@@ -46,8 +60,7 @@ export class MexcWebSocket {
 
         this.ws.on('close', () => this.onClose());
 
-        this.ws.on('error', (error) => this.onError(error, reject));
-
+        this.ws.on('error', error => this.onError(error, reject));
       } catch (error) {
         this.status = 'error';
         reject(error);
@@ -70,7 +83,7 @@ export class MexcWebSocket {
    */
   private onClose(): void {
     this.status = 'disconnected';
-    
+
     if (this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
       this.scheduleReconnect();
     } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -84,7 +97,7 @@ export class MexcWebSocket {
   private onError(error: Error, reject?: (error: Error) => void): void {
     this.status = 'error';
     this.logger.error('❌ WebSocket error:', { error: error.message });
-    
+
     if (this.reconnectAttempts === 0 && reject) {
       reject(error);
     }
@@ -96,13 +109,13 @@ export class MexcWebSocket {
   private onMessage(data: Buffer): void {
     try {
       const message = data.toString();
-      
+
       if (message.includes('spot@')) {
         if (message.includes('spot@private.orders.v3.api.pb')) {
           this.handleProtobufUserDataMessage(message);
         } else {
           const decoded: DecodedMexcMessage = MexcProtobufDecoder.decode(message);
-          
+
           if (decoded.error) {
             this.logger.warn('Protobuf decode error:', { error: decoded.error });
             return;
@@ -113,7 +126,6 @@ export class MexcWebSocket {
       } else {
         this.handleUserDataMessage(message);
       }
-
     } catch (error) {
       this.logger.error('Message handling error:', { error });
     }
@@ -125,16 +137,16 @@ export class MexcWebSocket {
   private handleProtobufUserDataMessage(message: string): void {
     try {
       const decoded: DecodedMexcMessage = MexcProtobufDecoder.decode(message);
-      
+
       if (decoded.error) {
         this.logger.warn('Protobuf user data decode error:', { error: decoded.error });
         return;
       }
-      
+
       if (decoded.type === 'order' && decoded.decoded) {
         const order = MexcUtils.transformOrder(decoded.decoded as DecodedMexcOrder);
-        
-        this.subscriptions.forEach((subscription) => {
+
+        this.subscriptions.forEach(subscription => {
           if (subscription.type === 'user_data') {
             subscription.callback(order);
           }
@@ -143,7 +155,10 @@ export class MexcWebSocket {
         this.logger.info('📨 Non-order protobuf user data:', { type: decoded.type });
       }
     } catch (error) {
-      this.logger.error('Error handling protobuf user data message:', { error, message: message.substring(0, 100) });
+      this.logger.error('Error handling protobuf user data message:', {
+        error,
+        message: message.substring(0, 100),
+      });
     }
   }
 
@@ -153,12 +168,16 @@ export class MexcWebSocket {
   private handleUserDataMessage(message: string): void {
     try {
       const data = JSON.parse(message);
-      
+
       if (data.e === 'executionReport') {
         const order = this.transformUserOrderUpdate(data);
-        this.logger.info('📦 Order update received:', { orderId: order.id, status: order.status, symbol: order.symbol });
-        
-        this.subscriptions.forEach((subscription) => {
+        this.logger.info('📦 Order update received:', {
+          orderId: order.id,
+          status: order.status,
+          symbol: order.symbol,
+        });
+
+        this.subscriptions.forEach(subscription => {
           if (subscription.type === 'user_data') {
             subscription.callback(order);
           }
@@ -167,7 +186,10 @@ export class MexcWebSocket {
         this.logger.info('📨 Non-execution report message:', { eventType: data.e, data });
       }
     } catch (error) {
-      this.logger.error('Error handling user data message:', { error, message: message.substring(0, 100) });
+      this.logger.error('Error handling user data message:', {
+        error,
+        message: message.substring(0, 100),
+      });
     }
   }
 
@@ -192,7 +214,7 @@ export class MexcWebSocket {
       filled: parseFloat(data.z || data.executedQty || '0'),
       remaining: parseFloat(data.q || '0') - parseFloat(data.z || '0'),
       status: MexcDataMapper.mapToOrderStatus(data.X || data.orderStatus || 'NEW'),
-      timestamp: parseInt(data.T || data.transactTime) || Date.now()
+      timestamp: parseInt(data.T || data.transactTime) || Date.now(),
     };
   }
 
@@ -224,8 +246,8 @@ export class MexcWebSocket {
 
     try {
       const order = MexcUtils.transformOrder(decoded.decoded);
-      
-      this.subscriptions.forEach((subscription) => {
+
+      this.subscriptions.forEach(subscription => {
         if (subscription.type === 'user_data') {
           subscription.callback(order);
         }
@@ -243,7 +265,7 @@ export class MexcWebSocket {
 
     try {
       const tickerData = decoded.decoded as DecodedMexcTickerData;
-      
+
       const ticker: Ticker = {
         symbol: (() => {
           try {
@@ -255,11 +277,12 @@ export class MexcWebSocket {
         last: parseFloat(tickerData.askprice || '0'),
         bid: parseFloat(tickerData.bidprice || '0'),
         ask: parseFloat(tickerData.askprice || '0'),
-        baseVolume: parseFloat(tickerData.bidquantity || '0') + parseFloat(tickerData.askquantity || '0'),
-        timestamp: Date.now()
+        baseVolume:
+          parseFloat(tickerData.bidquantity || '0') + parseFloat(tickerData.askquantity || '0'),
+        timestamp: Date.now(),
       };
 
-      this.subscriptions.forEach((subscription) => {
+      this.subscriptions.forEach(subscription => {
         if (subscription.type === 'ticker') {
           subscription.callback(ticker);
         }
@@ -277,10 +300,9 @@ export class MexcWebSocket {
 
     try {
       const tradesData = decoded.decoded as DecodedMexcTradesData;
-      
-      if (tradesData.dealsList && Array.isArray(tradesData.dealsList)) {
-        tradesData.dealsList.forEach((deal) => {
 
+      if (tradesData.dealsList && Array.isArray(tradesData.dealsList)) {
+        tradesData.dealsList.forEach(deal => {
           const trade: Trade = {
             id: `${Date.now()}_${Math.random()}`,
             symbol: (() => {
@@ -293,10 +315,10 @@ export class MexcWebSocket {
             side: deal.tradetype === 1 ? 'buy' : 'sell',
             amount: parseFloat(deal.quantity || '0'),
             price: parseFloat(deal.price || '0'),
-            timestamp: parseInt(deal.time) || Date.now()
+            timestamp: parseInt(deal.time) || Date.now(),
           };
 
-          this.subscriptions.forEach((subscription) => {
+          this.subscriptions.forEach(subscription => {
             if (subscription.type === 'trades') {
               subscription.callback(trade);
             }
@@ -316,7 +338,7 @@ export class MexcWebSocket {
 
     try {
       const tickerData = decoded.decoded as DecodedMexcTickerData;
-      
+
       const orderBook: OrderBook = {
         symbol: (() => {
           try {
@@ -325,18 +347,22 @@ export class MexcWebSocket {
             return decoded.symbol;
           }
         })(),
-        bids: [{
-          price: parseFloat(tickerData.bidprice || '0'),
-          amount: parseFloat(tickerData.bidquantity || '0')
-        }],
-        asks: [{
-          price: parseFloat(tickerData.askprice || '0'),
-          amount: parseFloat(tickerData.askquantity || '0')
-        }],
-        timestamp: Date.now()
+        bids: [
+          {
+            price: parseFloat(tickerData.bidprice || '0'),
+            amount: parseFloat(tickerData.bidquantity || '0'),
+          },
+        ],
+        asks: [
+          {
+            price: parseFloat(tickerData.askprice || '0'),
+            amount: parseFloat(tickerData.askquantity || '0'),
+          },
+        ],
+        timestamp: Date.now(),
       };
 
-      this.subscriptions.forEach((subscription) => {
+      this.subscriptions.forEach(subscription => {
         if (subscription.type === 'orderbook') {
           subscription.callback(orderBook);
         }
@@ -352,7 +378,7 @@ export class MexcWebSocket {
   async disconnectWebSocket(): Promise<void> {
     this.autoReconnect = false;
     this.clearReconnectTimer();
-    
+
     if (this.ws) {
       this.ws.close();
       this.ws = undefined;
@@ -363,7 +389,7 @@ export class MexcWebSocket {
   }
 
   /**
-   * Subscribe to ticker updates 
+   * Subscribe to ticker updates
    */
   async subscribeTicker(symbol: string, callback: (ticker: Ticker) => void): Promise<string> {
     const mexcSymbol = toExchangeFormat(symbol);
@@ -372,17 +398,17 @@ export class MexcWebSocket {
 
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'ticker'
+      type: 'ticker',
     });
 
     await this.subscribe([channel]);
     this.logger.info(`Subscribed to ticker: ${symbol} (${channel})`);
-    
+
     return subscriptionId;
   }
 
   /**
-   * Subscribe to trades updates 
+   * Subscribe to trades updates
    */
   async subscribeTrades(symbol: string, callback: (trade: Trade) => void): Promise<string> {
     const mexcSymbol = toExchangeFormat(symbol);
@@ -391,31 +417,34 @@ export class MexcWebSocket {
 
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'trades'
+      type: 'trades',
     });
 
     await this.subscribe([channel]);
     this.logger.info(`Subscribed to trades: ${symbol} (${channel})`);
-    
+
     return subscriptionId;
   }
 
   /**
-   * Subscribe to order book updates 
+   * Subscribe to order book updates
    */
-  async subscribeOrderBook(symbol: string, callback: (orderbook: OrderBook) => void): Promise<string> {
+  async subscribeOrderBook(
+    symbol: string,
+    callback: (orderbook: OrderBook) => void
+  ): Promise<string> {
     const mexcSymbol = toExchangeFormat(symbol);
     const channel = `spot@public.bookTicker.batch.v3.api.pb@${mexcSymbol}`;
     const subscriptionId = `orderbook_${mexcSymbol}_${Date.now()}`;
 
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'orderbook'
+      type: 'orderbook',
     });
 
     await this.subscribe([channel]);
     this.logger.info(`Subscribed to orderbook: ${symbol} (${channel})`);
-    
+
     return subscriptionId;
   }
 
@@ -424,38 +453,36 @@ export class MexcWebSocket {
    */
   async subscribeOrders(callback: (order: Order) => void): Promise<string> {
     const subscriptionId = `orders_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'user_data'
+      type: 'user_data',
     });
 
     this.logger.info('Subscribed to user orders (orders stream)');
-    
+
     return subscriptionId;
   }
 
   /**
-   * Subscribe to user data 
+   * Subscribe to user data
    */
   async subscribeToUserData(callback: (order: Order) => void): Promise<string> {
     const subscriptionId = `user_data_${Date.now()}`;
-    
+
     this.subscriptions.set(subscriptionId, {
       callback,
-      type: 'user_data'
+      type: 'user_data',
     });
 
     try {
-      const userDataChannels = [
-        'spot@private.orders.v3.api.pb'
-      ];
-      
+      const userDataChannels = ['spot@private.orders.v3.api.pb'];
+
       await this.subscribe(userDataChannels);
     } catch (error) {
       this.logger.error('Failed to subscribe to protobuf user data channels:', { error });
     }
-    
+
     return subscriptionId;
   }
 
@@ -469,7 +496,7 @@ export class MexcWebSocket {
 
     const message: MexcSubscription = {
       method: 'SUBSCRIPTION',
-      params: channels
+      params: channels,
     };
 
     this.ws?.send(JSON.stringify(message));
@@ -529,7 +556,9 @@ export class MexcWebSocket {
       await this.connectWebSocket();
       this.logger.info('✅ Reconnected successfully');
     } catch (error) {
-      this.logger.error('❌ Reconnection failed:', { error: error instanceof Error ? error.message : 'Unknown error' });
+      this.logger.error('❌ Reconnection failed:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
 
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         this.scheduleReconnect();

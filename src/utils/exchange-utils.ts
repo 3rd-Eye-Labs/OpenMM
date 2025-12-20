@@ -3,15 +3,14 @@ import { toExchangeFormat } from './symbol-utils';
 
 /**
  * Shared utility functions for exchange operations
- * 
+ *
  * This module provides common functionality that can be used across different exchange connectors
  * to avoid code duplication and maintain consistency.
  */
 export class ExchangeUtils {
-
   /**
    * Create standardized order parameters for exchange APIs
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param type - Order type ('market' or 'limit')
    * @param side - Order side ('buy' or 'sell')
@@ -36,7 +35,9 @@ export class ExchangeUtils {
     }) => T
   ): T {
     if (!symbol || !type || !side || !amount) {
-      throw new Error('Missing required order parameters: symbol, type, side, and amount are required');
+      throw new Error(
+        'Missing required order parameters: symbol, type, side, and amount are required'
+      );
     }
 
     if (amount <= 0) {
@@ -51,13 +52,13 @@ export class ExchangeUtils {
 
     try {
       const exchangeSymbol = toExchangeFormat(symbol);
-      
+
       const baseParams = {
         symbol: exchangeSymbol,
         type,
         side,
         amount,
-        price
+        price,
       };
 
       if (exchangeFormat) {
@@ -68,7 +69,7 @@ export class ExchangeUtils {
         symbol: exchangeSymbol,
         side: side.toLowerCase(),
         type: type.toLowerCase(),
-        amount: amount
+        amount: amount,
       };
 
       if (type === 'limit' && price !== undefined) {
@@ -83,7 +84,7 @@ export class ExchangeUtils {
 
   /**
    * Create Bitget-specific order parameters
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param type - Order type ('market' or 'limit')
    * @param side - Order side ('buy' or 'sell')
@@ -98,35 +99,28 @@ export class ExchangeUtils {
     amount: number,
     price?: number
   ): Record<string, string> {
-    return this.createOrderParams(
-      symbol,
-      type,
-      side,
-      amount,
-      price,
-      (params) => {
-        this.validateBitgetMinimumOrder(params.amount, params.price, params.symbol);
+    return this.createOrderParams(symbol, type, side, amount, price, params => {
+      this.validateBitgetMinimumOrder(params.amount, params.price, params.symbol);
 
-        const bitgetParams: Record<string, string> = {
-          symbol: params.symbol,
-          side: params.side.toLowerCase(),
-          orderType: params.type.toLowerCase(),
-          force: 'gtc',
-          size: this.formatBitgetQuantity(params.amount, params.symbol)
-        };
+      const bitgetParams: Record<string, string> = {
+        symbol: params.symbol,
+        side: params.side.toLowerCase(),
+        orderType: params.type.toLowerCase(),
+        force: 'gtc',
+        size: this.formatBitgetQuantity(params.amount, params.symbol),
+      };
 
-        if (params.type === 'limit' && params.price !== undefined) {
-          bitgetParams.price = this.formatBitgetPrice(params.price, params.symbol);
-        }
-
-        return bitgetParams;
+      if (params.type === 'limit' && params.price !== undefined) {
+        bitgetParams.price = this.formatBitgetPrice(params.price, params.symbol);
       }
-    );
+
+      return bitgetParams;
+    });
   }
 
   /**
    * Format quantity for Bitget with appropriate precision
-   * 
+   *
    * @param quantity - The quantity to format
    * @param symbol - Trading pair symbol for precision rules
    * @returns Formatted quantity string with correct decimal places
@@ -138,7 +132,7 @@ export class ExchangeUtils {
 
   /**
    * Format price for Bitget with appropriate precision
-   * 
+   *
    * @param price - The price to format
    * @param symbol - Trading pair symbol for precision rules
    * @returns Formatted price string with correct decimal places
@@ -151,7 +145,7 @@ export class ExchangeUtils {
   /**
    * Get quantity precision for Bitget symbol
    * Based on common Bitget precision rules
-   * 
+   *
    * @param symbol - Trading pair symbol
    * @returns Number of decimal places for quantity
    */
@@ -170,7 +164,7 @@ export class ExchangeUtils {
   /**
    * Get price precision for Bitget symbol
    * Based on common Bitget precision rules
-   * 
+   *
    * @param symbol - Trading pair symbol
    * @returns Number of decimal places for price
    */
@@ -195,7 +189,7 @@ export class ExchangeUtils {
   /**
    * Validate minimum order value for Bitget
    * Bitget requires minimum order value of 1 USDT
-   * 
+   *
    * @param amount - Order quantity
    * @param price - Order price
    * @param symbol - Trading pair symbol
@@ -205,16 +199,18 @@ export class ExchangeUtils {
     if (price && symbol && (symbol.includes('USDT') || symbol.includes('USDC'))) {
       const orderValue = amount * price;
       const minimumValue = 1.0;
-      
+
       if (orderValue < minimumValue) {
-        throw new Error(`Bitget order value ${orderValue.toFixed(6)} USDT is below minimum ${minimumValue} USDT. Increase order size or price.`);
+        throw new Error(
+          `Bitget order value ${orderValue.toFixed(6)} USDT is below minimum ${minimumValue} USDT. Increase order size or price.`
+        );
       }
     }
   }
 
   /**
    * Create MEXC-specific order parameters
-   * 
+   *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
    * @param type - Order type ('market' or 'limit')
    * @param side - Order side ('buy' or 'sell')
@@ -229,33 +225,26 @@ export class ExchangeUtils {
     amount: number,
     price?: number
   ): Record<string, any> {
-    return this.createOrderParams(
-      symbol,
-      type,
-      side,
-      amount,
-      price,
-      (params) => {
-        const mexcParams: Record<string, any> = {
-          symbol: params.symbol,
-          side: params.side.toUpperCase(),
-          type: params.type.toUpperCase(),
-          quantity: params.amount.toString()
-        };
+    return this.createOrderParams(symbol, type, side, amount, price, params => {
+      const mexcParams: Record<string, any> = {
+        symbol: params.symbol,
+        side: params.side.toUpperCase(),
+        type: params.type.toUpperCase(),
+        quantity: params.amount.toString(),
+      };
 
-        if (params.type === 'limit' && params.price !== undefined) {
-          mexcParams.price = params.price.toString();
-          mexcParams.timeInForce = 'GTC';
-        }
-
-        return mexcParams;
+      if (params.type === 'limit' && params.price !== undefined) {
+        mexcParams.price = params.price.toString();
+        mexcParams.timeInForce = 'GTC';
       }
-    );
+
+      return mexcParams;
+    });
   }
 
   /**
    * Get minimum order value for exchange
-   * 
+   *
    * @param exchange - Exchange name ('bitget', 'mexc', etc.)
    * @param symbol - Trading pair symbol
    * @returns Minimum order value in quote currency
@@ -279,7 +268,7 @@ export class ExchangeUtils {
 
   /**
    * Validate symbol format for exchange compatibility
-   * 
+   *
    * @param symbol - Symbol to validate
    * @returns True if symbol is valid, false otherwise
    */

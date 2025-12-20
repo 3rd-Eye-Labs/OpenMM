@@ -12,12 +12,12 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
 
       expect(result.type).toBe('order');
       expect(result.decoded).toBeDefined();
-      
+
       if (result.decoded && result.type === 'order') {
         const orderData = result.decoded as DecodedMexcOrder;
         expect(orderData.orderId).toBe('C02__627797424542343168060');
         expect(orderData.symbol).toBe('INDY/USDT');
-        
+
         expect(orderData.status).toBe('cancelled');
       }
     });
@@ -31,7 +31,7 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013i\n\u001aC02
 
       expect(result.type).toBe('order');
       expect(result.decoded).toBeDefined();
-      
+
       if (result.decoded && result.type === 'order') {
         const orderData = result.decoded as DecodedMexcOrder;
         expect(orderData.orderId).toBe('C02__627797402794909698060');
@@ -49,7 +49,7 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013Z\n\u001aC02
 
       expect(result.type).toBe('order');
       expect(result.decoded).toBeDefined();
-      
+
       if (result.decoded && result.type === 'order') {
         const orderData = result.decoded as DecodedMexcOrder;
         expect(orderData.orderId).toBe('C02__627797420385812480060');
@@ -67,12 +67,12 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
 
       expect(result.type).toBe('order');
       expect(result.decoded).toBeDefined();
-      
+
       if (result.decoded && result.type === 'order') {
         const orderData = result.decoded as DecodedMexcOrder;
         expect(orderData.orderId).toBe('C02__627797334813646848060');
         expect(orderData.symbol).toBe('INDY/USDT');
-        
+
         expect(orderData.status).toBe('cancelled');
       }
     });
@@ -82,23 +82,23 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
         {
           name: 'cancelled order with field 8 status 4',
           message: 'spot@private.orders.v3.api.pbINDYUSDT\x08\x04C02__123456789',
-          expectedStatus: 'cancelled'
+          expectedStatus: 'cancelled',
         },
         {
           name: 'filled order with field 8 status 2',
           message: 'spot@private.orders.v3.api.pbINDYUSDT\x08\x02C02__123456789',
-          expectedStatus: 'filled'
+          expectedStatus: 'filled',
         },
         {
           name: 'new order with field 8 status 1',
           message: 'spot@private.orders.v3.api.pbINDYUSDT\x08\x01C02__123456789',
-          expectedStatus: 'new'
-        }
+          expectedStatus: 'new',
+        },
       ];
 
-      testCases.forEach(({  message, expectedStatus }) => {
+      testCases.forEach(({ message, expectedStatus }) => {
         const result = MexcProtobufDecoder.decode(message);
-        
+
         expect(result.type).toBe('order');
         if (result.decoded && result.type === 'order') {
           const orderData = result.decoded as DecodedMexcOrder;
@@ -118,7 +118,7 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
           expectedSymbol: 'INDY/USDT',
           expectedStatus: 'cancelled',
           hasFilledIndicator: true,
-          hasCancelledIndicator: true
+          hasCancelledIndicator: true,
         },
         {
           description: 'Message correctly detected as filled',
@@ -127,13 +127,13 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
           expectedSymbol: 'INDY/USDT',
           expectedStatus: 'filled',
           hasFilledIndicator: true,
-          hasCancelledIndicator: false
-        }
+          hasCancelledIndicator: false,
+        },
       ];
 
       problematicMessages.forEach(({ raw, expectedOrderId, expectedSymbol, expectedStatus }) => {
         const result = MexcProtobufDecoder.decode(raw);
-        
+
         let orderData: DecodedMexcOrder | null = null;
         if (result.decoded && result.type === 'order') {
           orderData = result.decoded as DecodedMexcOrder;
@@ -141,7 +141,7 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
 
         expect(result.type).toBe('order');
         expect(result.decoded).toBeDefined();
-        
+
         if (orderData) {
           expect(orderData.orderId).toBe(expectedOrderId);
           expect(orderData.symbol).toBe(expectedSymbol);
@@ -159,45 +159,45 @@ spot@private.orders.v3.api.pb\u001a\bINDYUSDT0����3�\u0013]\n\u001aC02
           hasCancelled: true,
           hasFilled: true,
           hasPartial: false,
-          expected: 'cancelled'
+          expected: 'cancelled',
         },
         {
           name: 'partial with fill indicators should be partially_filled',
           hasCancelled: false,
           hasFilled: true,
           hasPartial: true,
-          expected: 'partially_filled'
+          expected: 'partially_filled',
         },
         {
           name: 'only filled indicators should be filled',
           hasCancelled: false,
           hasFilled: true,
           hasPartial: false,
-          expected: 'filled'
+          expected: 'filled',
         },
         {
           name: 'no indicators should be new',
           hasCancelled: false,
           hasFilled: false,
           hasPartial: false,
-          expected: 'new'
-        }
+          expected: 'new',
+        },
       ];
 
       priorityTestCases.forEach(({ hasCancelled, hasFilled, hasPartial, expected }) => {
         let message = 'spot@private.orders.v3.api.pbINDYUSDTC02__123456789';
-        
+
         if (hasCancelled) message += '\u0004';
         if (hasFilled) message += '\u0002';
         if (hasPartial) message += '\u0003';
-        
+
         const result = MexcProtobufDecoder.decode(message);
-        
+
         let orderData: DecodedMexcOrder | null = null;
         if (result.decoded && result.type === 'order') {
           orderData = result.decoded as DecodedMexcOrder;
         }
-        
+
         expect(orderData?.status).toBe(expected);
       });
     });

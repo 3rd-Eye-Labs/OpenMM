@@ -43,15 +43,20 @@ export class PoolDiscoveryCLI {
   /**
    * Main discovery function for any Cardano native token
    */
-  async discoverTokenPools(tokenSymbol: string, options: {
-    limit?: number;
-    minLiquidity?: number;
-    showAll?: boolean;
-  } = {}): Promise<DiscoveryResult> {
+  async discoverTokenPools(
+    tokenSymbol: string,
+    options: {
+      limit?: number;
+      minLiquidity?: number;
+      showAll?: boolean;
+    } = {}
+  ): Promise<DiscoveryResult> {
     const symbol = tokenSymbol.toUpperCase();
-    
+
     if (!isTokenSupported(symbol)) {
-      throw new Error(`Unsupported token: ${symbol}. Supported tokens: ${getSupportedTokens().join(', ')}`);
+      throw new Error(
+        `Unsupported token: ${symbol}. Supported tokens: ${getSupportedTokens().join(', ')}`
+      );
     }
 
     const tokenConfig = getTokenConfig(symbol);
@@ -64,8 +69,8 @@ export class PoolDiscoveryCLI {
 
     try {
       const pools = await this.poolDiscovery.discoverPools('lovelace', tokenConfig);
-      
-      const filteredPools = minLiquidity 
+
+      const filteredPools = minLiquidity
         ? pools.filter(pool => Number(pool.state?.tvl || 0) >= minLiquidity)
         : pools;
 
@@ -73,8 +78,7 @@ export class PoolDiscoveryCLI {
         .sort((a, b) => Number(b.state?.tvl || 0) - Number(a.state?.tvl || 0))
         .slice(0, showAll ? filteredPools.length : limit);
 
-      const totalLiquidity = pools.reduce((sum, pool) => 
-        sum + Number(pool.state?.tvl || 0), 0);
+      const totalLiquidity = pools.reduce((sum, pool) => sum + Number(pool.state?.tvl || 0), 0);
 
       const poolInfos: PoolInfo[] = sortedPools.map(pool => ({
         identifier: pool.identifier || 'N/A',
@@ -83,7 +87,7 @@ export class PoolDiscoveryCLI {
         reserveA: Number(pool.state?.reserveA || 0),
         reserveB: Number(pool.state?.reserveB || 0),
         address: pool.address || 'N/A',
-        isActive: pool.isActive || false
+        isActive: pool.isActive || false,
       }));
 
       const recommendedIdentifiers = poolInfos
@@ -98,9 +102,8 @@ export class PoolDiscoveryCLI {
         totalPools: pools.length,
         totalLiquidity,
         pools: poolInfos,
-        recommendedIdentifiers
+        recommendedIdentifiers,
       };
-
     } catch (error) {
       throw new Error(`Pool discovery failed for ${symbol}: ${error}`);
     }
@@ -112,12 +115,12 @@ export class PoolDiscoveryCLI {
   displayResults(result: DiscoveryResult): void {
     console.log(`\n📊 ${result.token} Liquidity Pool Discovery Results`);
     console.log('═'.repeat(80));
-    
+
     console.log(`Total Pools Found: ${result.totalPools}`);
     console.log(`Total Liquidity: ${this.formatCurrency(result.totalLiquidity)}`);
     console.log(`Token Policy ID: ${result.policyId}`);
     console.log(`Asset Name (hex): ${result.assetName}`);
-    
+
     if (result.pools.length === 0) {
       console.log('\n❌ No liquidity pools found for this token.');
       return;
@@ -134,13 +137,13 @@ export class PoolDiscoveryCLI {
       const tvl = this.formatCurrency(pool.tvl).padStart(12);
       const identifier = pool.identifier.substring(0, 29).padEnd(29);
       const status = pool.isActive ? '✅' : '❌';
-      
+
       console.log(`${rank} | ${dex} | ${tvl} | ${identifier} | ${status}`);
     });
 
     console.log('\n🎯 Recommended Pool Identifiers for Market Making:');
     console.log('─'.repeat(60));
-    
+
     if (result.recommendedIdentifiers.length === 0) {
       console.log('❌ No active pools with sufficient liquidity found.');
     } else {
@@ -156,7 +159,9 @@ export class PoolDiscoveryCLI {
     console.log('1. Use the recommended pool identifiers in your market making strategy');
     console.log('2. Higher TVL pools typically offer better price stability');
     console.log('3. Monitor multiple pools for price aggregation and arbitrage opportunities');
-    console.log(`4. Current minimum liquidity threshold: ${this.formatCurrency(getTokenConfig(result.token).minLiquidityThreshold || 0)}`);
+    console.log(
+      `4. Current minimum liquidity threshold: ${this.formatCurrency(getTokenConfig(result.token).minLiquidityThreshold || 0)}`
+    );
   }
 
   /**
@@ -169,14 +174,14 @@ export class PoolDiscoveryCLI {
     }
 
     console.log('\n💰 Getting live prices from Iris API...');
-    
+
     try {
       const prices = await this.irisClient.fetchPrices(identifiers, 'OpenMM-PoolDiscovery/1.0');
-      
+
       console.log('─'.repeat(60));
       console.log('Pool ID                           | Price (ADA)');
       console.log('─'.repeat(60));
-      
+
       identifiers.forEach((id, index) => {
         const price = prices[index] || 0;
         const shortId = id.substring(0, 33).padEnd(33);
@@ -190,18 +195,16 @@ export class PoolDiscoveryCLI {
       try {
         console.log('\n💵 Getting full market price...');
         const aggregatedPrice = await this.priceService.getTokenPrice(tokenSymbol);
-        
+
         console.log('─'.repeat(60));
         console.log(`${tokenSymbol}/USDT Price: $${aggregatedPrice.price.toFixed(8)}`);
         console.log(`Confidence: ${(aggregatedPrice.confidence * 100).toFixed(1)}%`);
         console.log(`Sources: ${aggregatedPrice.sources.map(s => s.name).join(', ')}`);
         console.log(`Updated: ${aggregatedPrice.timestamp.toLocaleString()}`);
-        
       } catch (usdtError) {
         console.log(`❌ Fa iled to get USDT price: ${usdtError}`);
         console.log(`✅ ADA price available: ${avgAdaPrice.toFixed(8)} ADA per ${tokenSymbol}`);
       }
-      
     } catch (error) {
       console.log(`❌ Failed to fetch prices: ${error}`);
     }
@@ -243,7 +246,7 @@ export class PoolDiscoveryCLI {
       symbol: symbol.toUpperCase(),
       policyId,
       assetName: assetNameHex,
-      minLiquidityThreshold: 25000
+      minLiquidityThreshold: 25000,
     };
   }
 }

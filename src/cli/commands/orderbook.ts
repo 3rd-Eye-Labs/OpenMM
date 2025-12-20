@@ -11,17 +11,17 @@ export const orderbookCommand = new Command('orderbook')
   .requiredOption('-s, --symbol <symbol>', 'Trading pair symbol (e.g., BTC/USDT)')
   .option('-l, --limit <limit>', 'Number of bid/ask levels to display (default: 10)', '10')
   .option('--json', 'Output in JSON format')
-  .action(async (options) => {
+  .action(async options => {
     await executeCommand(async () => {
       const exchange = validateExchange(options.exchange);
       const symbol = validateSymbol(options.symbol);
       const limit = parseInt(options.limit);
-      
+
       if (isNaN(limit) || limit <= 0) {
         console.error(chalk.red('❌ Limit must be a positive number'));
         process.exit(1);
       }
-      
+
       try {
         const connector = await ExchangeFactory.getExchange(exchange);
         const orderbook = await connector.getOrderBook(symbol);
@@ -30,7 +30,7 @@ export const orderbookCommand = new Command('orderbook')
           const limitedOrderbook = {
             ...orderbook,
             bids: orderbook.bids.slice(0, limit),
-            asks: orderbook.asks.slice(0, limit)
+            asks: orderbook.asks.slice(0, limit),
           };
           console.log(JSON.stringify(limitedOrderbook, null, 2));
         } else {
@@ -42,7 +42,7 @@ export const orderbookCommand = new Command('orderbook')
           console.log(chalk.bold.red('  ASKS (Sell Orders)'));
           console.log(chalk.gray('  Price        │ Amount       │ Total'));
           console.log(chalk.gray('  ─────────────┼──────────────┼──────────────'));
-          
+
           asks.forEach(ask => {
             const price = ask.price.toFixed(8).padStart(12);
             const amount = ask.amount.toFixed(8).padStart(12);
@@ -62,7 +62,7 @@ export const orderbookCommand = new Command('orderbook')
           console.log(chalk.bold.green('  BIDS (Buy Orders)'));
           console.log(chalk.gray('  Price        │ Amount       │ Total'));
           console.log(chalk.gray('  ─────────────┼──────────────┼──────────────'));
-          
+
           bids.forEach(bid => {
             const price = bid.price.toFixed(8).padStart(12);
             const amount = bid.amount.toFixed(8).padStart(12);
@@ -76,9 +76,12 @@ export const orderbookCommand = new Command('orderbook')
     }, 'orderbook command');
   });
 
-orderbookCommand.addHelpText('after', `
+orderbookCommand.addHelpText(
+  'after',
+  `
 Examples:
   $ openmm orderbook --exchange mexc --symbol BTC/USDT           # Get order book with 10 levels
   $ openmm orderbook --exchange mexc --symbol BTC/USDT --limit 5 # Get order book with 5 levels
   $ openmm book --exchange mexc --symbol ETH/USDT --json         # Get order book in JSON format
-`);
+`
+);

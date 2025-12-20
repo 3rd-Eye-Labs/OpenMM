@@ -1,7 +1,4 @@
-import { 
-  DecodedMexcOrder,
-  DecodedMexcMessage 
-} from '../../types';
+import { DecodedMexcOrder, DecodedMexcMessage } from '../../types';
 import { MexcUtils } from './mexc-utils';
 
 /**
@@ -10,10 +7,10 @@ import { MexcUtils } from './mexc-utils';
  * This decoder supports:
  * - Private order messages for user data stream functionality
  * - Market data messages for real-time ticker, orderbook, and trade data
- * 
+ *
  * Official MEXC Protocol Buffers Documentation:
  * https://www.mexc.com/api-docs/spot-v3/websocket-market-streams#protocol-buffers-integration
- * 
+ *
  * Supported message types:
  * - spot@private.orders.v3.api.pb (private orders)
  * - spot@public.aggre.bookTicker.v3.api.pb (ticker data)
@@ -22,7 +19,6 @@ import { MexcUtils } from './mexc-utils';
  */
 
 export class MexcProtobufDecoder {
-
   /**
    * Main decoder function for MEXC protobuf messages
    */
@@ -33,7 +29,10 @@ export class MexcProtobufDecoder {
 
       if (rawMessage.includes('private.orders')) {
         return this.decodeOrderMessage(rawMessage, channel);
-      } else if (rawMessage.includes('aggre.bookTicker') || rawMessage.includes('bookTicker.batch')) {
+      } else if (
+        rawMessage.includes('aggre.bookTicker') ||
+        rawMessage.includes('bookTicker.batch')
+      ) {
         return this.decodeTickerMessage(rawMessage, channel);
       } else if (rawMessage.includes('aggre.deals')) {
         return this.decodeTradesMessage(rawMessage, channel);
@@ -42,7 +41,7 @@ export class MexcProtobufDecoder {
           type: 'unknown',
           raw: rawMessage,
           channel,
-          error: `Unsupported message type: ${channel}`
+          error: `Unsupported message type: ${channel}`,
         };
       }
     } catch (error) {
@@ -50,7 +49,7 @@ export class MexcProtobufDecoder {
         type: 'unknown',
         raw: rawMessage,
         channel: 'unknown',
-        error: `Decoding error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Decoding error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -61,35 +60,39 @@ export class MexcProtobufDecoder {
    */
   private static decodeOrderMessage(message: string, channel: string): DecodedMexcMessage {
     try {
-      let symbolMatch = message.match(/\\u001a\\b([A-Z]{3,10}USDT|[A-Z]{3,10}BTC|[A-Z]{3,10}ETH|[A-Z]{3,10}BNB)/);
-      
+      let symbolMatch = message.match(
+        /\\u001a\\b([A-Z]{3,10}USDT|[A-Z]{3,10}BTC|[A-Z]{3,10}ETH|[A-Z]{3,10}BNB)/
+      );
+
       if (!symbolMatch) {
-        symbolMatch = message.match(/([A-Z]{3,10}USDT|[A-Z]{3,10}BTC|[A-Z]{3,10}ETH|[A-Z]{3,10}BNB)0/);
+        symbolMatch = message.match(
+          /([A-Z]{3,10}USDT|[A-Z]{3,10}BTC|[A-Z]{3,10}ETH|[A-Z]{3,10}BNB)0/
+        );
       }
-      
+
       if (!symbolMatch) {
         symbolMatch = message.match(/\.pb([A-Z]+USDT|[A-Z]+BTC|[A-Z]+ETH|[A-Z]+BNB)/);
       }
 
       const symbol = symbolMatch ? symbolMatch[1] : 'UNKNOWN';
-      
+
       const orderIdMatch = message.match(/C02__(\d+)/);
       const orderId = orderIdMatch ? `C02__${orderIdMatch[1]}` : 'UNKNOWN';
-      
+
       let price = 0;
       let quantity = 0;
-      
+
       const priceMatch = message.match(/\*(\d+\.?\d*)"/);
       if (priceMatch) price = parseFloat(priceMatch[1]);
-      
+
       if (price === 0) {
         const decimalMatch = message.match(/(\d+\.\d{4,6})/);
         if (decimalMatch) price = parseFloat(decimalMatch[1]);
       }
-      
+
       const quantityMatch = message.match(/"(\d+\.?\d*)[RH]?/);
       if (quantityMatch) quantity = parseFloat(quantityMatch[1]);
-      
+
       if (quantity === 0) {
         const intMatch = message.match(/(\d{1,4})\D/);
         if (intMatch) {
@@ -97,10 +100,10 @@ export class MexcProtobufDecoder {
           if (val > 0 && val < 1000) quantity = val;
         }
       }
-      
+
       const side = MexcUtils.determineSide(message);
       const status = this.extractProtobufOrderStatus(message);
-      
+
       const decoded: DecodedMexcOrder = {
         orderId,
         symbol: symbol.includes('/') ? symbol : `${symbol.slice(0, -4)}/${symbol.slice(-4)}`,
@@ -109,7 +112,7 @@ export class MexcProtobufDecoder {
         side,
         status,
         timestamp: Date.now(),
-        channel
+        channel,
       };
 
       return {
@@ -117,14 +120,14 @@ export class MexcProtobufDecoder {
         raw: message,
         channel,
         symbol: decoded.symbol,
-        decoded
+        decoded,
       };
     } catch (error) {
       return {
         type: 'order',
         raw: message,
         channel,
-        error: `Order decode error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Order decode error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -137,29 +140,29 @@ export class MexcProtobufDecoder {
     try {
       const symbolMatch = message.match(/([A-Z]{3,10}USDT)/);
       const symbol = symbolMatch ? symbolMatch[1] : 'UNKNOWN';
-      
+
       const priceMatches = message.match(/(\d+\.\d+)/g);
-      
+
       let bidprice = '0';
       let askprice = '0';
       let bidquantity = '0';
       let askquantity = '0';
-      
+
       if (priceMatches && priceMatches.length >= 2) {
         bidprice = priceMatches[0];
         askprice = priceMatches[1];
-        
+
         if (priceMatches.length >= 4) {
           bidquantity = priceMatches[2];
           askquantity = priceMatches[3];
         }
       }
-      
+
       const decoded = {
         bidprice,
         askprice,
         bidquantity,
-        askquantity
+        askquantity,
       };
 
       return {
@@ -167,14 +170,14 @@ export class MexcProtobufDecoder {
         raw: message,
         channel,
         symbol,
-        decoded
+        decoded,
       };
     } catch (error) {
       return {
         type: 'ticker',
         raw: message,
         channel,
-        error: `Ticker decode error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Ticker decode error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -187,23 +190,23 @@ export class MexcProtobufDecoder {
     try {
       const symbolMatch = message.match(/([A-Z]{3,10}USDT)/);
       const symbol = symbolMatch ? symbolMatch[1] : 'UNKNOWN';
-      
+
       const priceMatches = message.match(/(\d+\.\d+)/g);
-      
+
       const dealsList = [];
-      
+
       if (priceMatches && priceMatches.length >= 2) {
         dealsList.push({
           price: priceMatches[0],
           quantity: priceMatches[1] || '1.0',
           time: Date.now().toString(),
-          tradetype: 1
+          tradetype: 1,
         });
       }
-      
+
       const decoded = {
         dealsList,
-        eventtype: 'trade'
+        eventtype: 'trade',
       };
 
       return {
@@ -211,14 +214,14 @@ export class MexcProtobufDecoder {
         raw: message,
         channel,
         symbol,
-        decoded
+        decoded,
       };
     } catch (error) {
       return {
         type: 'trades',
         raw: message,
         channel,
-        error: `Trades decode error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Trades decode error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }

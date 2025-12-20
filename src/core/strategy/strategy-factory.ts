@@ -2,22 +2,23 @@ import { BaseStrategy } from './base-strategy';
 import { BaseExchangeConnector } from '../exchange/base-exchange-connector';
 import { GridStrategy } from '../../strategies/grid/grid-strategy';
 import { GridStrategyConfig, GridConfig } from '../../types';
-import { LauncherConfig, GridLauncherParams, DEFAULT_GRID_PARAMS } from '../../config/launcher-config';
+import {
+  LauncherConfig,
+  GridLauncherParams,
+  DEFAULT_GRID_PARAMS,
+} from '../../config/launcher-config';
 import { toStandardFormat } from '../../utils/symbol-utils';
 import { ExchangeFactory, SupportedExchange } from '../../cli/exchange-factory';
 
 export class StrategyFactory {
-  static async create(
-    config: LauncherConfig,
-    params?: GridLauncherParams
-  ): Promise<BaseStrategy> {
+  static async create(config: LauncherConfig, params?: GridLauncherParams): Promise<BaseStrategy> {
     if (!ExchangeFactory.isSupported(config.exchange)) {
       const supported = ExchangeFactory.getSupportedExchanges().join(', ');
       throw new Error(`Unsupported exchange: ${config.exchange}. Supported: ${supported}`);
     }
-    
+
     const exchange = await ExchangeFactory.getExchange(config.exchange as SupportedExchange);
-    
+
     switch (config.strategy.toLowerCase()) {
       case 'grid':
         return this.createGridStrategy(config, exchange, params);
@@ -33,7 +34,7 @@ export class StrategyFactory {
   ): Promise<GridStrategy> {
     const normalizedSymbol = toStandardFormat(config.symbol);
     const gridParams = { ...DEFAULT_GRID_PARAMS, ...params };
-    
+
     const gridConfig: GridConfig = {
       symbol: normalizedSymbol,
       gridLevels: gridParams.gridLevels!,
@@ -41,7 +42,7 @@ export class StrategyFactory {
       orderSize: gridParams.orderSize!,
       minConfidence: gridParams.minConfidence!,
       priceDeviationThreshold: gridParams.priceDeviationThreshold!,
-      adjustmentDebounce: gridParams.adjustmentDebounce!
+      adjustmentDebounce: gridParams.adjustmentDebounce!,
     };
 
     const strategyConfig: GridStrategyConfig = {
@@ -57,21 +58,24 @@ export class StrategyFactory {
         gridSpacing: gridConfig.gridSpacing,
         orderSize: gridConfig.orderSize,
         upperPrice: 999999,
-        lowerPrice: 0
-      }
+        lowerPrice: 0,
+      },
     };
 
     const strategy = new GridStrategy(strategyConfig.id);
     strategy.setExchangeConnector(exchange);
-    
-    if (gridParams.maxPositionSize !== undefined || gridParams.safetyReservePercentage !== undefined) {
+
+    if (
+      gridParams.maxPositionSize !== undefined ||
+      gridParams.safetyReservePercentage !== undefined
+    ) {
       strategy.setRiskConfig({
         maxPositionSize: gridParams.maxPositionSize ?? 0.8,
         safetyReservePercentage: gridParams.safetyReservePercentage ?? 0.2,
-        minConfidence: gridParams.minConfidence ?? 0.6
+        minConfidence: gridParams.minConfidence ?? 0.6,
       });
     }
-    
+
     await strategy.initialize(strategyConfig);
 
     return strategy;

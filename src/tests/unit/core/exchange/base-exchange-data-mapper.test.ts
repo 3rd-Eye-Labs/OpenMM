@@ -64,7 +64,7 @@ class MockExchangeDataMapper extends BaseExchangeDataMapper<
       status: exchangeOrder.status as any,
       timestamp: this.parseTimestamp(exchangeOrder.timestamp),
       filled: 0,
-      remaining: this.parseAmount(exchangeOrder.amount)
+      remaining: this.parseAmount(exchangeOrder.amount),
     };
   }
 
@@ -76,7 +76,7 @@ class MockExchangeDataMapper extends BaseExchangeDataMapper<
       free,
       used,
       total: free + used,
-      available: free
+      available: free,
     };
   }
 
@@ -87,7 +87,7 @@ class MockExchangeDataMapper extends BaseExchangeDataMapper<
       ask: this.parsePrice(exchangeTicker.askPrice),
       last: this.parsePrice(exchangeTicker.lastPrice),
       baseVolume: 0,
-      timestamp: this.parseTimestamp(exchangeTicker.timestamp)
+      timestamp: this.parseTimestamp(exchangeTicker.timestamp),
     };
   }
 
@@ -96,7 +96,7 @@ class MockExchangeDataMapper extends BaseExchangeDataMapper<
       symbol: this.normalizeSymbol(symbol),
       bids: this.parseOrderBookEntries(exchangeOrderBook.bids),
       asks: this.parseOrderBookEntries(exchangeOrderBook.asks),
-      timestamp: this.parseTimestamp(exchangeOrderBook.timestamp)
+      timestamp: this.parseTimestamp(exchangeOrderBook.timestamp),
     };
   }
 
@@ -107,7 +107,7 @@ class MockExchangeDataMapper extends BaseExchangeDataMapper<
       price: this.parsePrice(exchangeTrade.price),
       amount: this.parseAmount(exchangeTrade.quantity),
       side: exchangeTrade.side as any,
-      timestamp: this.parseTimestamp(exchangeTrade.timestamp)
+      timestamp: this.parseTimestamp(exchangeTrade.timestamp),
     };
   }
 
@@ -233,28 +233,28 @@ describe('BaseExchangeDataMapper', () => {
     it('should parse valid order book entries', () => {
       const entries: [string, string][] = [
         ['100.50', '1.5'],
-        ['100.00', '2.0']
+        ['100.00', '2.0'],
       ];
 
       const result = mapper.testParseOrderBookEntries(entries);
 
       expect(result).toEqual([
-        { price: 100.50, amount: 1.5 },
-        { price: 100.00, amount: 2.0 }
+        { price: 100.5, amount: 1.5 },
+        { price: 100.0, amount: 2.0 },
       ]);
     });
 
     it('should handle invalid entries gracefully', () => {
       const entries: [string, string][] = [
         ['invalid', '1.5'],
-        ['100.00', 'invalid']
+        ['100.00', 'invalid'],
       ];
 
       const result = mapper.testParseOrderBookEntries(entries);
 
       expect(result).toEqual([
         { price: 0, amount: 1.5 },
-        { price: 100.00, amount: 0 }
+        { price: 100.0, amount: 0 },
       ]);
     });
 
@@ -274,7 +274,7 @@ describe('BaseExchangeDataMapper', () => {
         amount: '1.5',
         price: '50000.00',
         status: 'filled',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       };
 
       const result = mapper.mapOrder(exchangeOrder);
@@ -285,11 +285,11 @@ describe('BaseExchangeDataMapper', () => {
         type: 'limit',
         side: 'buy',
         amount: 1.5,
-        price: 50000.00,
+        price: 50000.0,
         status: 'filled',
         timestamp: 1234567890,
         filled: 0,
-        remaining: 1.5
+        remaining: 1.5,
       });
     });
   });
@@ -299,7 +299,7 @@ describe('BaseExchangeDataMapper', () => {
       const exchangeBalance: MockRawBalance = {
         asset: 'BTC',
         free: '1.5',
-        locked: '0.5'
+        locked: '0.5',
       };
 
       const result = mapper.mapBalance(exchangeBalance);
@@ -309,7 +309,7 @@ describe('BaseExchangeDataMapper', () => {
         free: 1.5,
         used: 0.5,
         total: 2.0,
-        available: 1.5
+        available: 1.5,
       });
     });
   });
@@ -321,18 +321,18 @@ describe('BaseExchangeDataMapper', () => {
         bidPrice: '49999.00',
         askPrice: '50001.00',
         lastPrice: '50000.00',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       };
 
       const result = mapper.mapTicker(exchangeTicker);
 
       expect(result).toEqual({
         symbol: 'BTCUSDT',
-        bid: 49999.00,
-        ask: 50001.00,
-        last: 50000.00,
+        bid: 49999.0,
+        ask: 50001.0,
+        last: 50000.0,
         baseVolume: 0,
-        timestamp: 1234567890
+        timestamp: 1234567890,
       });
     });
   });
@@ -341,9 +341,15 @@ describe('BaseExchangeDataMapper', () => {
     it('should map exchange orderbook to OpenMM OrderBook format', () => {
       const exchangeOrderBook: MockRawOrderBook = {
         symbol: 'btcusdt',
-        bids: [['50000.00', '1.0'], ['49999.00', '2.0']],
-        asks: [['50001.00', '1.5'], ['50002.00', '2.5']],
-        timestamp: 1234567890
+        bids: [
+          ['50000.00', '1.0'],
+          ['49999.00', '2.0'],
+        ],
+        asks: [
+          ['50001.00', '1.5'],
+          ['50002.00', '2.5'],
+        ],
+        timestamp: 1234567890,
       };
 
       const result = mapper.mapOrderBook(exchangeOrderBook, 'btcusdt');
@@ -351,14 +357,14 @@ describe('BaseExchangeDataMapper', () => {
       expect(result).toEqual({
         symbol: 'BTCUSDT',
         bids: [
-          { price: 50000.00, amount: 1.0 },
-          { price: 49999.00, amount: 2.0 }
+          { price: 50000.0, amount: 1.0 },
+          { price: 49999.0, amount: 2.0 },
         ],
         asks: [
-          { price: 50001.00, amount: 1.5 },
-          { price: 50002.00, amount: 2.5 }
+          { price: 50001.0, amount: 1.5 },
+          { price: 50002.0, amount: 2.5 },
         ],
-        timestamp: 1234567890
+        timestamp: 1234567890,
       });
     });
   });
@@ -370,7 +376,7 @@ describe('BaseExchangeDataMapper', () => {
         price: '50000.00',
         quantity: '1.5',
         side: 'buy',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       };
 
       const result = mapper.mapTrade(exchangeTrade, 'btcusdt');
@@ -378,10 +384,10 @@ describe('BaseExchangeDataMapper', () => {
       expect(result).toEqual({
         id: 'trade123',
         symbol: 'BTCUSDT',
-        price: 50000.00,
+        price: 50000.0,
         amount: 1.5,
         side: 'buy',
-        timestamp: 1234567890
+        timestamp: 1234567890,
       });
     });
   });
@@ -391,8 +397,8 @@ describe('BaseExchangeDataMapper', () => {
       const exchangeAccount: MockRawAccount = {
         balances: [
           { asset: 'BTC', free: '1.5', locked: '0.5' },
-          { asset: 'USDT', free: '1000.0', locked: '0.0' }
-        ]
+          { asset: 'USDT', free: '1000.0', locked: '0.0' },
+        ],
       };
 
       const result = mapper.mapAccountBalances(exchangeAccount);
@@ -403,21 +409,21 @@ describe('BaseExchangeDataMapper', () => {
           free: 1.5,
           used: 0.5,
           total: 2.0,
-          available: 1.5
+          available: 1.5,
         },
         USDT: {
           asset: 'USDT',
           free: 1000.0,
           used: 0.0,
           total: 1000.0,
-          available: 1000.0
-        }
+          available: 1000.0,
+        },
       });
     });
 
     it('should handle empty balances array', () => {
       const exchangeAccount: MockRawAccount = {
-        balances: []
+        balances: [],
       };
 
       const result = mapper.mapAccountBalances(exchangeAccount);

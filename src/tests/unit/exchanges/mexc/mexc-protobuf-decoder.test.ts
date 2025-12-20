@@ -8,7 +8,6 @@ const MockedMexcUtils = MexcUtils as jest.Mocked<typeof MexcUtils>;
 const MockedMexcDataMapper = MexcDataMapper as jest.Mocked<typeof MexcDataMapper>;
 
 describe('MexcProtobufDecoder', () => {
-
   beforeEach(() => {
     jest.clearAllMocks();
     MockedMexcUtils.determineSide.mockReturnValue('buy');
@@ -84,9 +83,18 @@ describe('MexcProtobufDecoder', () => {
 
     it('should extract correct channel from messages', () => {
       const messages = [
-        { msg: 'spot@private.orders.v3.api.pbBTCUSDT', expected: 'spot@private.orders.v3.api.pbBTCUSDT' },
-        { msg: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT', expected: 'spot@public.aggre.bookTicker.v3.api.pb' },
-        { msg: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT', expected: 'spot@public.aggre.deals.v3.api.pb' }
+        {
+          msg: 'spot@private.orders.v3.api.pbBTCUSDT',
+          expected: 'spot@private.orders.v3.api.pbBTCUSDT',
+        },
+        {
+          msg: 'spot@public.aggre.bookTicker.v3.api.pb@100ms@BTCUSDT',
+          expected: 'spot@public.aggre.bookTicker.v3.api.pb',
+        },
+        {
+          msg: 'spot@public.aggre.deals.v3.api.pb@100ms@BTCUSDT',
+          expected: 'spot@public.aggre.deals.v3.api.pb',
+        },
       ];
       messages.forEach(({ msg, expected }) => {
         const result = MexcProtobufDecoder.decode(msg);
@@ -114,7 +122,7 @@ describe('MexcProtobufDecoder', () => {
     it('should extract prices using multiple patterns', () => {
       const priceMessages = [
         { msg: 'spot@private.orders.v3.api.pbBTCUSDT*42500.75"', expectedPrice: 42500.75 },
-        { msg: 'spot@private.orders.v3.api.pbBTCUSDT1.234567"', expectedPrice: 1.234567 }
+        { msg: 'spot@private.orders.v3.api.pbBTCUSDT1.234567"', expectedPrice: 1.234567 },
       ];
       priceMessages.forEach(({ msg, expectedPrice }) => {
         const result = MexcProtobufDecoder.decode(msg);
@@ -125,7 +133,7 @@ describe('MexcProtobufDecoder', () => {
 
     it('should extract quantities using multiple patterns', () => {
       const quantityMessages = [
-        { msg: 'spot@private.orders.v3.api.pbBTCUSDT"3.5R', expectedQuantity: 3.5 }
+        { msg: 'spot@private.orders.v3.api.pbBTCUSDT"3.5R', expectedQuantity: 3.5 },
       ];
       quantityMessages.forEach(({ msg, expectedQuantity }) => {
         const result = MexcProtobufDecoder.decode(msg);
@@ -136,7 +144,7 @@ describe('MexcProtobufDecoder', () => {
 
     it('should handle symbol extraction and formatting', () => {
       const symbolMessages = [
-        { msg: 'spot@private.orders.v3.api.pbBTCUSDT', expectedSymbol: 'BTC/USDT' }
+        { msg: 'spot@private.orders.v3.api.pbBTCUSDT', expectedSymbol: 'BTC/USDT' },
       ];
       symbolMessages.forEach(({ msg, expectedSymbol }) => {
         const result = MexcProtobufDecoder.decode(msg);
@@ -169,7 +177,7 @@ describe('MexcProtobufDecoder', () => {
     it('should extract symbol from ticker messages', () => {
       const tickerMessages = [
         'spot@public.aggre.bookTicker.v3.api.pb@100ms@ETHUSDT',
-        'spot@public.bookTicker.batch.v3.api.pbBTCUSDT'
+        'spot@public.bookTicker.batch.v3.api.pbBTCUSDT',
       ];
       tickerMessages.forEach(message => {
         const result = MexcProtobufDecoder.decode(message);
@@ -294,7 +302,7 @@ describe('MexcProtobufDecoder', () => {
       const messages = [
         'spot@private.orders.v3.api.pbBTCETH',
         'spot@private.orders.v3.api.pbETHBNB',
-        'spot@private.orders.v3.api.pbADAUSDT'
+        'spot@private.orders.v3.api.pbADAUSDT',
       ];
       messages.forEach(message => {
         const result = MexcProtobufDecoder.decode(message);
@@ -339,7 +347,10 @@ describe('MexcProtobufDecoder', () => {
         throw new Error('Side determination error');
       });
       const message = 'spot@private.orders.v3.api.pbBTCUSDT';
-      const result = MexcProtobufDecoder['decodeOrderMessage'](message, 'spot@private.orders.v3.api.pb');
+      const result = MexcProtobufDecoder['decodeOrderMessage'](
+        message,
+        'spot@private.orders.v3.api.pb'
+      );
       expect(result.type).toBe('order');
       expect(result.error).toContain('Order decode error: Side determination error');
     });

@@ -16,26 +16,35 @@ export class GridOrderManager {
     this.gridCalculator = new GridCalculator();
   }
 
-  async placeInitialGrid(levels: GridLevel[], placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>): Promise<Order[]> {
+  async placeInitialGrid(
+    levels: GridLevel[],
+    placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>
+  ): Promise<Order[]> {
     const orders: Order[] = [];
-    
+
     for (const level of levels) {
       try {
         const order = await placeOrderFn(level.side, level.orderSize, level.price);
         orders.push(order);
-        this.logger.info(`Placed ${level.side.toUpperCase()} order: ${level.orderSize.toFixed(3)} @ $${level.price.toFixed(6)}`, { orderId: order.id });
+        this.logger.info(
+          `Placed ${level.side.toUpperCase()} order: ${level.orderSize.toFixed(3)} @ $${level.price.toFixed(6)}`,
+          { orderId: order.id }
+        );
       } catch (error) {
-        this.logger.error(`Failed to place ${level.side} order at ${level.price}`, { error: error instanceof Error ? error.message : String(error) });
+        this.logger.error(`Failed to place ${level.side} order at ${level.price}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
-    
+
     this.activeOrders = orders;
     if (levels.length > 0) {
       const buyLevels = levels.filter(l => l.side === 'buy');
       const sellLevels = levels.filter(l => l.side === 'sell');
-      this.currentGridCenter = (Math.max(...buyLevels.map(l => l.price)) + Math.min(...sellLevels.map(l => l.price))) / 2;
+      this.currentGridCenter =
+        (Math.max(...buyLevels.map(l => l.price)) + Math.min(...sellLevels.map(l => l.price))) / 2;
     }
-    
+
     return orders;
   }
 
@@ -46,20 +55,29 @@ export class GridOrderManager {
     gridLevels: number,
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
-    cancelAllOrdersFn: (symbol: string) => Promise<void>,
+    cancelAllOrdersFn: (symbol: string) => Promise<void>
   ): Promise<void> {
-    this.logger.info(`Order FILLED: ${filledOrder.side.toUpperCase()} ${filledOrder.filled} @ $${filledOrder.price}`, { orderId: filledOrder.id });
-    
+    this.logger.info(
+      `Order FILLED: ${filledOrder.side.toUpperCase()} ${filledOrder.filled} @ $${filledOrder.price}`,
+      { orderId: filledOrder.id }
+    );
+
     if (this.isAdjusting || Date.now() - this.lastAdjustmentTime < this.config.adjustmentDebounce) {
       return;
     }
-    
+
     this.isAdjusting = true;
     this.lastAdjustmentTime = Date.now();
-    
+
     try {
       await this.cancelAllOrders(cancelAllOrdersFn, filledOrder.symbol);
-      await this.recreateGridAtPrice(currentPrice, gridSpacing, gridLevels, availableBalance, placeOrderFn);
+      await this.recreateGridAtPrice(
+        currentPrice,
+        gridSpacing,
+        gridLevels,
+        availableBalance,
+        placeOrderFn
+      );
     } finally {
       this.isAdjusting = false;
     }
@@ -75,14 +93,20 @@ export class GridOrderManager {
     symbol: string
   ): Promise<void> {
     const deviation = Math.abs(newPrice - this.currentGridCenter) / this.currentGridCenter;
-    
+
     if (deviation > this.config.priceDeviationThreshold && !this.isAdjusting) {
       this.isAdjusting = true;
       this.lastAdjustmentTime = Date.now();
-      
+
       try {
         await this.cancelAllOrders(cancelAllOrdersFn, symbol);
-        await this.recreateGridAtPrice(newPrice, gridSpacing, gridLevels, availableBalance, placeOrderFn);
+        await this.recreateGridAtPrice(
+          newPrice,
+          gridSpacing,
+          gridLevels,
+          availableBalance,
+          placeOrderFn
+        );
       } finally {
         this.isAdjusting = false;
       }
@@ -90,8 +114,8 @@ export class GridOrderManager {
   }
 
   private async cancelAllOrders(
-    cancelAllOrdersFn: (symbol: string) => Promise<void>, 
-    symbol: string,
+    cancelAllOrdersFn: (symbol: string) => Promise<void>,
+    symbol: string
   ): Promise<void> {
     if (this.activeOrders.length === 0) {
       return;
@@ -101,10 +125,12 @@ export class GridOrderManager {
       await cancelAllOrdersFn(symbol);
       this.activeOrders = [];
     } catch (error) {
-      this.logger.warn(`⚠️ Bulk cancellation failed for ${symbol}, falling back to individual cancellation`, { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      
+      this.logger.warn(
+        `⚠️ Bulk cancellation failed for ${symbol}, falling back to individual cancellation`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+        }
+      );
     }
   }
 
@@ -118,7 +144,7 @@ export class GridOrderManager {
     const levels = this.gridCalculator.calculateGridLevels(centerPrice, gridSpacing, gridLevels);
     const orderSize = this.gridCalculator.calculateOrderSizes(availableBalance, gridLevels);
     const gridWithSizes = this.gridCalculator.assignOrderSizes(levels, orderSize);
-    
+
     await this.placeInitialGrid(gridWithSizes, placeOrderFn);
     this.currentGridCenter = centerPrice;
   }

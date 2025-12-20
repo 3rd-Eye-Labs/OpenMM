@@ -5,7 +5,6 @@ import { toStandardFormat, toExchangeFormat } from '../../../../utils/symbol-uti
 
 describe('MexcUtils', () => {
   describe('Symbol conversion utility functions', () => {
-
     describe('toStandardFormat', () => {
       it('should format MEXC symbols to OpenMM format', () => {
         expect(toStandardFormat('BTCUSDT')).toBe('BTC/USDT');
@@ -46,35 +45,24 @@ describe('MexcUtils', () => {
 
   describe('createOrderParams', () => {
     it('should create limit order parameters', () => {
-      const result = ExchangeUtils.createMexcOrderParams(
-        'BTC/USDT',
-        'limit',
-        'buy',
-        1.5,
-        50000.00
-      );
+      const result = ExchangeUtils.createMexcOrderParams('BTC/USDT', 'limit', 'buy', 1.5, 50000.0);
       expect(result).toEqual({
         symbol: 'BTCUSDT',
         side: 'BUY',
         type: 'LIMIT',
         quantity: '1.5',
         price: '50000',
-        timeInForce: 'GTC'
+        timeInForce: 'GTC',
       });
     });
 
     it('should create market order parameters', () => {
-      const result = ExchangeUtils.createMexcOrderParams(
-        'INDY/USDT',
-        'market',
-        'sell',
-        100
-      );
+      const result = ExchangeUtils.createMexcOrderParams('INDY/USDT', 'market', 'sell', 100);
       expect(result).toEqual({
         symbol: 'INDYUSDT',
         side: 'SELL',
         type: 'MARKET',
-        quantity: '100'
+        quantity: '100',
       });
     });
   });
@@ -136,7 +124,7 @@ describe('MexcUtils', () => {
         quantity: 1.0,
         side: 'buy',
         status: 'filled',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       const result = MexcUtils.transformOrder(protobufOrder);
       expect(result.id).toBe('C02__123456');
@@ -151,18 +139,18 @@ describe('MexcUtils', () => {
       const mexcOrderData = {
         i: 12345,
         c: 'BTCUSDT',
-        s: 2, 
-        S: 1, 
-        v: '1.5', 
-        p: '50000.00', 
-        z: '1.5' 
+        s: 2,
+        S: 1,
+        v: '1.5',
+        p: '50000.00',
+        z: '1.5',
       };
       const result = MexcUtils.transformOrder(mexcOrderData);
       expect(result.id).toBe('12345');
       expect(result.symbol).toBe('BTC/USDT');
       expect(result.side).toBe('buy');
       expect(result.amount).toBe(1.5);
-      expect(result.price).toBe(50000.00);
+      expect(result.price).toBe(50000.0);
       expect(result.filled).toBe(1.5);
       expect(result.remaining).toBe(0);
       expect(result.status).toBe('filled');
@@ -171,11 +159,11 @@ describe('MexcUtils', () => {
       const mexcOrderData = {
         i: 12346,
         c: 'ETHUSDT',
-        s: 1, 
-        S: 2, 
+        s: 1,
+        S: 2,
         v: '2.0',
         p: '3000.00',
-        z: '0'
+        z: '0',
       };
       const result = MexcUtils.transformOrder(mexcOrderData);
       expect(result.side).toBe('sell');
@@ -187,11 +175,11 @@ describe('MexcUtils', () => {
       const mexcOrderData = {
         i: 12347,
         c: 'ADAUSDT',
-        s: 4, 
+        s: 4,
         S: 1,
         v: '100.0',
         p: '1.50',
-        z: '0'
+        z: '0',
       };
       const result = MexcUtils.transformOrder(mexcOrderData);
       expect(result.status).toBe('cancelled');
@@ -200,11 +188,11 @@ describe('MexcUtils', () => {
       const mexcOrderData = {
         i: 12348,
         c: 'DOGEUSDT',
-        s: 5, 
+        s: 5,
         S: 1,
         v: '1000.0',
         p: '0.10',
-        z: '500.0'
+        z: '500.0',
       };
       const result = MexcUtils.transformOrder(mexcOrderData);
       expect(result.status).toBe('cancelled');
@@ -215,11 +203,11 @@ describe('MexcUtils', () => {
       const mexcOrderData = {
         i: 12349,
         c: 'SOLUSDT',
-        s: 999, 
+        s: 999,
         S: 1,
         v: '10.0',
         p: '100.00',
-        z: '0'
+        z: '0',
       };
       const result = MexcUtils.transformOrder(mexcOrderData);
       expect(result.status).toBe('open');
@@ -231,7 +219,7 @@ describe('MexcUtils', () => {
         S: 1,
         v: '1.0',
         p: '50000.00',
-        z: '0'
+        z: '0',
       };
       const beforeTime = Date.now();
       const result = MexcUtils.transformOrder(mexcOrderData);
@@ -242,7 +230,7 @@ describe('MexcUtils', () => {
     });
     it('should handle missing fields gracefully', () => {
       const mexcOrderData = {
-        i: 12350
+        i: 12350,
       };
       const result = MexcUtils.transformOrder(mexcOrderData);
       expect(result.id).toBe('12350');
@@ -274,8 +262,9 @@ describe('MexcUtils', () => {
       const marketParams = ExchangeUtils.createMexcOrderParams('BTC/USDT', 'market', 'buy', 1.0);
       expect(marketParams.price).toBeUndefined();
       expect(marketParams.timeInForce).toBeUndefined();
-      expect(() => ExchangeUtils.createMexcOrderParams('BTC/USDT', 'limit', 'sell', 1.0, 0))
-        .toThrow('Price is required and must be greater than 0 for limit orders');
+      expect(() =>
+        ExchangeUtils.createMexcOrderParams('BTC/USDT', 'limit', 'sell', 1.0, 0)
+      ).toThrow('Price is required and must be greater than 0 for limit orders');
     });
 
     describe('Error cases tests', () => {
@@ -292,10 +281,10 @@ describe('MexcUtils', () => {
 
       it('should handle toStandardFormat error in transformUserDataOrderInternal', () => {
         jest.mock('../../../../utils/symbol-utils', () => ({
-          toStandardFormat: jest.fn().mockImplementation((symbol) => {
+          toStandardFormat: jest.fn().mockImplementation(symbol => {
             if (symbol === 'INVALIDSYMBOL') throw new Error('Invalid symbol format');
             return symbol + '/USDT';
-          })
+          }),
         }));
         const userDataOrder = { c: 'INVALIDSYMBOL', i: 123, S: 1 };
         const result = (MexcUtils as any).transformUserDataOrderInternal(userDataOrder);
@@ -304,10 +293,10 @@ describe('MexcUtils', () => {
 
       it('should handle toStandardFormat error in transformWebSocketUserOrderInternal', () => {
         jest.mock('../../../../utils/symbol-utils', () => ({
-          toStandardFormat: jest.fn().mockImplementation((symbol) => {
+          toStandardFormat: jest.fn().mockImplementation(symbol => {
             if (symbol === 'BADSYMBOL') throw new Error('Bad symbol');
             return symbol + '/USDT';
-          })
+          }),
         }));
         const wsOrder = { s: 'BADSYMBOL', i: 456 };
         const result = (MexcUtils as any).transformWebSocketUserOrderInternal(wsOrder);
@@ -320,7 +309,7 @@ describe('MexcUtils', () => {
           price: 50000,
           side: 'buy',
           symbol: 'BTCUSDT',
-          status: 'partial-filled'
+          status: 'partial-filled',
         };
         jest.spyOn(MexcDataMapper, 'mapToOrderStatus').mockReturnValue('open');
         const result = (MexcUtils as any).transformProtobufOrderInternal(mockDecodedOrder);
@@ -334,7 +323,7 @@ describe('MexcUtils', () => {
           price: 50000,
           side: 'sell',
           symbol: 'ETHUSDT',
-          status: 'filled'
+          status: 'filled',
         };
         jest.spyOn(MexcDataMapper, 'mapToOrderStatus').mockReturnValue('open');
         const result = (MexcUtils as any).transformProtobufOrderInternal(mockDecodedOrder);

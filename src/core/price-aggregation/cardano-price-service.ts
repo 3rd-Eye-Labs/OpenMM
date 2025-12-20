@@ -4,13 +4,13 @@
  * Following Phase 1 Iris-only approach with fail-fast error handling
  */
 
-import {AggregatedPrice, PriceData} from '../../types';
-import {PriceCalculationResult} from '../../types';
-import {IrisPoolDiscovery} from './iris-pool-discovery';
-import {IrisApiClient} from './iris-api-client';
-import {PriceCalculator} from './price-calculator';
-import {CEX_API_CONFIG, getTokenConfig, isTokenSupported} from '../../config/price-aggregation';
-import {logger} from "../../utils";
+import { AggregatedPrice, PriceData } from '../../types';
+import { PriceCalculationResult } from '../../types';
+import { IrisPoolDiscovery } from './iris-pool-discovery';
+import { IrisApiClient } from './iris-api-client';
+import { PriceCalculator } from './price-calculator';
+import { CEX_API_CONFIG, getTokenConfig, isTokenSupported } from '../../config/price-aggregation';
+import { logger } from '../../utils';
 
 export class CardanoPriceService {
   private poolDiscovery: IrisPoolDiscovery;
@@ -35,7 +35,7 @@ export class CardanoPriceService {
     try {
       const [adaUsdtPrice, tokenAdaResult] = await Promise.all([
         this.getADAUSDTPrice(),
-        this.getTokenADAPrice(symbol)
+        this.getTokenADAPrice(symbol),
       ]);
 
       const finalPrice = adaUsdtPrice.price * tokenAdaResult.price;
@@ -47,25 +47,24 @@ export class CardanoPriceService {
         confidence: tokenAdaResult.confidence,
         timestamp: new Date(),
         sources: [
-          { 
-            id: 'iris-dex', 
-            name: 'Iris DEX Aggregator', 
-            exchange: 'cardano', 
-            reliability: 0.9, 
-            latency: 0, 
-            isActive: true 
+          {
+            id: 'iris-dex',
+            name: 'Iris DEX Aggregator',
+            exchange: 'cardano',
+            reliability: 0.9,
+            latency: 0,
+            isActive: true,
           },
-          { 
-            id: 'cex-ada', 
-            name: 'CEX ADA/USDT', 
-            exchange: adaUsdtPrice.source, 
-            reliability: 0.95, 
-            latency: 0, 
-            isActive: true 
-          }
-        ]
+          {
+            id: 'cex-ada',
+            name: 'CEX ADA/USDT',
+            exchange: adaUsdtPrice.source,
+            reliability: 0.95,
+            latency: 0,
+            isActive: true,
+          },
+        ],
       };
-
     } catch (error) {
       throw new Error(`Price aggregation failed for ${symbol}: ${error}`);
     }
@@ -79,7 +78,7 @@ export class CardanoPriceService {
 
     try {
       const pools = await this.poolDiscovery.discoverPools('lovelace', tokenConfig);
-      
+
       if (pools.length === 0) {
         throw new Error(`No pools found for ${symbol}`);
       }
@@ -94,11 +93,16 @@ export class CardanoPriceService {
       }
 
       const identifiers = topPools.map(pool => pool.identifier!);
-      const prices = await this.irisClient.fetchPrices(identifiers, 'OpenMM-CardanoPriceService/1.0');
+      const prices = await this.irisClient.fetchPrices(
+        identifiers,
+        'OpenMM-CardanoPriceService/1.0'
+      );
 
       const result = this.priceCalculator.calculateLiquidityWeightedPrice(topPools, prices);
-      
-      logger.info(`${symbol}/ADA price: ${result.price.toFixed(8)} from ${result.poolsUsed} pools (Iris API)`);
+
+      logger.info(
+        `${symbol}/ADA price: ${result.price.toFixed(8)} from ${result.poolsUsed} pools (Iris API)`
+      );
 
       return result;
     } catch (error) {
@@ -116,23 +120,25 @@ export class CardanoPriceService {
         this.fetchADAUSDT('binance').catch(() => null),
         this.fetchADAUSDT('mexc').catch(() => null),
         this.fetchADAUSDT('coingecko').catch(() => null),
-        this.fetchADAUSDT('kraken').catch(() => null)
+        this.fetchADAUSDT('kraken').catch(() => null),
       ]);
 
-      const validPrices = prices.filter(price => price !== null && price > 0 && !isNaN(price)) as number[];
-      
+      const validPrices = prices.filter(
+        price => price !== null && price > 0 && !isNaN(price)
+      ) as number[];
+
       if (validPrices.length === 0) {
         throw new Error('No valid ADA/USDT price from any source');
       }
 
       const averagePrice = validPrices.reduce((sum, price) => sum + price, 0) / validPrices.length;
-      
+
       return {
         symbol: 'ADA/USDT',
         price: averagePrice,
         timestamp: new Date(),
         source: `multi-cex-${validPrices.length}`,
-        volume24h: 1000000
+        volume24h: 1000000,
       };
     } catch (error) {
       throw new Error(`Failed to get ADA/USDT price: ${error}`);
@@ -142,29 +148,31 @@ export class CardanoPriceService {
   /**
    * Fetch ADA/USDT price from specified exchange
    */
-  private async fetchADAUSDT(exchange: 'binance' | 'mexc' | 'coingecko' | 'kraken'): Promise<number> {
+  private async fetchADAUSDT(
+    exchange: 'binance' | 'mexc' | 'coingecko' | 'kraken'
+  ): Promise<number> {
     let url: string;
     let priceExtractor: (data: any) => number;
-    
+
     switch (exchange) {
       case 'binance':
         url = `${CEX_API_CONFIG.BINANCE.BASE_URL}${CEX_API_CONFIG.BINANCE.ENDPOINTS.TICKER_PRICE}?symbol=ADAUSDT`;
-        priceExtractor = (data) => parseFloat(data.price);
+        priceExtractor = data => parseFloat(data.price);
         break;
-        
+
       case 'mexc':
         url = `${CEX_API_CONFIG.MEXC.BASE_URL}${CEX_API_CONFIG.MEXC.ENDPOINTS.TICKER_PRICE}?symbol=ADAUSDT`;
-        priceExtractor = (data) => parseFloat(data.price);
+        priceExtractor = data => parseFloat(data.price);
         break;
-        
+
       case 'coingecko':
         url = `${CEX_API_CONFIG.COINGECKO.BASE_URL}${CEX_API_CONFIG.COINGECKO.ENDPOINTS.SIMPLE_PRICE}?ids=cardano&vs_currencies=usd`;
-        priceExtractor = (data) => data?.cardano?.usd;
+        priceExtractor = data => data?.cardano?.usd;
         break;
-        
+
       case 'kraken':
         url = `${CEX_API_CONFIG.KRAKEN.BASE_URL}${CEX_API_CONFIG.KRAKEN.ENDPOINTS.TICKER}?pair=ADAUSD`;
-        priceExtractor = (data) => parseFloat(data?.result?.ADAUSD?.c?.[0]);
+        priceExtractor = data => parseFloat(data?.result?.ADAUSD?.c?.[0]);
         break;
     }
 
@@ -175,12 +183,11 @@ export class CardanoPriceService {
 
     const data = await response.json();
     const price = priceExtractor(data);
-    
+
     if (isNaN(price) || price <= 0 || price == null) {
       throw new Error(`Invalid price from ${exchange}`);
     }
-    
+
     return price;
   }
-
 }

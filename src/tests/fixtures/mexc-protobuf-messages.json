@@ -6,8 +6,8 @@
         "type": "order",
         "symbol": "INDY/USDT",
         "orderId": "C02__123456789",
-        "price": 0.12340,
-        "quantity": 100.00,
+        "price": 0.1234,
+        "quantity": 100.0,
         "side": "buy",
         "status": "new"
       }
@@ -18,8 +18,8 @@
         "type": "order",
         "symbol": "INDY/USDT",
         "orderId": "C02__987654321",
-        "price": 0.12350,
-        "quantity": 50.00,
+        "price": 0.1235,
+        "quantity": 50.0,
         "side": "sell",
         "status": "new"
       }

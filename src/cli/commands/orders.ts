@@ -1,18 +1,19 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { ExchangeFactory } from '../exchange-factory';
-import { 
-  validateExchange, 
-  validateSymbol, 
-  validateOrderId, 
+import {
+  validateExchange,
+  validateSymbol,
+  validateOrderId,
   validatePositiveNumber,
   validateOrderType,
-  validateOrderSide 
+  validateOrderSide,
 } from '../utils/validation';
 import { executeCommand, displayTable, showSuccess, handleError } from '../utils/error-handler';
 
-export const ordersCommand = new Command('orders')
-  .description('Manage orders on specified exchange');
+export const ordersCommand = new Command('orders').description(
+  'Manage orders on specified exchange'
+);
 
 ordersCommand
   .command('list')
@@ -21,11 +22,11 @@ ordersCommand
   .option('-s, --symbol <symbol>', 'Filter by trading pair (e.g., BTC/USDT)')
   .option('-l, --limit <limit>', 'Number of orders to display (default: all)', 'all')
   .option('--json', 'Output in JSON format')
-  .action(async (options) => {
+  .action(async options => {
     await executeCommand(async () => {
       const exchange = validateExchange(options.exchange);
       const symbol = options.symbol ? validateSymbol(options.symbol) : undefined;
-      
+
       let limit: number | undefined;
       if (options.limit !== 'all') {
         limit = parseInt(options.limit);
@@ -34,7 +35,7 @@ ordersCommand
           process.exit(1);
         }
       }
-      
+
       try {
         const connector = await ExchangeFactory.getExchange(exchange);
         let orders = await connector.getOpenOrders(symbol);
@@ -59,11 +60,13 @@ ordersCommand
             Amount: order.amount.toFixed(8),
             Price: order.price ? order.price.toFixed(8) : 'Market',
             Filled: order.filled.toFixed(8),
-            Status: order.status.toUpperCase()
+            Status: order.status.toUpperCase(),
           }));
 
           const limitText = limit ? ` (showing ${Math.min(limit, orders.length)})` : '';
-          console.log(`\n${chalk.bold.cyan('Open Orders')}${symbol ? ` for ${symbol}` : ''}${limitText}:`);
+          console.log(
+            `\n${chalk.bold.cyan('Open Orders')}${symbol ? ` for ${symbol}` : ''}${limitText}:`
+          );
           displayTable(orderData);
         }
       } catch (error) {
@@ -79,12 +82,12 @@ ordersCommand
   .requiredOption('-i, --id <orderId>', 'Order ID')
   .requiredOption('-s, --symbol <symbol>', 'Trading pair symbol')
   .option('--json', 'Output in JSON format')
-  .action(async (options) => {
+  .action(async options => {
     await executeCommand(async () => {
       const exchange = validateExchange(options.exchange);
       const orderId = validateOrderId(options.id);
       const symbol = validateSymbol(options.symbol);
-      
+
       try {
         const connector = await ExchangeFactory.getExchange(exchange);
         const order = await connector.getOrder(orderId, symbol);
@@ -119,14 +122,14 @@ ordersCommand
   .requiredOption('--amount <amount>', 'Order amount')
   .option('--price <price>', 'Order price (required for limit orders)')
   .option('--json', 'Output in JSON format')
-  .action(async (options) => {
+  .action(async options => {
     await executeCommand(async () => {
       const exchange = validateExchange(options.exchange);
       const symbol = validateSymbol(options.symbol);
       const side = validateOrderSide(options.side);
       const type = validateOrderType(options.type);
       const amount = validatePositiveNumber(options.amount, 'Amount');
-      
+
       let price: number | undefined;
       if (type === 'limit') {
         if (!options.price) {
@@ -135,7 +138,7 @@ ordersCommand
         }
         price = validatePositiveNumber(options.price, 'Price');
       }
-      
+
       try {
         const connector = await ExchangeFactory.getExchange(exchange);
         const order = await connector.createOrder(symbol, type, side, amount, price);
@@ -167,23 +170,29 @@ ordersCommand
   .requiredOption('-i, --id <orderId>', 'Order ID to cancel')
   .requiredOption('-s, --symbol <symbol>', 'Trading pair symbol')
   .option('--json', 'Output in JSON format')
-  .action(async (options) => {
+  .action(async options => {
     await executeCommand(async () => {
       const exchange = validateExchange(options.exchange);
       const orderId = validateOrderId(options.id);
       const symbol = validateSymbol(options.symbol);
-      
+
       try {
         const connector = await ExchangeFactory.getExchange(exchange);
         await connector.cancelOrder(orderId, symbol);
 
         if (options.json) {
-          console.log(JSON.stringify({ 
-            success: true, 
-            orderId, 
-            symbol, 
-            message: 'Order cancelled successfully' 
-          }, null, 2));
+          console.log(
+            JSON.stringify(
+              {
+                success: true,
+                orderId,
+                symbol,
+                message: 'Order cancelled successfully',
+              },
+              null,
+              2
+            )
+          );
         } else {
           showSuccess(`Order cancelled successfully!`);
           console.log(`  Order ID:  ${chalk.bold(orderId)}`);
@@ -196,7 +205,9 @@ ordersCommand
     }, 'cancel order');
   });
 
-ordersCommand.addHelpText('after', `
+ordersCommand.addHelpText(
+  'after',
+  `
 Examples:
   $ openmm orders list --exchange mexc                           # List all open orders
   $ openmm orders list --exchange mexc --limit 5                 # List only 5 orders
@@ -204,4 +215,5 @@ Examples:
   $ openmm orders get --exchange mexc --id 12345 --symbol BTC/USDT  # Get specific order
   $ openmm orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 50000
   $ openmm orders cancel --exchange mexc --id 12345 --symbol BTC/USDT  # Cancel specific order
-`);
+`
+);

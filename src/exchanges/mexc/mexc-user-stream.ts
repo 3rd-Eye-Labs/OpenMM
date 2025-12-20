@@ -2,7 +2,6 @@ import { MexcWebSocket } from './mexc-websocket';
 import { Order, Trade } from '../../types';
 import { createLogger } from '../../utils';
 
-
 /**
  * Official MEXC User Stream Documentation:
  *
@@ -23,12 +22,22 @@ export class MexcUserStream {
   private listenKey?: string;
   private userDataWs?: MexcWebSocket;
   private keepAliveInterval?: NodeJS.Timeout;
-  private makeRequestFn: (endpoint: string, params: Record<string, unknown>, method: string) => Promise<any>;
+  private makeRequestFn: (
+    endpoint: string,
+    params: Record<string, unknown>,
+    method: string
+  ) => Promise<any>;
   private logger = createLogger('mexc-user-stream');
   private orderCallback?: (order: Order) => void;
   private tradeCallback?: (trade: Trade) => void;
 
-  constructor(makeRequestFn: (endpoint: string, params: Record<string, unknown>, method: string) => Promise<any>) {
+  constructor(
+    makeRequestFn: (
+      endpoint: string,
+      params: Record<string, unknown>,
+      method: string
+    ) => Promise<any>
+  ) {
     this.makeRequestFn = makeRequestFn;
   }
 
@@ -38,7 +47,7 @@ export class MexcUserStream {
   async connectUserDataStream(): Promise<void> {
     try {
       await this.getListenKey();
-      
+
       if (!this.userDataWs) {
         const wsUrl = `wss://wbs-api.mexc.com/ws?listenKey=${this.listenKey}`;
         this.userDataWs = new MexcWebSocket(wsUrl);
@@ -47,17 +56,23 @@ export class MexcUserStream {
       await this.userDataWs.connectWebSocket();
       this.logger.info('✅ User data stream connected successfully');
 
-      this.keepAliveInterval = setInterval(() => {
-        this.keepAliveListenKey().catch((error) => this.logger.error('Keep alive listen key failed', { error }));
-      }, 30 * 60 * 1000);
+      this.keepAliveInterval = setInterval(
+        () => {
+          this.keepAliveListenKey().catch(error =>
+            this.logger.error('Keep alive listen key failed', { error })
+          );
+        },
+        30 * 60 * 1000
+      );
 
       this.setupDisconnectHandler();
-      
-      this.startConnectionMonitoring();
 
+      this.startConnectionMonitoring();
     } catch (error: unknown) {
       this.logger.error('❌ Failed to connect user data stream:', { error });
-      throw new Error(`Failed to connect user data stream: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to connect user data stream: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -66,18 +81,17 @@ export class MexcUserStream {
    */
   private setupDisconnectHandler(): void {
     if (!this.userDataWs) return;
-    
+
     const originalOnClose = (this.userDataWs as any).ws?.onclose;
     if ((this.userDataWs as any).ws) {
       (this.userDataWs as any).ws.onclose = (event: any) => {
-        
         if (originalOnClose) {
           originalOnClose.call((this.userDataWs as any).ws, event);
         }
-        
+
         setTimeout(() => {
           if (this.userDataWs && !this.userDataWs.isConnected()) {
-            this.reconnectUserDataStream().catch((error) =>
+            this.reconnectUserDataStream().catch(error =>
               this.logger.error('Immediate reconnection failed:', { error })
             );
           }
@@ -92,7 +106,7 @@ export class MexcUserStream {
   private startConnectionMonitoring(): void {
     setInterval(() => {
       if (this.userDataWs && !this.userDataWs.isConnected()) {
-        this.reconnectUserDataStream().catch((error) =>
+        this.reconnectUserDataStream().catch(error =>
           this.logger.error('Failed to reconnect user data stream:', { error })
         );
       } else if (this.userDataWs) {
@@ -113,18 +127,18 @@ export class MexcUserStream {
       }
 
       await this.getListenKey();
-      
+
       const wsUrl = `wss://wbs-api.mexc.com/ws?listenKey=${this.listenKey}`;
       this.userDataWs = new MexcWebSocket(wsUrl);
-      
+
       await this.userDataWs.connectWebSocket();
 
       this.setupDisconnectHandler();
-      
+
       if (this.orderCallback) {
         await this.userDataWs.subscribeToUserData(this.orderCallback);
       }
-      
+
       if (this.tradeCallback) {
         const wrappedCallback = (data: any) => {
           if (this.isTradeExecution(data)) {
@@ -134,7 +148,6 @@ export class MexcUserStream {
         };
         await this.userDataWs.subscribeToUserData(wrappedCallback);
       }
-      
     } catch (error) {
       this.logger.error('❌ Failed to reconnect user data stream:', { error });
       throw error;
@@ -175,7 +188,9 @@ export class MexcUserStream {
       return await this.userDataWs.subscribeToUserData(callback);
     } catch (error: unknown) {
       this.logger.error('❌ Failed to subscribe to user orders:', { error });
-      throw new Error(`Failed to subscribe to user orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to subscribe to user orders: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -206,7 +221,9 @@ export class MexcUserStream {
 
       return await this.userDataWs.subscribeToUserData(wrappedCallback);
     } catch (error: unknown) {
-      throw new Error(`Failed to subscribe to user trades: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to subscribe to user trades: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -222,7 +239,9 @@ export class MexcUserStream {
       }
       return this.listenKey;
     } catch (error: unknown) {
-      throw new Error(`Failed to get listen key: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get listen key: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -231,7 +250,7 @@ export class MexcUserStream {
    */
   async keepAliveListenKey(): Promise<void> {
     if (!this.listenKey) return;
-    
+
     try {
       await this.makeRequestFn('/userDataStream', { listenKey: this.listenKey }, 'PUT');
     } catch (error: unknown) {
@@ -240,11 +259,11 @@ export class MexcUserStream {
   }
 
   /**
-   * Delete a user data stream  
+   * Delete a user data stream
    */
   async deleteListenKey(): Promise<void> {
     if (!this.listenKey) return;
-    
+
     try {
       await this.makeRequestFn('/userDataStream', { listenKey: this.listenKey }, 'DELETE');
       this.listenKey = undefined;
@@ -261,11 +280,11 @@ export class MexcUserStream {
     if (!data || typeof data !== 'object') {
       return false;
     }
-    
+
     const isFilled = data.status === 'filled';
     const isPartiallyFilled = data.filled && data.filled > 0;
-    const hasExecutedQuantity = data.amount && data.filled && (data.filled / data.amount) > 0;
-    
+    const hasExecutedQuantity = data.amount && data.filled && data.filled / data.amount > 0;
+
     return isFilled || isPartiallyFilled || hasExecutedQuantity;
   }
 
@@ -281,7 +300,7 @@ export class MexcUserStream {
       amount: parseFloat(data.filled || data.executedQty || '0'),
       price: parseFloat(data.price || '0'),
       fee: parseFloat(data.fee || '0'),
-      timestamp: data.timestamp || Date.now()
+      timestamp: data.timestamp || Date.now(),
     };
   }
 }

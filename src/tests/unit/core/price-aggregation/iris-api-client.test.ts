@@ -1,5 +1,5 @@
 import { IrisApiClient } from '../../../../core/price-aggregation';
-import { LiquidityPool } from '../../../../types/iris';
+import { LiquidityPool } from '../../../../types';
 
 global.fetch = jest.fn();
 
@@ -22,15 +22,15 @@ describe('IrisApiClient', () => {
           state: {
             tvl: 1000000,
             reserveA: 1000000,
-            reserveB: 500000
+            reserveB: 500000,
           },
-          isActive: true
-        }
+          isActive: true,
+        },
       ];
 
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ data: mockPools })
+        json: async () => ({ data: mockPools }),
       });
 
       const result = await apiClient.fetchLiquidityPools();
@@ -40,8 +40,8 @@ describe('IrisApiClient', () => {
         expect.objectContaining({
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'OpenMM-PriceAggregator/1.0'
-          }
+            'User-Agent': 'OpenMM-PriceAggregator/1.0',
+          },
         })
       );
       expect(result).toEqual(mockPools);
@@ -51,26 +51,24 @@ describe('IrisApiClient', () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 500,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
       });
 
-      await expect(
-        apiClient.fetchLiquidityPools()
-      ).rejects.toThrow('Iris API error: 500 Internal Server Error');
+      await expect(apiClient.fetchLiquidityPools()).rejects.toThrow(
+        'Iris API error: 500 Internal Server Error'
+      );
     });
 
     it('should handle network errors', async () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      await expect(
-        apiClient.fetchLiquidityPools()
-      ).rejects.toThrow('Network error');
+      await expect(apiClient.fetchLiquidityPools()).rejects.toThrow('Network error');
     });
 
     it('should handle empty response', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({})
+        json: async () => ({}),
       });
 
       const result = await apiClient.fetchLiquidityPools();
@@ -80,15 +78,11 @@ describe('IrisApiClient', () => {
 
   describe('fetchPrices', () => {
     it('should fetch prices for pool identifiers successfully', async () => {
-      const mockResponse = [
-        { price: '0.5' },
-        { price: '0.6' },
-        { price: '0.55' }
-      ];
-      
+      const mockResponse = [{ price: '0.5' }, { price: '0.6' }, { price: '0.55' }];
+
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const identifiers = ['pool1', 'pool2', 'pool3'];
@@ -100,11 +94,11 @@ describe('IrisApiClient', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'TestAgent/1.0'
+            'User-Agent': 'TestAgent/1.0',
           },
           body: JSON.stringify({
-            identifiers: identifiers
-          })
+            identifiers: identifiers,
+          }),
         }
       );
       expect(result).toEqual([0.5, 0.6, 0.55]);
@@ -113,7 +107,7 @@ describe('IrisApiClient', () => {
     it('should use default user agent when none provided', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => [{ price: '0.5' }]
+        json: async () => [{ price: '0.5' }],
       });
 
       const result = await apiClient.fetchPrices(['pool1']);
@@ -125,11 +119,11 @@ describe('IrisApiClient', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'OpenMM-PriceAggregator/1.0'
+            'User-Agent': 'OpenMM-PriceAggregator/1.0',
           },
           body: JSON.stringify({
-            identifiers: ['pool1']
-          })
+            identifiers: ['pool1'],
+          }),
         }
       );
     });
@@ -137,67 +131,63 @@ describe('IrisApiClient', () => {
     it('should handle empty identifier array', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => []
+        json: async () => [],
       });
 
-      await expect(
-        apiClient.fetchPrices([])
-      ).rejects.toThrow('Invalid response format from Iris prices API');
+      await expect(apiClient.fetchPrices([])).rejects.toThrow(
+        'Invalid response format from Iris prices API'
+      );
     });
 
     it('should handle HTTP errors for price fetching', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 404,
-        statusText: 'Not Found'
+        statusText: 'Not Found',
       });
 
-      await expect(
-        apiClient.fetchPrices(['invalid-pool'])
-      ).rejects.toThrow('Iris prices API error: 404 Not Found');
+      await expect(apiClient.fetchPrices(['invalid-pool'])).rejects.toThrow(
+        'Iris prices API error: 404 Not Found'
+      );
     });
 
     it('should handle network errors for price fetching', async () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Connection timeout'));
 
-      await expect(
-        apiClient.fetchPrices(['pool1'])
-      ).rejects.toThrow('Connection timeout');
+      await expect(apiClient.fetchPrices(['pool1'])).rejects.toThrow('Connection timeout');
     });
 
     it('should handle non-array response', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ error: 'Invalid request' })
+        json: async () => ({ error: 'Invalid request' }),
       });
 
-      await expect(
-        apiClient.fetchPrices(['pool1'])
-      ).rejects.toThrow('Invalid response format from Iris prices API');
+      await expect(apiClient.fetchPrices(['pool1'])).rejects.toThrow(
+        'Invalid response format from Iris prices API'
+      );
     });
 
     it('should handle array with non-numeric values', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => [
-          { price: '0.5' },
-          { price: 'invalid' },
-          { price: '0.6' }
-        ]
+        json: async () => [{ price: '0.5' }, { price: 'invalid' }, { price: '0.6' }],
       });
 
-      await expect(
-        apiClient.fetchPrices(['pool1', 'pool2', 'pool3'])
-      ).rejects.toThrow('Invalid price value: invalid');
+      await expect(apiClient.fetchPrices(['pool1', 'pool2', 'pool3'])).rejects.toThrow(
+        'Invalid price value: invalid'
+      );
     });
 
     it('should handle large identifier arrays', async () => {
       const largeArray = Array.from({ length: 100 }, (_, i) => `pool${i}`);
-      const largePriceResponse = Array.from({ length: 100 }, (_, i) => ({ price: (0.5 + i * 0.01).toString() }));
-      
+      const largePriceResponse = Array.from({ length: 100 }, (_, i) => ({
+        price: (0.5 + i * 0.01).toString(),
+      }));
+
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => largePriceResponse
+        json: async () => largePriceResponse,
       });
 
       const result = await apiClient.fetchPrices(largeArray);
@@ -207,8 +197,8 @@ describe('IrisApiClient', () => {
         'https://iris.indigoprotocol.io/api/liquidity-pools/prices',
         expect.objectContaining({
           body: JSON.stringify({
-            identifiers: largeArray
-          })
+            identifiers: largeArray,
+          }),
         })
       );
     });
@@ -218,7 +208,7 @@ describe('IrisApiClient', () => {
     it('should handle undefined/null responses gracefully', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => null
+        json: async () => null,
       });
 
       const result = await apiClient.fetchLiquidityPools();

@@ -9,7 +9,7 @@ describe('GridOrderManager', () => {
     jest.useFakeTimers();
     manager = new GridOrderManager({
       priceDeviationThreshold: 0.02,
-      adjustmentDebounce: 1000
+      adjustmentDebounce: 1000,
     });
     mockPlaceOrder = jest.fn();
     mockCancelAllOrders = jest.fn();
@@ -30,7 +30,7 @@ describe('GridOrderManager', () => {
     it('should place orders for all grid levels', async () => {
       const levels: GridLevel[] = [
         { price: 100, side: 'buy', orderSize: 10 },
-        { price: 110, side: 'sell', orderSize: 10 }
+        { price: 110, side: 'sell', orderSize: 10 },
       ];
       const mockOrder: Order = {
         id: 'test-order',
@@ -42,7 +42,7 @@ describe('GridOrderManager', () => {
         status: 'open',
         timestamp: Date.now(),
         filled: 0,
-        remaining: 10
+        remaining: 10,
       };
       mockPlaceOrder.mockResolvedValue(mockOrder);
       const orders = await manager.placeInitialGrid(levels, mockPlaceOrder);
@@ -56,7 +56,7 @@ describe('GridOrderManager', () => {
     it('should handle order placement failures gracefully', async () => {
       const levels: GridLevel[] = [
         { price: 100, side: 'buy', orderSize: 10 },
-        { price: 110, side: 'sell', orderSize: 10 }
+        { price: 110, side: 'sell', orderSize: 10 },
       ];
       const mockOrder: Order = {
         id: 'test-order',
@@ -68,7 +68,7 @@ describe('GridOrderManager', () => {
         status: 'open',
         timestamp: Date.now(),
         filled: 0,
-        remaining: 10
+        remaining: 10,
       };
       mockPlaceOrder
         .mockRejectedValueOnce(new Error('Insufficient balance'))
@@ -92,12 +92,13 @@ describe('GridOrderManager', () => {
         status: 'open',
         timestamp: Date.now(),
         filled: 0,
-        remaining: 5
+        remaining: 5,
       };
       const mockInitialPlaceOrder = jest.fn().mockResolvedValue(initialOrder);
-      await manager.placeInitialGrid([
-        { side: 'sell', price: 110, orderSize: 5 }
-      ], mockInitialPlaceOrder);
+      await manager.placeInitialGrid(
+        [{ side: 'sell', price: 110, orderSize: 5 }],
+        mockInitialPlaceOrder
+      );
       const filledOrder: Order = {
         id: 'filled-order',
         symbol: 'INDY/USDT',
@@ -108,7 +109,7 @@ describe('GridOrderManager', () => {
         status: 'filled',
         timestamp: Date.now(),
         filled: 10,
-        remaining: 0
+        remaining: 0,
       };
       mockCancelAllOrders.mockResolvedValue(undefined);
       mockPlaceOrder.mockResolvedValue({
@@ -121,7 +122,7 @@ describe('GridOrderManager', () => {
         status: 'open',
         timestamp: Date.now(),
         filled: 0,
-        remaining: 5
+        remaining: 5,
       });
       await manager.handleOrderFill(
         filledOrder,
@@ -147,7 +148,7 @@ describe('GridOrderManager', () => {
         status: 'filled',
         timestamp: Date.now(),
         filled: 10,
-        remaining: 0
+        remaining: 0,
       };
       await manager.handleOrderFill(
         filledOrder,
@@ -178,7 +179,7 @@ describe('GridOrderManager', () => {
     beforeEach(() => {
       const levels: GridLevel[] = [
         { price: 100, side: 'buy', orderSize: 10 },
-        { price: 110, side: 'sell', orderSize: 10 }
+        { price: 110, side: 'sell', orderSize: 10 },
       ];
       const mockOrder: Order = {
         id: 'test-order',
@@ -190,7 +191,7 @@ describe('GridOrderManager', () => {
         status: 'open',
         timestamp: Date.now(),
         filled: 0,
-        remaining: 10
+        remaining: 10,
       };
       mockPlaceOrder.mockResolvedValue(mockOrder);
       return manager.placeInitialGrid(levels, mockPlaceOrder);
@@ -232,9 +233,7 @@ describe('GridOrderManager', () => {
 
   describe('getActiveOrders', () => {
     it('should return copy of active orders array', async () => {
-      const levels: GridLevel[] = [
-        { price: 100, side: 'buy', orderSize: 10 }
-      ];
+      const levels: GridLevel[] = [{ price: 100, side: 'buy', orderSize: 10 }];
       const mockOrder: Order = {
         id: 'test-order',
         symbol: 'INDY/USDT',
@@ -245,7 +244,7 @@ describe('GridOrderManager', () => {
         status: 'open',
         timestamp: Date.now(),
         filled: 0,
-        remaining: 10
+        remaining: 10,
       };
       mockPlaceOrder.mockResolvedValue(mockOrder);
       await manager.placeInitialGrid(levels, mockPlaceOrder);
