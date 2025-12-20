@@ -6,6 +6,8 @@ export * from './mexc';
 export * from './mexc-raw';
 export * from './bitget';
 export * from './bitget-raw';
+export * from './gateio';
+export * from './gateio-raw';
 export * from './price';
 export * from './risk';
 export * from './iris';
