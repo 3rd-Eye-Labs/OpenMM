@@ -212,7 +212,7 @@ describe('Logger', () => {
       expect(typeof context).toBe('object');
       expect(context.userId).toBe(123);
       expect(context.sessionId).toBe('abc123');
-      expect(context.nested.prop).toBe('value');
+      expect((context.nested as { prop: string }).prop).toBe('value');
     });
     it('should allow empty context', () => {
       const context: LogContext = {};

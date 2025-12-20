@@ -1,4 +1,5 @@
 import { OrderType, OrderSide } from '../types';
+import { MexcOrderParams } from '../types';
 import { toExchangeFormat } from './symbol-utils';
 
 /**
@@ -224,9 +225,9 @@ export class ExchangeUtils {
     side: OrderSide,
     amount: number,
     price?: number
-  ): Record<string, any> {
+  ): MexcOrderParams {
     return this.createOrderParams(symbol, type, side, amount, price, params => {
-      const mexcParams: Record<string, any> = {
+      const mexcParams: MexcOrderParams = {
         symbol: params.symbol,
         side: params.side.toUpperCase(),
         type: params.type.toUpperCase(),
