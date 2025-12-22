@@ -10,6 +10,40 @@ import { toExchangeFormat } from './symbol-utils';
  */
 export class ExchangeUtils {
   /**
+   * Validate common order parameters
+   *
+   * @param symbol - Trading pair symbol
+   * @param type - Order type
+   * @param side - Order side
+   * @param amount - Order amount
+   * @param price - Optional price for limit orders
+   * @throws Error if parameters are invalid
+   */
+  private static validateOrderParams(
+    symbol: string,
+    type: OrderType,
+    side: OrderSide,
+    amount: number,
+    price?: number
+  ): void {
+    if (!symbol || !type || !side || !amount) {
+      throw new Error(
+        'Missing required order parameters: symbol, type, side, and amount are required'
+      );
+    }
+
+    if (amount <= 0) {
+      throw new Error('Order amount must be greater than 0');
+    }
+
+    if (type === 'limit') {
+      if (!price || price <= 0) {
+        throw new Error('Price is required and must be greater than 0 for limit orders');
+      }
+    }
+  }
+
+  /**
    * Create standardized order parameters for exchange APIs
    *
    * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
@@ -35,21 +69,7 @@ export class ExchangeUtils {
       price?: number;
     }) => T
   ): T {
-    if (!symbol || !type || !side || !amount) {
-      throw new Error(
-        'Missing required order parameters: symbol, type, side, and amount are required'
-      );
-    }
-
-    if (amount <= 0) {
-      throw new Error('Order amount must be greater than 0');
-    }
-
-    if (type === 'limit') {
-      if (!price || price <= 0) {
-        throw new Error('Price is required and must be greater than 0 for limit orders');
-      }
-    }
+    this.validateOrderParams(symbol, type, side, amount, price);
 
     try {
       const exchangeSymbol = toExchangeFormat(symbol);
@@ -244,9 +264,70 @@ export class ExchangeUtils {
   }
 
   /**
+   * Create Gate.io-specific order parameters
+   *
+   * @param symbol - Trading pair symbol (e.g., 'SNEK/USDT')
+   * @param type - Order type ('market' or 'limit')
+   * @param side - Order side ('buy' or 'sell')
+   * @param amount - Order quantity/amount
+   * @param price - Optional. Price for limit orders
+   * @returns Gate.io-formatted order parameters
+   */
+  static createGateioOrderParams(
+    symbol: string,
+    type: OrderType,
+    side: OrderSide,
+    amount: number,
+    price?: number
+  ): Record<string, string> {
+    this.validateOrderParams(symbol, type, side, amount, price);
+
+    // Validate minimum order value for Gate.io
+    this.validateGateioMinimumOrder(amount, price, symbol);
+
+    const gateioSymbol = symbol.replace('/', '_').toUpperCase();
+
+    const gateioParams: Record<string, string> = {
+      currency_pair: gateioSymbol,
+      side: side.toLowerCase(),
+      type: type.toLowerCase(),
+      account: 'spot',
+      amount: amount.toString(),
+    };
+
+    if (type === 'limit' && price !== undefined) {
+      gateioParams.price = price.toString();
+    }
+
+    return gateioParams;
+  }
+
+  /**
+   * Validate minimum order value for Gate.io
+   * Gate.io requires minimum order value of 3 USDT
+   *
+   * @param amount - Order quantity
+   * @param price - Order price
+   * @param symbol - Trading pair symbol
+   * @throws Error if order value is below minimum
+   */
+  private static validateGateioMinimumOrder(amount: number, price?: number, symbol?: string): void {
+    if (price && symbol && (symbol.includes('USDT') || symbol.includes('USDC'))) {
+      const orderValue = amount * price;
+      const minimumValue = 3.0;
+
+      if (orderValue < minimumValue) {
+        throw new Error(
+          `Gate.io order value ${orderValue.toFixed(6)} USDT is below minimum ${minimumValue} USDT. Increase order size or price.`
+        );
+      }
+    }
+  }
+
+  /**
    * Get minimum order value for exchange
    *
-   * @param exchange - Exchange name ('bitget', 'mexc', etc.)
+   * @param exchange - Exchange name ('bitget', 'mexc', 'gateio', etc.)
    * @param symbol - Trading pair symbol
    * @returns Minimum order value in quote currency
    */
@@ -254,12 +335,17 @@ export class ExchangeUtils {
     switch (exchange.toLowerCase()) {
       case 'bitget':
         if (symbol.includes('USDT') || symbol.includes('USDC')) {
-          return 1.0; // 1 USDT minimum
+          return 1.0;
         }
         return 0;
       case 'mexc':
         if (symbol.includes('USDT') || symbol.includes('USDC')) {
-          return 1.0; // 1 USDT minimum
+          return 1.0;
+        }
+        return 0;
+      case 'gateio':
+        if (symbol.includes('USDT') || symbol.includes('USDC')) {
+          return 3.0;
         }
         return 0;
       default:
