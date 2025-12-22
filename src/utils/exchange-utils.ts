@@ -11,7 +11,7 @@ import { toExchangeFormat } from './symbol-utils';
 export class ExchangeUtils {
   /**
    * Validate common order parameters
-   * 
+   *
    * @param symbol - Trading pair symbol
    * @param type - Order type
    * @param side - Order side
@@ -121,7 +121,6 @@ export class ExchangeUtils {
     price?: number
   ): Record<string, string> {
     return this.createOrderParams(symbol, type, side, amount, price, params => {
-
       this.validateBitgetMinimumOrder(params.amount, params.price, params.symbol);
 
       const bitgetParams: Record<string, string> = {
