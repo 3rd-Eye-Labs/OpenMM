@@ -24,7 +24,7 @@ export class CardanoPriceService {
   }
 
   /**
-   * Main price fetching method - follows buyback bot approach
+   * Main price fetching method
    * Gets TOKEN/USDT price via ADA bridge: ADA/USDT × TOKEN/ADA
    */
   async getTokenPrice(symbol: string): Promise<AggregatedPrice> {
@@ -71,7 +71,7 @@ export class CardanoPriceService {
   }
 
   /**
-   * Get TOKEN/ADA price using Iris prices API (correct approach)
+   * Get TOKEN/ADA price using Iris prices API
    */
   private async getTokenADAPrice(symbol: string): Promise<PriceCalculationResult> {
     const tokenConfig = getTokenConfig(symbol);

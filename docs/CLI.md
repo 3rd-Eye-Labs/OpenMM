@@ -384,15 +384,6 @@ openmm pool-discovery supported
 openmm pool-discovery prices NIGHT
 ```
 
-### Generate Custom Token Configuration
-```bash
-# Generate config for a new token (advanced users)
-openmm pool-discovery custom POLICY_ID ASSET_NAME_HEX SYMBOL
-
-# Example for hypothetical token
-openmm pool-discovery custom 533bb94a8850ee3ccbe483106489399112b74c905342cb1792a797a0 494e4459 INDY
-```
-
 **Pool Discovery Options:**
 - `--limit <number>` - Limit number of pools shown (default: 10)
 - `--min-liquidity <number>` - Filter pools by minimum TVL in dollars
@@ -402,6 +393,22 @@ openmm pool-discovery custom 533bb94a8850ee3ccbe483106489399112b74c905342cb1792a
 - **NIGHT** - Midnight
 - **SNEK** - Snek Token
 - **INDY** - Indigo Protocol
+
+---
+
+## 📊 Price Comparison Commands
+
+Compare token prices across multiple exchanges (MEXC, Gate.io, Bitget) and Cardano DEX pools.
+
+### Compare Prices Across All Sources
+```bash
+# Compare SNEK across DEX and CEX
+openmm price-comparison --symbol SNEK
+
+# Compare INDY prices
+openmm price-comparison --symbol INDY
+```
+
 ---
 
 ## 📖 Help
@@ -416,6 +423,7 @@ openmm ticker --help             # Ticker command help
 openmm orderbook --help          # Order book command help
 openmm trades --help             # Trades command help
 openmm pool-discovery --help     # Pool discovery help
+openmm price-comparison --help   # Price comparison help
 ```
 
 ---
