@@ -96,7 +96,7 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       this.connected = true;
-      this.logger.debug('Connected to Gate.io API', {
+      this.logger.info('Connected to Gate.io API', {
         serverTime,
         localTime,
         timeDiff: Math.abs(serverTime - localTime),
