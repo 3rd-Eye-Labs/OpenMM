@@ -4,7 +4,7 @@
  * Type definitions for Gate.io exchange-specific data structures and WebSocket messages
  */
 
-import { Order, OrderBook, Ticker, Trade } from './index';
+import { Order, OrderBook, Ticker, Trade, Balance } from './index';
 
 /**
  * Subscription callback information for different data types
@@ -41,7 +41,7 @@ export type GateioSubscriptionInfo =
       channel: string;
     }
   | {
-      callback: (data: any) => void;
+      callback: (data: Record<string, Balance>) => void;
       type: 'balances';
       symbol: string;
       channel: string;
