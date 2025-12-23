@@ -157,7 +157,6 @@ export class GateioUserDataStream {
       const { channel, result } = message;
 
       if (!channel || !result) {
-        this.logger.debug('⚠️ Invalid private message format:', { channel, hasResult: !!result });
         return;
       }
 

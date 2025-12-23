@@ -140,7 +140,6 @@ export class GateioWebSocket {
       const { channel, result } = message;
 
       if (!channel || !result) {
-        this.logger.debug('⚠️ Invalid Gate.io message format:', { channel, hasResult: !!result });
         return;
       }
 

@@ -197,7 +197,6 @@ export class BitgetUserDataStream {
       const parsedMessage = JSON.parse(message);
 
       if (parsedMessage.event === 'pong') {
-        this.logger.debug('📡 Received pong');
         return;
       }
 
@@ -489,7 +488,6 @@ export class BitgetUserDataStream {
     this.pingTimer = setInterval(() => {
       if (this.ws && this.status === 'connected') {
         this.ws.send(JSON.stringify({ op: 'ping' }));
-        this.logger.debug('📡 Sent ping to user stream');
       }
     }, this.pingInterval);
   }
