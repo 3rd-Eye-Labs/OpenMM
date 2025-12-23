@@ -17,6 +17,8 @@ import {
 import { GateioAuth } from './gateio-auth';
 import { GateioUtils } from './gateio-utils';
 import { GateioDataMapper } from './gateio-data-mapper';
+import { GateioWebSocket } from './gateio-websocket';
+import { GateioUserDataStream } from './gateio-user-stream';
 import { createLogger, ExchangeUtils } from '../../utils';
 
 /**
@@ -27,6 +29,8 @@ import { createLogger, ExchangeUtils } from '../../utils';
  */
 export class GateioConnector extends BaseExchangeConnector {
   private auth?: GateioAuth;
+  private webSocket?: GateioWebSocket;
+  private userDataStream?: GateioUserDataStream;
   private logger = createLogger('gateio-connector');
   private readonly baseUrl = 'https://api.gateio.ws';
   private readonly dataMapper = new GateioDataMapper();
@@ -54,7 +58,6 @@ export class GateioConnector extends BaseExchangeConnector {
     }
 
     this.auth = new GateioAuth(credentials, this.baseUrl);
-    this.logger.info('Gate.io credentials set and authentication initialized');
   }
 
   /**
@@ -65,12 +68,9 @@ export class GateioConnector extends BaseExchangeConnector {
    */
   async connect(): Promise<void> {
     try {
-      this.logger.info('Connecting to Gate.io API...');
-
       const credentials = this.getCredentials();
       this.auth = new GateioAuth(credentials, this.baseUrl);
 
-      // Test public endpoint first
       const timeResponse = await this.auth.makePublicRequest('/spot/time');
 
       if (!timeResponse || !timeResponse.server_time) {
@@ -80,7 +80,6 @@ export class GateioConnector extends BaseExchangeConnector {
       const serverTime = GateioUtils.parseTimestamp(timeResponse.server_time);
       const localTime = Date.now();
 
-      // Validate credentials with authenticated request
       if (!this.auth.validateCredentialsExist()) {
         this.connected = false;
         this.handleError(new Error('Invalid Gate.io credentials'), 'connect');
@@ -88,7 +87,6 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       try {
-        // Test with a simple authenticated endpoint
         await this.auth.makeRequest('/spot/accounts');
       } catch (credError) {
         if (credError instanceof Error) {
@@ -98,7 +96,7 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       this.connected = true;
-      this.logger.info('Successfully connected to Gate.io API', {
+      this.logger.debug('Connected to Gate.io API', {
         serverTime,
         localTime,
         timeDiff: Math.abs(serverTime - localTime),
@@ -116,16 +114,11 @@ export class GateioConnector extends BaseExchangeConnector {
    */
   async disconnect(): Promise<void> {
     try {
-      this.logger.info('Disconnecting from Gate.io API...');
-
-      // Disconnect WebSocket if connected (Phase 2)
       await this.disconnectWebSocket();
       await this.disconnectUserDataStream();
 
       this.connected = false;
       this.auth = undefined;
-
-      this.logger.info('Successfully disconnected from Gate.io API');
     } catch (error) {
       this.handleError(error, 'disconnect');
     }
@@ -147,15 +140,11 @@ export class GateioConnector extends BaseExchangeConnector {
         throw new Error('Gate.io connector not authenticated');
       }
 
-      this.logger.debug('Fetching account balances from Gate.io');
-
       const response = await this.auth.makeRequest('/spot/accounts');
 
       if (!Array.isArray(response)) {
         throw new Error('Invalid response from Gate.io accounts endpoint - expected array');
       }
-
-      this.logger.debug(`Retrieved ${response.length} account balances`);
 
       return this.dataMapper.mapAccountBalances(response as GateioRawBalance[]);
     } catch (error: unknown) {
@@ -192,17 +181,7 @@ export class GateioConnector extends BaseExchangeConnector {
         throw new Error(`Invalid symbol format: ${symbol}`);
       }
 
-      // Use ExchangeUtils to create order parameters with validation
       const orderRequest = ExchangeUtils.createGateioOrderParams(symbol, type, side, amount, price);
-
-      this.logger.debug('Creating order on Gate.io', {
-        symbol,
-        currencyPair: orderRequest.currency_pair,
-        type,
-        side,
-        amount,
-        price,
-      });
 
       const response = await this.auth.makeRequest('/spot/orders', {}, 'POST', orderRequest);
 
@@ -291,19 +270,7 @@ export class GateioConnector extends BaseExchangeConnector {
 
       const currencyPair = GateioUtils.toGateioSymbol(symbol);
 
-      const response = await this.auth.makeRequest(
-        '/spot/orders',
-        { currency_pair: currencyPair },
-        'DELETE'
-      );
-
-      const cancelledOrders = Array.isArray(response) ? response : [];
-
-      if (cancelledOrders.length > 0) {
-        this.logger.debug('Cancelled order IDs', {
-          orderIds: cancelledOrders.map((order: any) => order.id),
-        });
-      }
+      await this.auth.makeRequest('/spot/orders', { currency_pair: currencyPair }, 'DELETE');
     } catch (error: unknown) {
       const errorMessage = GateioUtils.mapErrorMessage(error);
       this.logger.error('Cancel all orders failed', { symbol, error: errorMessage });
@@ -334,12 +301,6 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       const currencyPair = GateioUtils.toGateioSymbol(symbol);
-
-      this.logger.debug('Fetching order details from Gate.io', {
-        orderId,
-        symbol,
-        currencyPair,
-      });
 
       const response = await this.auth.makeRequest(`/spot/orders/${orderId}`, {
         currency_pair: currencyPair,
@@ -379,11 +340,6 @@ export class GateioConnector extends BaseExchangeConnector {
         params.currency_pair = GateioUtils.toGateioSymbol(symbol);
       }
 
-      this.logger.debug('Fetching open orders from Gate.io', {
-        symbol,
-        currencyPair: params.currency_pair,
-      });
-
       const response = await this.auth.makeRequest('/spot/open_orders', params);
 
       if (!Array.isArray(response)) {
@@ -392,8 +348,6 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       const allOrders = GateioUtils.extractOrdersFromOpenOrdersResponse(response);
-
-      this.logger.debug(`Retrieved ${allOrders.length} open orders`);
 
       return allOrders.map((orderData: unknown) =>
         this.dataMapper.mapOrder(orderData as GateioRawOrder)
@@ -419,12 +373,6 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       const currencyPair = GateioUtils.toGateioSymbol(symbol);
-
-      this.logger.debug('Fetching ticker from Gate.io', {
-        symbol,
-        currencyPair,
-      });
-
       const response = await this.makePublicRequest('/spot/tickers', {
         currency_pair: currencyPair,
       });
@@ -432,11 +380,6 @@ export class GateioConnector extends BaseExchangeConnector {
       if (!Array.isArray(response) || response.length === 0) {
         throw new Error('No ticker data found');
       }
-
-      this.logger.debug('Ticker data retrieved successfully', {
-        symbol: currencyPair,
-        last: response[0].last,
-      });
 
       return this.dataMapper.mapTicker(response[0]);
     } catch (error: unknown) {
@@ -460,11 +403,6 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       const currencyPair = GateioUtils.toGateioSymbol(symbol);
-
-      this.logger.debug('Fetching order book from Gate.io', {
-        symbol,
-        currencyPair,
-      });
 
       const response = await this.makePublicRequest('/spot/order_book', {
         currency_pair: currencyPair,
@@ -508,10 +446,6 @@ export class GateioConnector extends BaseExchangeConnector {
         return [];
       }
 
-      this.logger.debug(`Retrieved ${response.length} recent trades`, {
-        symbol: currencyPair,
-      });
-
       return response.map((tradeData: unknown) =>
         this.dataMapper.mapTrade(tradeData as GateioRawTrade, currencyPair)
       );
@@ -523,123 +457,236 @@ export class GateioConnector extends BaseExchangeConnector {
   }
 
   // =============================================================================
-  // WebSocket Methods (Placeholder implementations - TODO)
+  // WebSocket Methods
   // =============================================================================
 
   /**
    * Connect to Gate.io WebSocket for real-time data
-   * @throws Error - Not implemented yet
    */
   async connectWebSocket(): Promise<void> {
-    throw new Error('Gate.io WebSocket not implemented yet');
+    try {
+      if (this.webSocket?.isConnected()) {
+        return;
+      }
+
+      if (!this.webSocket) {
+        this.webSocket = new GateioWebSocket('wss://api.gateio.ws/ws/v4/');
+      }
+
+      await this.webSocket.connectWebSocket();
+    } catch (error) {
+      this.logger.error('Failed to connect Gate.io WebSocket', { error });
+      this.handleError(error, 'connectWebSocket');
+    }
   }
 
   /**
    * Disconnect from Gate.io WebSocket
-   * @throws Error - Not implemented yet
    */
   async disconnectWebSocket(): Promise<void> {
-    // No-op for now since WebSocket not implemented
+    try {
+      if (!this.webSocket) {
+        return;
+      }
+
+      await this.webSocket.disconnectWebSocket();
+      this.webSocket = undefined;
+    } catch (error) {
+      this.logger.error('Failed to disconnect Gate.io WebSocket', { error });
+    }
   }
 
   /**
    * Subscribe to real-time ticker updates for a trading pair
-   * @throws Error - Not implemented yet
    */
   async subscribeTicker(symbol: string, callback: (ticker: Ticker) => void): Promise<string> {
-    throw new Error('Gate.io subscribeTicker not implemented yet');
+    try {
+      if (!this.webSocket) {
+        await this.connectWebSocket();
+      }
+
+      if (!this.webSocket) {
+        throw new Error('Failed to initialize WebSocket connection');
+      }
+
+      return this.webSocket.subscribeTicker(symbol, callback);
+    } catch (error) {
+      this.logger.error('Failed to subscribe to ticker', { symbol, error });
+      this.handleError(error, 'subscribeTicker');
+    }
   }
 
   /**
    * Subscribe to real-time order book updates for a trading pair
-   * @throws Error - Not implemented yet
    */
   async subscribeOrderBook(
     symbol: string,
     callback: (orderbook: OrderBook) => void
   ): Promise<string> {
-    throw new Error('Gate.io subscribeOrderBook not implemented yet');
+    try {
+      if (!this.webSocket) {
+        await this.connectWebSocket();
+      }
+
+      if (!this.webSocket) {
+        throw new Error('Failed to initialize WebSocket connection');
+      }
+
+      return this.webSocket.subscribeOrderBook(symbol, callback);
+    } catch (error) {
+      this.logger.error('Failed to subscribe to order book', { symbol, error });
+      this.handleError(error, 'subscribeOrderBook');
+    }
   }
 
   /**
    * Subscribe to real-time trade updates for a trading pair
-   * @throws Error - Not implemented yet
    */
   async subscribeTrades(symbol: string, callback: (trade: Trade) => void): Promise<string> {
-    throw new Error('Gate.io subscribeTrades not implemented yet');
+    try {
+      if (!this.webSocket) {
+        await this.connectWebSocket();
+      }
+
+      if (!this.webSocket) {
+        throw new Error('Failed to initialize WebSocket connection');
+      }
+
+      return this.webSocket.subscribeTrades(symbol, callback);
+    } catch (error) {
+      this.logger.error('Failed to subscribe to trades', { symbol, error });
+      this.handleError(error, 'subscribeTrades');
+    }
   }
 
   /**
    * Subscribe to real-time order updates (user data)
-   * @throws Error - Not implemented yet
+   * Uses Gate.io UserDataStream for authenticated order updates
    */
   async subscribeOrders(callback: (order: Order) => void): Promise<string> {
-    throw new Error('Gate.io subscribeOrders not implemented yet');
+    try {
+      if (!this.userDataStream) {
+        await this.connectUserDataStream();
+      }
+
+      if (!this.userDataStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
+      }
+
+      return await this.userDataStream.subscribeUserOrders(callback);
+    } catch (error: unknown) {
+      this.logger.error('Failed to subscribe to orders', { error });
+      this.handleError(error, 'subscribeOrders');
+      return '';
+    }
   }
 
   /**
    * Unsubscribe from a WebSocket subscription
-   * @throws Error - Not implemented yet
    */
   async unsubscribe(subscriptionId: string): Promise<void> {
-    throw new Error('Gate.io unsubscribe not implemented yet');
+    try {
+      if (!this.webSocket) {
+        this.logger.warn('No WebSocket instance to unsubscribe from');
+        return;
+      }
+
+      this.webSocket.unsubscribe(subscriptionId);
+    } catch (error) {
+      this.logger.error('Failed to unsubscribe', { subscriptionId, error });
+    }
   }
 
   /**
    * Check if WebSocket connection is active
    */
   isWebSocketConnected(): boolean {
-    return false;
+    return this.webSocket?.isConnected() ?? false;
   }
 
   /**
    * Get current WebSocket connection status
    */
   getWebSocketStatus(): WebSocketStatus {
-    return 'disconnected'; // Phase 2 implementation
+    return this.webSocket?.getWebSocketStatus() ?? 'disconnected';
   }
 
   // =============================================================================
-  // User Data Stream Methods (Placeholder implementations TODO)
+  // User Data Stream Methods
   // =============================================================================
 
   /**
    * Connect to user data stream for real-time account updates
-   * @throws Error - Not implemented yet
+   * Uses dedicated GateioUserDataStream class following Bitget/MEXC pattern
    */
   async connectUserDataStream(): Promise<void> {
-    throw new Error('Gate.io User Data Stream not implemented yet');
+    try {
+      if (!this.auth) {
+        throw new Error('Authentication required. Call connect() first.');
+      }
+
+      const credentials = this.getCredentials();
+      if (!this.userDataStream) {
+        this.userDataStream = new GateioUserDataStream(credentials);
+      }
+
+      await this.userDataStream.connectUserDataStream();
+    } catch (error: unknown) {
+      this.handleError(error, 'connectUserDataStream');
+    }
   }
 
   /**
    * Disconnect from user data stream
-   * @throws Error - Not implemented yet
    */
   async disconnectUserDataStream(): Promise<void> {
-    // No-op for now since User Data Stream not implemented
+    try {
+      if (this.userDataStream) {
+        await this.userDataStream.disconnectUserDataStream();
+        this.userDataStream = undefined;
+      }
+    } catch (error: unknown) {
+      this.handleError(error, 'disconnectUserDataStream');
+    }
   }
 
   /**
    * Subscribe to real-time user order updates
-   * @throws Error - Not implemented yet
+   * Uses Gate.io's spot.orders channel for authenticated order updates
    */
   async subscribeUserOrders(callback: (order: Order) => void): Promise<string> {
-    throw new Error('Gate.io subscribeUserOrders not implemented yet');
+    try {
+      if (!this.userDataStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
+      }
+      return await this.userDataStream.subscribeUserOrders(callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeUserOrders');
+      return '';
+    }
   }
 
   /**
    * Subscribe to real-time user trade executions
-   * @throws Error - Not implemented yet
+   * Uses Gate.io's spot.usertrades channel for authenticated trade updates
    */
   async subscribeUserTrades(callback: (trade: Trade) => void): Promise<string> {
-    throw new Error('Gate.io subscribeUserTrades not implemented yet');
+    try {
+      if (!this.userDataStream) {
+        throw new Error('User Data Stream not initialized. Call connectUserDataStream() first.');
+      }
+      return await this.userDataStream.subscribeUserTrades(callback);
+    } catch (error: unknown) {
+      this.handleError(error, 'subscribeUserTrades');
+      return '';
+    }
   }
 
   /**
    * Check if user data stream is connected
    */
   isUserDataStreamConnected(): boolean {
-    return false; // Phase 2 implementation
+    return this.userDataStream ? this.userDataStream.isUserDataStreamConnected() : false;
   }
 
   // =============================================================================
