@@ -59,6 +59,28 @@ export class GateioAuth {
   }
 
   /**
+   * Generate signature for Gate.io WebSocket authentication
+   * WebSocket signature format: channel=<channel>&event=<event>&time=<timestamp>
+   *
+   * @param channel - WebSocket channel name (e.g., 'spot.orders')
+   * @param event - Event type (e.g., 'subscribe')
+   * @param timestamp - Unix timestamp in seconds
+   * @returns HMAC-SHA512 hex signature
+   */
+  generateWebSocketSignature(channel: string, event: string, timestamp: number): string {
+    const signString = `channel=${channel}&event=${event}&time=${timestamp}`;
+
+    try {
+      const hmac = crypto.createHmac('sha512', this.credentials.secret);
+      hmac.update(signString);
+      return hmac.digest('hex');
+    } catch (error) {
+      this.logger.error('Failed to generate WebSocket signature', { error });
+      throw new Error(`Failed to generate Gate.io WebSocket signature: ${error}`);
+    }
+  }
+
+  /**
    * Get required headers for authenticated Gate.io API requests
    */
   getHeaders(

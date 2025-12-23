@@ -64,7 +64,6 @@ export class BitgetUserDataStream {
    */
   private async onOpen(resolve: () => void, reject: (error: Error) => void): Promise<void> {
     try {
-      // Authenticate the WebSocket connection
       await this.authenticate();
 
       this.status = 'connected';
@@ -170,8 +169,6 @@ export class BitgetUserDataStream {
     this.status = 'disconnected';
     this.stopPing();
 
-    this.logger.warn('🔌 User Data Stream connection closed');
-
     if (this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
       this.scheduleReconnect();
     } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -200,7 +197,6 @@ export class BitgetUserDataStream {
       const parsedMessage = JSON.parse(message);
 
       if (parsedMessage.event === 'pong') {
-        this.logger.debug('📡 Received pong');
         return;
       }
 
@@ -492,7 +488,6 @@ export class BitgetUserDataStream {
     this.pingTimer = setInterval(() => {
       if (this.ws && this.status === 'connected') {
         this.ws.send(JSON.stringify({ op: 'ping' }));
-        this.logger.debug('📡 Sent ping to user stream');
       }
     }, this.pingInterval);
   }
