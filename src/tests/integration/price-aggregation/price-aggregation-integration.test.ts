@@ -152,7 +152,7 @@ describe('Price Aggregation Integration Tests', () => {
       expect(indyResult.price).toBeGreaterThan(0.001); // INDY: Updated range
       expect(indyResult.price).toBeLessThan(1000);
 
-      expect(snekResult.price).toBeGreaterThan(0.001); // SNEK: Updated range
+      expect(snekResult.price).toBeGreaterThan(0.0005); // SNEK: Updated range for current market
       expect(snekResult.price).toBeLessThan(10000);
     }, 45000);
 
