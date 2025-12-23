@@ -33,7 +33,7 @@ npx openmm [command] [options]
 
 Currently supported exchanges:
 - **mexc** - MEXC Exchange (fully implemented)
-- **gateio** - Gate.io (coming soon)
+- **gateio** - Gate.io (fully implemented)
 - **bitget** - Bitget (fully implemented)
 - **kraken** - Kraken (coming soon)
 
@@ -64,6 +64,9 @@ Get account balance information from exchanges.
 # MEXC Example
 openmm balance --exchange mexc
 
+# Gate.io Example
+openmm balance --exchange gateio
+
 # Bitget Example
 openmm balance --exchange bitget
 ```
@@ -73,6 +76,10 @@ openmm balance --exchange bitget
 # MEXC Examples
 openmm balance --exchange mexc --asset BTC
 openmm balance --exchange mexc --asset USDT
+
+# Gate.io Examples
+openmm balance --exchange gateio --asset BTC
+openmm balance --exchange gateio --asset USDT
 
 # Bitget Examples
 openmm balance --exchange bitget --asset BTC
@@ -106,6 +113,11 @@ openmm orders list --exchange mexc
 openmm orders list --exchange mexc --limit 5
 openmm orders list --exchange mexc --symbol BTC/USDT
 
+# Gate.io Examples
+openmm orders list --exchange gateio
+openmm orders list --exchange gateio --limit 5
+openmm orders list --exchange gateio --symbol BTC/USDT
+
 # Bitget Examples
 openmm orders list --exchange bitget
 openmm orders list --exchange bitget --limit 5
@@ -117,6 +129,9 @@ openmm orders list --exchange bitget --symbol SNEK/USDT
 # MEXC Example
 openmm orders get --exchange mexc --id 123456 --symbol BTC/USDT
 
+# Gate.io Example
+openmm orders get --exchange gateio --id 123456 --symbol BTC/USDT
+
 # Bitget Example
 openmm orders get --exchange bitget --id 1385288398060044291 --symbol SNEK/USDT
 ```
@@ -127,6 +142,10 @@ openmm orders get --exchange bitget --id 1385288398060044291 --symbol SNEK/USDT
 openmm orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 50000
 openmm orders create --exchange mexc --symbol BTC/USDT --side sell --type market --amount 0.001
 
+# Gate.io Examples
+openmm orders create --exchange gateio --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 50000
+openmm orders create --exchange gateio --symbol BTC/USDT --side sell --type market --amount 0.001
+
 # Bitget Examples
 openmm orders create --exchange bitget --symbol SNEK/USDT --side buy --type limit --amount 10000 --price 0.00001
 openmm orders create --exchange bitget --symbol SNEK/USDT --side sell --type market --amount 5000
@@ -136,6 +155,9 @@ openmm orders create --exchange bitget --symbol SNEK/USDT --side sell --type mar
 ```bash
 # MEXC Example
 openmm orders cancel --exchange mexc --id C02__626091255599874048060 --symbol INDY/USDT
+
+# Gate.io Example
+openmm orders cancel --exchange gateio --id 123456 --symbol BTC/USDT
 
 # Bitget Example
 openmm orders cancel --exchange bitget --id 1385288398060044291 --symbol SNEK/USDT
@@ -180,6 +202,10 @@ Get real-time market data from exchanges.
 openmm ticker --exchange mexc --symbol BTC/USDT
 openmm ticker --exchange mexc --symbol ETH/USDT --json
 
+# Gate.io Examples
+openmm ticker --exchange gateio --symbol BTC/USDT
+openmm ticker --exchange gateio --symbol ETH/USDT --json
+
 # Bitget Examples
 openmm ticker --exchange bitget --symbol SNEK/USDT
 openmm ticker --exchange bitget --symbol BTC/USDT --json
@@ -195,6 +221,10 @@ openmm ticker --exchange bitget --symbol BTC/USDT --json
 # MEXC Examples
 openmm orderbook --exchange mexc --symbol BTC/USDT
 openmm orderbook --exchange mexc --symbol BTC/USDT --limit 5
+
+# Gate.io Examples
+openmm orderbook --exchange gateio --symbol BTC/USDT
+openmm orderbook --exchange gateio --symbol BTC/USDT --limit 5
 
 # Bitget Examples
 openmm orderbook --exchange bitget --symbol SNEK/USDT
@@ -213,6 +243,11 @@ openmm book --exchange bitget --symbol BTC/USDT --json
 openmm trades --exchange mexc --symbol BTC/USDT
 openmm trades --exchange mexc --symbol BTC/USDT --limit 50
 openmm trades --exchange mexc --symbol ETH/USDT --json
+
+# Gate.io Examples
+openmm trades --exchange gateio --symbol BTC/USDT
+openmm trades --exchange gateio --symbol BTC/USDT --limit 50
+openmm trades --exchange gateio --symbol ETH/USDT --json
 
 # Bitget Examples
 openmm trades --exchange bitget --symbol SNEK/USDT
@@ -238,6 +273,10 @@ Ensure your `.env` file contains the necessary API credentials:
 MEXC_API_KEY=your_mexc_api_key
 MEXC_SECRET_KEY=your_mexc_secret_key
 
+# Gate.io Configuration
+GATEIO_API_KEY=your_gateio_api_key
+GATEIO_SECRET=your_gateio_secret_key
+
 # Bitget Configuration
 BITGET_API_KEY=your_bitget_api_key
 BITGET_SECRET=your_bitget_secret_key
@@ -258,6 +297,9 @@ BITGET_PASSPHRASE=your_bitget_passphrase  # Set when creating API key - API TOKE
 # MEXC - Check BTC Balance
 openmm balance --exchange mexc --asset BTC
 
+# Gate.io - Check BTC Balance
+openmm balance --exchange gateio --asset BTC
+
 # Bitget - Check USDT Balance
 openmm balance --exchange bitget --asset USDT
 ```
@@ -266,6 +308,9 @@ openmm balance --exchange bitget --asset USDT
 ```bash
 # MEXC - Get ETH/USDT Price
 openmm ticker --exchange mexc --symbol ETH/USDT
+
+# Gate.io - Get BTC/USDT Price
+openmm ticker --exchange gateio --symbol BTC/USDT
 
 # Bitget - Get SNEK/USDT Price
 openmm ticker --exchange bitget --symbol SNEK/USDT
@@ -276,6 +321,9 @@ openmm ticker --exchange bitget --symbol SNEK/USDT
 # MEXC - BTC/USDT Order Book
 openmm orderbook --exchange mexc --symbol BTC/USDT --limit 5
 
+# Gate.io - BTC/USDT Order Book
+openmm orderbook --exchange gateio --symbol BTC/USDT --limit 5
+
 # Bitget - SNEK/USDT Order Book
 openmm orderbook --exchange bitget --symbol SNEK/USDT --limit 10
 ```
@@ -285,6 +333,9 @@ openmm orderbook --exchange bitget --symbol SNEK/USDT --limit 10
 # MEXC - Limit Buy Order
 openmm orders create --exchange mexc --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 45000
 
+# Gate.io - Limit Buy Order
+openmm orders create --exchange gateio --symbol BTC/USDT --side buy --type limit --amount 0.001 --price 45000
+
 # Bitget - Limit Buy Order
 openmm orders create --exchange bitget --symbol SNEK/USDT --side buy --type limit --amount 10000 --price 0.00001
 ```
@@ -293,6 +344,9 @@ openmm orders create --exchange bitget --symbol SNEK/USDT --side buy --type limi
 ```bash
 # MEXC - All Open Orders
 openmm orders list --exchange mexc
+
+# Gate.io - All Open Orders
+openmm orders list --exchange gateio
 
 # Bitget - Open Orders for SNEK/USDT
 openmm orders list --exchange bitget --symbol SNEK/USDT
