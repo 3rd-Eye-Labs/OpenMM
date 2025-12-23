@@ -9,7 +9,7 @@ import chalk from 'chalk';
 export const tradeCommand = new Command('trade')
   .description('Start trading with specified strategy and parameters')
   .requiredOption('-s, --strategy <strategy>', 'Trading strategy to use (grid)')
-  .requiredOption('-e, --exchange <exchange>', 'Exchange to trade on (mexc, bitget)')
+  .requiredOption('-e, --exchange <exchange>', 'Exchange to trade on (mexc, bitget, gateio)')
   .requiredOption('--symbol <symbol>', 'Trading pair (INDYUSDT, INDY/USDT, BTCUSDT, etc.)')
 
   .option('--levels <number>', 'Grid: Number of levels each side (default: 5)', '5')
@@ -117,8 +117,10 @@ tradeCommand.addHelpText(
 Examples:
   $ openmm trade --strategy grid --exchange mexc --symbol INDYUSDT                    # Start INDY/USDT grid with defaults
   $ openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT --levels 7     # Bitget SNEK/USDT grid
+  $ openmm trade --strategy grid --exchange gateio --symbol SNEK/USDT --levels 7     # Gate.io SNEK/USDT grid
   $ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT --levels 7 --size 100  # Custom parameters
   $ openmm trade --strategy grid --exchange bitget --symbol BTCUSDT --spacing 0.015  # BTC grid with 1.5% spacing
+  $ openmm trade --strategy grid --exchange gateio --symbol BTCUSDT --spacing 0.015  # Gate.io BTC grid with 1.5% spacing
   $ openmm trade --strategy grid --exchange mexc --symbol INDYUSDT --dry-run         # Test mode (no real orders)
 
 Grid Strategy Parameters:
@@ -134,5 +136,6 @@ Grid Strategy Parameters:
 Note: Ensure exchange-specific environment variables are set:
   - MEXC: MEXC_API_KEY and MEXC_SECRET_KEY
   - Bitget: BITGET_API_KEY, BITGET_SECRET, and BITGET_PASSPHRASE
+  - Gate.io: GATEIO_API_KEY and GATEIO_SECRET
 `
 );
