@@ -153,15 +153,6 @@ export class PoolDiscoveryCLI {
         console.log(`   DEX: ${pool?.dex}, TVL: ${this.formatCurrency(pool?.tvl || 0)}`);
       });
     }
-
-    console.log('\n💡 Usage Instructions:');
-    console.log('─'.repeat(40));
-    console.log('1. Use the recommended pool identifiers in your market making strategy');
-    console.log('2. Higher TVL pools typically offer better price stability');
-    console.log('3. Monitor multiple pools for price aggregation and arbitrage opportunities');
-    console.log(
-      `4. Current minimum liquidity threshold: ${this.formatCurrency(getTokenConfig(result.token).minLiquidityThreshold || 0)}`
-    );
   }
 
   /**
