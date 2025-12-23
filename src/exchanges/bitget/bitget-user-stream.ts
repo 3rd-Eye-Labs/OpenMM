@@ -64,7 +64,6 @@ export class BitgetUserDataStream {
    */
   private async onOpen(resolve: () => void, reject: (error: Error) => void): Promise<void> {
     try {
-      // Authenticate the WebSocket connection
       await this.authenticate();
 
       this.status = 'connected';
@@ -169,8 +168,6 @@ export class BitgetUserDataStream {
   private onClose(): void {
     this.status = 'disconnected';
     this.stopPing();
-
-    this.logger.warn('🔌 User Data Stream connection closed');
 
     if (this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
       this.scheduleReconnect();
