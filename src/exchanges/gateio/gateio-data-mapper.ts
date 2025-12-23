@@ -167,6 +167,55 @@ export class GateioDataMapper extends BaseExchangeDataMapper<
   }
 
   /**
+   * Map WebSocket order data to OpenMM Order format
+   * WebSocket order format is different from REST API format
+   */
+  mapWebSocketOrder(wsOrderData: any): Order {
+    if (!wsOrderData || !wsOrderData.currency_pair) {
+      throw new Error('Invalid WebSocket order data');
+    }
+
+    const status = this.mapWebSocketOrderStatus(wsOrderData.finish_as, wsOrderData.event);
+
+    const amount = this.parseAmount(wsOrderData.amount);
+    const filled = amount - this.parseAmount(wsOrderData.left || '0');
+    const price = wsOrderData.price ? this.parsePrice(wsOrderData.price) : undefined;
+
+    return {
+      id: wsOrderData.id,
+      symbol: GateioUtils.fromGateioSymbol(wsOrderData.currency_pair),
+      type: wsOrderData.type === 'market' ? 'market' : 'limit',
+      side: wsOrderData.side.toLowerCase() as OrderSide,
+      amount,
+      price,
+      filled,
+      remaining: this.parseAmount(wsOrderData.left || '0'),
+      status,
+      timestamp:
+        parseInt(wsOrderData.create_time_ms || wsOrderData.create_time) *
+        (wsOrderData.create_time_ms ? 1 : 1000), // Convert seconds to ms if needed
+    };
+  }
+
+  /**
+   * Map WebSocket order status to OpenMM OrderStatus
+   * WebSocket uses different status fields (finish_as, event) than REST API
+   */
+  mapWebSocketOrderStatus(finishAs: string, event: string): OrderStatus {
+    if (event === 'finish') {
+      if (finishAs === 'cancelled') return 'cancelled';
+      if (finishAs === 'filled') return 'filled';
+    }
+
+    if (event === 'put' || finishAs === 'open') return 'open';
+    if (event === 'update') {
+      return 'open';
+    }
+
+    return 'open';
+  }
+
+  /**
    * Override symbol normalization for Gate.io format
    */
   protected normalizeSymbol(symbol: string): string {

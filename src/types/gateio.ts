@@ -14,29 +14,35 @@ export type GateioSubscriptionInfo =
       callback: (data: Ticker) => void;
       type: 'ticker';
       symbol: string;
+      channel: string;
     }
   | {
       callback: (data: OrderBook) => void;
       type: 'orderbook';
       symbol: string;
+      channel: string;
     }
   | {
       callback: (data: Trade) => void;
       type: 'trades';
       symbol: string;
+      channel: string;
     }
   | {
       callback: (data: Order) => void;
       type: 'orders';
-      symbol?: string;
+      symbol: string;
+      channel: string;
     }
   | {
       callback: (data: Trade) => void;
-      type: 'user_trades';
-      symbol?: string;
+      type: 'usertrades';
+      symbol: string;
+      channel: string;
     }
   | {
-      callback: (data: unknown) => void;
-      type: 'balance';
-      symbol?: string;
+      callback: (data: any) => void;
+      type: 'balances';
+      symbol: string;
+      channel: string;
     };

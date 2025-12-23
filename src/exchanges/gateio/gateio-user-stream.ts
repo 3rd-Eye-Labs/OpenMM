@@ -361,8 +361,6 @@ export class GateioUserDataStream {
   private async resubscribeAll(): Promise<void> {
     if (this.subscriptions.size === 0) return;
 
-    this.logger.debug(`🔄 Resubscribing to ${this.subscriptions.size} private subscriptions`);
-
     if (!this.isAuthenticated) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
