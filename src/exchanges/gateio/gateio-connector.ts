@@ -20,6 +20,7 @@ import { GateioDataMapper } from './gateio-data-mapper';
 import { GateioWebSocket } from './gateio-websocket';
 import { GateioUserDataStream } from './gateio-user-stream';
 import { createLogger, ExchangeUtils } from '../../utils';
+import config from '../../config/environment';
 
 /**
  * Gate.io Exchange Connector
@@ -41,6 +42,11 @@ export class GateioConnector extends BaseExchangeConnector {
 
     if (credentials) {
       this.setCredentials(credentials);
+    } else if (config.gateio) {
+      this.setCredentials({
+        apiKey: config.gateio.apiKey,
+        secret: config.gateio.secret,
+      });
     }
   }
 
@@ -77,9 +83,6 @@ export class GateioConnector extends BaseExchangeConnector {
         throw new Error('Invalid response from Gate.io time endpoint');
       }
 
-      const serverTime = GateioUtils.parseTimestamp(timeResponse.server_time);
-      const localTime = Date.now();
-
       if (!this.auth.validateCredentialsExist()) {
         this.connected = false;
         this.handleError(new Error('Invalid Gate.io credentials'), 'connect');
@@ -96,11 +99,6 @@ export class GateioConnector extends BaseExchangeConnector {
       }
 
       this.connected = true;
-      this.logger.info('Connected to Gate.io API', {
-        serverTime,
-        localTime,
-        timeDiff: Math.abs(serverTime - localTime),
-      });
     } catch (error) {
       this.connected = false;
       this.handleError(error, 'connect');
