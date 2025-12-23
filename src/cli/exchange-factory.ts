@@ -1,6 +1,7 @@
 import { BaseExchangeConnector } from '../core/exchange/base-exchange-connector';
 import { MexcConnector } from '../exchanges/mexc/mexc-connector';
 import { BitgetConnector } from '../exchanges/bitget/bitget-connector';
+import { GateioConnector } from '../exchanges/gateio/gateio-connector';
 
 /**
  * Supported exchanges
@@ -45,11 +46,9 @@ export class ExchangeFactory {
         return new MexcConnector();
 
       case 'gateio':
-        // TODO: Implement GateIO connector
-        throw new Error('GateIO connector not yet implemented');
+        return new GateioConnector();
 
       case 'bitget':
-        // TODO: Implement Bitget connector
         return new BitgetConnector();
 
       case 'kraken':

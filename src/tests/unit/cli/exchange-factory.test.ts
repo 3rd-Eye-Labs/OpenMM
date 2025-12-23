@@ -69,9 +69,9 @@ describe('ExchangeFactory', () => {
       expect(connector1).toBe(mockConnector);
     });
 
-    it('should throw error for gateio exchange', async () => {
+    it('should throw error for gateio exchange when no credentials', async () => {
       await expect(ExchangeFactory.getExchange('gateio')).rejects.toThrow(
-        'GateIO connector not yet implemented'
+        'No credentials set for Gate.io'
       );
     });
 

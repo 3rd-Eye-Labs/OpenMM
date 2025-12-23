@@ -12,7 +12,6 @@ interface EnvironmentConfig {
     uid?: string;
   };
 
-  // Future exchanges
   gateio?: {
     apiKey: string;
     secret: string;
