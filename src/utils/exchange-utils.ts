@@ -282,7 +282,6 @@ export class ExchangeUtils {
   ): Record<string, string> {
     this.validateOrderParams(symbol, type, side, amount, price);
 
-    // Validate minimum order value for Gate.io
     this.validateGateioMinimumOrder(amount, price, symbol);
 
     const gateioSymbol = symbol.replace('/', '_').toUpperCase();
@@ -325,9 +324,167 @@ export class ExchangeUtils {
   }
 
   /**
+   * Create Kraken-specific order parameters
+   *
+   * @param symbol - Trading pair symbol (e.g., 'ADA/EUR')
+   * @param type - Order type ('market' or 'limit')
+   * @param side - Order side ('buy' or 'sell')
+   * @param amount - Order quantity/amount
+   * @param price - Optional. Price for limit orders
+   * @returns Kraken-formatted order parameters
+   */
+  static createKrakenOrderParams(
+    symbol: string,
+    type: OrderType,
+    side: OrderSide,
+    amount: number,
+    price?: number
+  ): Record<string, string> {
+    this.validateOrderParams(symbol, type, side, amount, price);
+
+    this.validateKrakenMinimumOrder(amount, price, symbol);
+
+    const krakenSymbol = symbol.replace('/', '').toUpperCase();
+
+    const krakenParams: Record<string, string> = {
+      pair: krakenSymbol,
+      type: side.toLowerCase(),
+      ordertype: type.toLowerCase(),
+      volume: this.formatKrakenQuantity(amount, symbol),
+      validate: 'false',
+    };
+
+    if (type === 'limit' && price !== undefined) {
+      krakenParams.price = this.formatKrakenPrice(price, symbol);
+    }
+
+    return krakenParams;
+  }
+
+  /**
+   * Validate minimum order value for Kraken
+   * Kraken requires different minimum order values based on quote currency
+   *
+   * @param amount - Order quantity
+   * @param price - Order price
+   * @param symbol - Trading pair symbol
+   * @throws Error if order value is below minimum
+   */
+  private static validateKrakenMinimumOrder(amount: number, price?: number, symbol?: string): void {
+    if (!price || !symbol) return;
+
+    const orderValue = amount * price;
+    let minimumValue = 0;
+    let currency = '';
+
+    if (symbol.includes('USD') || symbol.includes('USDT') || symbol.includes('USDC')) {
+      minimumValue = 5.0;
+      currency = 'USD';
+    } else if (symbol.includes('EUR')) {
+      minimumValue = 5.0;
+      currency = 'EUR';
+    } else if (symbol.includes('GBP')) {
+      minimumValue = 5.0;
+      currency = 'GBP';
+    } else if (symbol.includes('BTC')) {
+      minimumValue = 0.0001;
+      if (amount < minimumValue) {
+        throw new Error(
+          `Kraken order amount ${amount.toFixed(8)} BTC is below minimum ${minimumValue} BTC.`
+        );
+      }
+      return;
+    } else if (symbol.includes('ETH')) {
+      minimumValue = 0.002;
+      if (amount < minimumValue) {
+        throw new Error(
+          `Kraken order amount ${amount.toFixed(6)} ETH is below minimum ${minimumValue} ETH.`
+        );
+      }
+      return;
+    }
+
+    if (minimumValue > 0 && orderValue < minimumValue) {
+      throw new Error(
+        `Kraken order value ${orderValue.toFixed(2)} ${currency} is below minimum ${minimumValue} ${currency}. Increase order size or price.`
+      );
+    }
+  }
+
+  /**
+   * Format quantity for Kraken with appropriate precision
+   *
+   * @param quantity - The quantity to format
+   * @param symbol - Trading pair symbol for precision rules
+   * @returns Formatted quantity string with correct decimal places
+   */
+  private static formatKrakenQuantity(quantity: number, symbol: string): string {
+    const precision = this.getKrakenQuantityPrecision(symbol);
+    return quantity.toFixed(precision);
+  }
+
+  /**
+   * Format price for Kraken with appropriate precision
+   *
+   * @param price - The price to format
+   * @param symbol - Trading pair symbol for precision rules
+   * @returns Formatted price string with correct decimal places
+   */
+  private static formatKrakenPrice(price: number, symbol: string): string {
+    const precision = this.getKrakenPricePrecision(symbol);
+    return price.toFixed(precision);
+  }
+
+  /**
+   * Get quantity precision for Kraken symbol
+   * Based on Kraken precision rules
+   *
+   * @param symbol - Trading pair symbol
+   * @returns Number of decimal places for quantity
+   */
+  private static getKrakenQuantityPrecision(symbol: string): number {
+    if (symbol.includes('BTC')) {
+      return 8;
+    }
+    if (symbol.includes('ETH')) {
+      return 6;
+    }
+    if (symbol.includes('ADA') || symbol.includes('XRP') || symbol.includes('DOT')) {
+      return 2;
+    }
+    return 4;
+  }
+
+  /**
+   * Get price precision for Kraken symbol
+   * Kraken has a maximum of 6 decimal places for prices
+   *
+   * @param symbol - Trading pair symbol
+   * @returns Number of decimal places for price
+   */
+  private static getKrakenPricePrecision(symbol: string): number {
+    if (symbol.includes('USD') || symbol.includes('EUR') || symbol.includes('GBP')) {
+      if (symbol.includes('BTC')) {
+        return 2;
+      }
+      if (symbol.includes('ETH')) {
+        return 3;
+      }
+      return 6;
+    }
+    if (symbol.includes('BTC')) {
+      return 8;
+    }
+    if (symbol.includes('ETH')) {
+      return 6;
+    }
+    return 6;
+  }
+
+  /**
    * Get minimum order value for exchange
    *
-   * @param exchange - Exchange name ('bitget', 'mexc', 'gateio', etc.)
+   * @param exchange - Exchange name ('bitget', 'mexc', 'gateio', 'kraken', etc.)
    * @param symbol - Trading pair symbol
    * @returns Minimum order value in quote currency
    */
@@ -346,6 +503,23 @@ export class ExchangeUtils {
       case 'gateio':
         if (symbol.includes('USDT') || symbol.includes('USDC')) {
           return 3.0;
+        }
+        return 0;
+      case 'kraken':
+        if (symbol.includes('USD') || symbol.includes('USDT') || symbol.includes('USDC')) {
+          return 5.0;
+        }
+        if (symbol.includes('EUR')) {
+          return 5.0;
+        }
+        if (symbol.includes('GBP')) {
+          return 5.0;
+        }
+        if (symbol.includes('BTC')) {
+          return 0.0001;
+        }
+        if (symbol.includes('ETH')) {
+          return 0.002;
         }
         return 0;
       default:
