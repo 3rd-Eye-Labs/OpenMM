@@ -10,25 +10,22 @@ export class KrakenUtils {
    */
   static toKrakenSymbol(symbol: string): string {
     const [base, quote] = symbol.split('/');
-    
+
     const baseMap: Record<string, string> = {
-      'BTC': 'XBT',
-      'DOGE': 'XDG',
+      BTC: 'XBT',
+      DOGE: 'XDG',
     };
 
     const mappedBase = baseMap[base] || base;
-    
-    // For major fiat pairs, Kraken uses X prefix for base and Z for quote
+
     if ((mappedBase === 'XBT' || base === 'ETH') && (quote === 'USD' || quote === 'EUR')) {
       return `X${mappedBase}Z${quote}`;
     }
-    
-    // For stablecoin pairs (USDC, USDT), use simple concatenation
+
     if (quote === 'USDC' || quote === 'USDT' || quote === 'DAI') {
       return `${mappedBase}${quote}`;
     }
-    
-    // For other pairs, use simple concatenation
+
     return `${mappedBase}${quote}`;
   }
 
@@ -39,22 +36,20 @@ export class KrakenUtils {
    */
   static fromKrakenSymbol(krakenSymbol: string): string {
     const symbolMap: Record<string, string> = {
-      'XXBTZUSD': 'BTC/USD',
-      'XETHZUSD': 'ETH/USD',
-      'XXBTZEUR': 'BTC/EUR',
-      'XETHZEUR': 'ETH/EUR',
-      'XBTUSD': 'BTC/USD',
-      'ETHUSD': 'ETH/USD',
-      'XBTEUR': 'BTC/EUR',
-      'ETHEUR': 'ETH/EUR',
+      XXBTZUSD: 'BTC/USD',
+      XETHZUSD: 'ETH/USD',
+      XXBTZEUR: 'BTC/EUR',
+      XETHZEUR: 'ETH/EUR',
+      XBTUSD: 'BTC/USD',
+      ETHUSD: 'ETH/USD',
+      XBTEUR: 'BTC/EUR',
+      ETHEUR: 'ETH/EUR',
     };
 
-    // Check if we have a direct mapping
     if (symbolMap[krakenSymbol]) {
       return symbolMap[krakenSymbol];
     }
 
-    // Try to parse X...Z... format
     const xzMatch = krakenSymbol.match(/^X([A-Z]{3})Z([A-Z]{3})$/);
     if (xzMatch) {
       const base = xzMatch[1] === 'XBT' ? 'BTC' : xzMatch[1];
@@ -62,7 +57,6 @@ export class KrakenUtils {
       return `${base}/${quote}`;
     }
 
-    // Try to parse simple concatenated format
     const simpleMatch = krakenSymbol.match(/^([A-Z]{3,4})([A-Z]{3,4})$/);
     if (simpleMatch) {
       const base = simpleMatch[1] === 'XBT' ? 'BTC' : simpleMatch[1];
@@ -70,26 +64,23 @@ export class KrakenUtils {
       return `${base}/${quote}`;
     }
 
-    // Default: assume it's already in a readable format
     return krakenSymbol;
   }
 
   /**
    * Map Kraken error codes to standardized error messages
-   * 
+   *
    * Kraken error format: { error: ["EAPI:Invalid key", "EGeneral:Invalid arguments"] }
    */
   static mapErrorMessage(krakenError: unknown): string {
     if (!krakenError) return 'Unknown error';
 
-    // Handle array of error strings
     if (Array.isArray(krakenError)) {
       return krakenError.join(', ');
     }
 
-    // Handle error object
     const error = krakenError as Record<string, unknown>;
-    const errorMessages = error.error as string[] || [];
+    const errorMessages = (error.error as string[]) || [];
 
     if (errorMessages.length === 0) {
       return typeof krakenError === 'string' ? krakenError : 'Unknown error';
@@ -102,11 +93,11 @@ export class KrakenUtils {
       'EAPI:Invalid nonce': 'Invalid or duplicate nonce',
       'EAPI:Invalid arguments': 'Invalid arguments provided',
       'EAPI:Feature disabled': 'Feature is disabled',
-      
+
       // Permission errors
       'EGeneral:Permission denied': 'Permission denied for this operation',
       'EGeneral:Invalid arguments': 'Invalid arguments',
-      
+
       // Order errors
       'EOrder:Invalid order': 'Invalid order',
       'EOrder:Unknown order': 'Order not found',
@@ -118,25 +109,25 @@ export class KrakenUtils {
       'EOrder:Insufficient margin': 'Insufficient margin',
       'EOrder:Position limit exceeded': 'Position limit exceeded',
       'EOrder:Margin allowance exceeded': 'Margin allowance exceeded',
-      
+
       // Trading errors
       'ETrade:Invalid pair': 'Invalid trading pair',
       'ETrade:Market closed': 'Market is closed',
-      
+
       // Service errors
       'EService:Unavailable': 'Service temporarily unavailable',
       'EService:Busy': 'Service is busy, try again later',
       'EService:Market in cancel only mode': 'Market in cancel-only mode',
       'EService:Market in post only mode': 'Market in post-only mode',
-      
+
       // Database errors
       'EDatabase:Internal error': 'Internal database error',
       'EDatabase:Unavailable': 'Database unavailable',
-      
+
       // Network errors
       'ENetwork:Timeout': 'Network timeout',
       'ENetwork:Unavailable': 'Network unavailable',
-      
+
       // General errors
       'EGeneral:Unknown method': 'Unknown method',
       'EGeneral:Invalid method': 'Invalid method',
@@ -145,41 +136,20 @@ export class KrakenUtils {
     };
 
     const mappedErrors = errorMessages.map(errorMsg => {
-      // Try exact match first
       if (errorMap[errorMsg]) {
         return errorMap[errorMsg];
       }
-      
-      // Try partial match
+
       for (const [key, value] of Object.entries(errorMap)) {
         if (errorMsg.includes(key.split(':')[0])) {
           return value;
         }
       }
-      
+
       return errorMsg;
     });
 
     return `Kraken Error: ${mappedErrors.join(', ')}`;
-  }
-
-  /**
-   * Validate if symbol is in supported format for Kraken
-   */
-  static isValidSymbol(symbol: string): boolean {
-    try {
-      // Check standard format (e.g., BTC/USD)
-      if (!/^[A-Z]{2,5}\/[A-Z]{2,5}$/.test(symbol)) {
-        return false;
-      }
-
-      const krakenFormat = this.toKrakenSymbol(symbol);
-      
-      // Check if conversion resulted in a valid Kraken symbol
-      return krakenFormat.length > 0 && /^[A-Z]+$/.test(krakenFormat);
-    } catch {
-      return false;
-    }
   }
 
   /**
@@ -188,12 +158,11 @@ export class KrakenUtils {
    */
   static parseTimestamp(timestamp: string | number): number {
     const ts = typeof timestamp === 'string' ? parseFloat(timestamp) : timestamp;
-    
-    // Kraken typically uses seconds, convert to milliseconds
+
     if (ts < 10000000000) {
       return Math.floor(ts * 1000);
     }
-    
+
     return Math.floor(ts);
   }
 
@@ -208,13 +177,6 @@ export class KrakenUtils {
       typeof order.status === 'string' &&
       order.descr !== undefined
     );
-  }
-
-  /**
-   * Normalize symbol format (uppercase with slash)
-   */
-  static normalizeSymbol(symbol: string): string {
-    return symbol.toUpperCase().replace('_', '/').replace('-', '/');
   }
 
   /**
@@ -236,49 +198,22 @@ export class KrakenUtils {
   /**
    * Map Kraken order status to standard format
    */
-  static mapOrderStatus(status: string): 'open' | 'filled' | 'cancelled' | 'rejected' | 'partially_filled' {
-    const statusMap: Record<string, 'open' | 'filled' | 'cancelled' | 'rejected' | 'partially_filled'> = {
-      'pending': 'open',
-      'new': 'open',
-      'open': 'open',
-      'closed': 'filled',
-      'canceled': 'cancelled',
-      'expired': 'cancelled',
+  static mapOrderStatus(
+    status: string
+  ): 'open' | 'filled' | 'cancelled' | 'rejected' | 'partially_filled' {
+    const statusMap: Record<
+      string,
+      'open' | 'filled' | 'cancelled' | 'rejected' | 'partially_filled'
+    > = {
+      pending: 'open',
+      new: 'open',
+      open: 'open',
+      closed: 'filled',
+      canceled: 'cancelled',
+      expired: 'cancelled',
       'partially-filled': 'partially_filled',
     };
 
     return statusMap[status.toLowerCase()] || 'rejected';
-  }
-
-  /**
-   * Format price for Kraken API (string with appropriate decimal places)
-   */
-  static formatPrice(price: number, pair?: string): string {
-    // Kraken has specific decimal place requirements per pair
-    // For now, use a reasonable default
-    return price.toFixed(pair?.includes('BTC') ? 1 : 2);
-  }
-
-  /**
-   * Format volume for Kraken API
-   */
-  static formatVolume(volume: number): string {
-    return volume.toFixed(8);
-  }
-
-  /**
-   * Check if error indicates insufficient balance
-   */
-  static isInsufficientBalanceError(error: unknown): boolean {
-    const errorStr = this.mapErrorMessage(error);
-    return errorStr.toLowerCase().includes('insufficient');
-  }
-
-  /**
-   * Check if error indicates rate limiting
-   */
-  static isRateLimitError(error: unknown): boolean {
-    const errorStr = this.mapErrorMessage(error);
-    return errorStr.toLowerCase().includes('rate limit');
   }
 }
