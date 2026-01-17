@@ -1,4 +1,14 @@
-import { Order, OrderBook, Ticker, Trade, Balance, KrakenRawTickerData, KrakenRawOrderBookData, KrakenRawTradeData, KrakenRawOrderData } from '../../types';
+import { 
+  Order, 
+  OrderBook, 
+  Ticker, 
+  Trade, 
+  Balance,
+  KrakenRawTickerData,
+  KrakenRawOrderBookData,
+  KrakenRawTradeData,
+  KrakenRawOrderData
+} from '../../types';
 import { KrakenUtils } from './kraken-utils';
 
 export class KrakenDataMapper {
