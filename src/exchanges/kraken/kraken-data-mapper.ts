@@ -1,10 +1,4 @@
-import {
-  Order,
-  OrderBook,
-  Ticker,
-  Trade,
-  Balance
-} from '../../types';
+import { Order, OrderBook, Ticker, Trade, Balance, KrakenRawTickerData, KrakenRawOrderBookData, KrakenRawTradeData, KrakenRawOrderData } from '../../types';
 import { KrakenUtils } from './kraken-utils';
 
 export class KrakenDataMapper {
@@ -103,11 +97,62 @@ export class KrakenDataMapper {
     };
   }
 
-  parseKrakenSymbol(krakenSymbol: string): string {
-    return KrakenUtils.fromKrakenSymbol(krakenSymbol);
+  mapWebSocketTicker(data: KrakenRawTickerData): Ticker {
+    return {
+      symbol: '',
+      bid: parseFloat(data.bid || '0'),
+      ask: parseFloat(data.ask || '0'),
+      last: parseFloat(data.last || '0'),
+      baseVolume: parseFloat(data.volume || '0'),
+      quoteVolume: parseFloat(data.volume_quote || '0'),
+      timestamp: typeof data.timestamp === 'number' ? data.timestamp : Date.now(),
+    };
   }
 
-  toKrakenSymbol(symbol: string): string {
-    return KrakenUtils.toKrakenSymbol(symbol);
+  mapWebSocketOrderBook(data: KrakenRawOrderBookData): OrderBook {
+    const asks = (data.asks || []).map((ask: any) => ({
+      price: parseFloat(ask.price || ask[0]),
+      amount: parseFloat(ask.qty || ask[1]),
+    }));
+
+    const bids = (data.bids || []).map((bid: any) => ({
+      price: parseFloat(bid.price || bid[0]),
+      amount: parseFloat(bid.qty || bid[1]),
+    }));
+
+    return {
+      symbol: '',
+      bids,
+      asks,
+      timestamp: typeof data.timestamp === 'number' ? data.timestamp : Date.now(),
+    };
+  }
+
+  mapWebSocketTrade(data: KrakenRawTradeData): Trade {
+    return {
+      id: data.trade_id || data.ord_id || Date.now().toString(),
+      symbol: '',
+      price: parseFloat(data.price),
+      amount: parseFloat(data.qty || data.volume || '0'),
+      side: data.side === 'buy' ? 'buy' : 'sell',
+      timestamp: typeof data.timestamp === 'number' ? data.timestamp : Date.now(),
+    };
+  }
+
+  mapWebSocketOrder(data: KrakenRawOrderData): Order {
+    const status = data.status ? KrakenUtils.mapOrderStatus(data.status) : 'open';
+
+    return {
+      id: data.order_id || data.ord_id || data.orderId || Date.now().toString(),
+      symbol: data.symbol || '',
+      type: data.order_type === 'market' ? 'market' : 'limit',
+      side: data.side === 'buy' ? 'buy' : 'sell',
+      price: parseFloat(data.limit_price || data.price || '0'),
+      amount: parseFloat(data.order_qty || data.qty || '0'),
+      filled: parseFloat(data.exec_qty || data.filled_qty || '0'),
+      remaining: parseFloat(data.leaves_qty || '0'),
+      status,
+      timestamp: typeof data.timestamp === 'number' ? data.timestamp : Date.now(),
+    };
   }
 }

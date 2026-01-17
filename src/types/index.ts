@@ -8,6 +8,7 @@ export * from './bitget';
 export * from './bitget-raw';
 export * from './gateio';
 export * from './gateio-raw';
+export * from './kraken';
 export * from './price';
 export * from './risk';
 export * from './iris';

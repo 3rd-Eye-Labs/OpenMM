@@ -20,7 +20,12 @@ export class KrakenAuth {
   }
 
   signMessage(path: string, nonce: string, postData: string): string {
-    const message = path + crypto.createHash('sha256').update(nonce + postData).digest('binary');
+    const message =
+      path +
+      crypto
+        .createHash('sha256')
+        .update(nonce + postData)
+        .digest('binary');
     const secret = Buffer.from(this.apiSecret, 'base64');
     const hmac = crypto.createHmac('sha512', secret);
     hmac.update(message, 'binary');
@@ -47,7 +52,6 @@ export class KrakenAuth {
 
     const headers = this.getHeaders(path, nonce, postData);
 
-
     try {
       const response = await fetch(url, {
         method,
@@ -56,23 +60,18 @@ export class KrakenAuth {
       });
 
       const data = await response.json();
-      
 
       if (data.error && data.error.length > 0) {
-        this.logger.error('Kraken API error', { 
-          errors: data.error,
-          request: { path, params }
-        });
         throw new Error(`Kraken API error: ${data.error.join(', ')}`);
       }
 
       return data.result;
     } catch (error) {
-      this.logger.error('Request failed', { 
-        method, 
+      this.logger.error('Request failed', {
+        method,
         path,
         params,
-        error: error instanceof Error ? error.message : error 
+        error: error instanceof Error ? error.message : error,
       });
       throw error;
     }
