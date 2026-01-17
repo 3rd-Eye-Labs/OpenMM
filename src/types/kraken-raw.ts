@@ -21,7 +21,7 @@ export interface KrakenRawTickerData {
 }
 
 /**
- * Raw order book data as received from Kraken WebSocket  
+ * Raw order book data as received from Kraken WebSocket
  */
 export interface KrakenRawOrderBookData {
   symbol: string;

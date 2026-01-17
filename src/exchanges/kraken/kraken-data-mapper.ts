@@ -1,13 +1,13 @@
-import { 
-  Order, 
-  OrderBook, 
-  Ticker, 
-  Trade, 
+import {
+  Order,
+  OrderBook,
+  Ticker,
+  Trade,
   Balance,
   KrakenRawTickerData,
   KrakenRawOrderBookData,
   KrakenRawTradeData,
-  KrakenRawOrderData
+  KrakenRawOrderData,
 } from '../../types';
 import { KrakenUtils } from './kraken-utils';
 
