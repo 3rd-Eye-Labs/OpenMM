@@ -35,7 +35,7 @@ Currently supported exchanges:
 - **mexc** - MEXC Exchange (fully implemented)
 - **gateio** - Gate.io (fully implemented)
 - **bitget** - Bitget (fully implemented)
-- **kraken** - Kraken (coming soon)
+- **kraken** - Kraken (fully implemented with WebSocket support)
 
 ## Cardano Integration
 
@@ -69,6 +69,9 @@ openmm balance --exchange gateio
 
 # Bitget Example
 openmm balance --exchange bitget
+
+# Kraken Example
+openmm balance --exchange kraken
 ```
 
 ### Get Specific Asset Balance
@@ -84,6 +87,10 @@ openmm balance --exchange gateio --asset USDT
 # Bitget Examples
 openmm balance --exchange bitget --asset BTC
 openmm balance --exchange bitget --asset USDT
+
+# Kraken Examples
+openmm balance --exchange kraken --asset BTC
+openmm balance --exchange kraken --asset EUR
 ```
 
 ### JSON Output
@@ -93,6 +100,9 @@ openmm balance --exchange mexc --json
 
 # Bitget Example
 openmm balance --exchange bitget --json
+
+# Kraken Example
+openmm balance --exchange kraken --json
 ```
 
 **Options:**
@@ -122,6 +132,11 @@ openmm orders list --exchange gateio --symbol BTC/USDT
 openmm orders list --exchange bitget
 openmm orders list --exchange bitget --limit 5
 openmm orders list --exchange bitget --symbol SNEK/USDT
+
+# Kraken Examples
+openmm orders list --exchange kraken
+openmm orders list --exchange kraken --limit 5
+openmm orders list --exchange kraken --symbol ADA/EUR
 ```
 
 ### Get Specific Order
@@ -134,6 +149,9 @@ openmm orders get --exchange gateio --id 123456 --symbol BTC/USDT
 
 # Bitget Example
 openmm orders get --exchange bitget --id 1385288398060044291 --symbol SNEK/USDT
+
+# Kraken Example
+openmm orders get --exchange kraken --id OQN3UE-LRH6U-MPLZ5I --symbol ADA/EUR
 ```
 
 ### Create New Order
@@ -149,6 +167,10 @@ openmm orders create --exchange gateio --symbol BTC/USDT --side sell --type mark
 # Bitget Examples
 openmm orders create --exchange bitget --symbol SNEK/USDT --side buy --type limit --amount 10000 --price 0.00001
 openmm orders create --exchange bitget --symbol SNEK/USDT --side sell --type market --amount 5000
+
+# Kraken Examples
+openmm orders create --exchange kraken --symbol ADA/EUR --side buy --type limit --amount 50 --price 0.45
+openmm orders create --exchange kraken --symbol BTC/USD --side sell --type market --amount 0.001
 ```
 
 ### Cancel Order
@@ -161,6 +183,9 @@ openmm orders cancel --exchange gateio --id 123456 --symbol BTC/USDT
 
 # Bitget Example
 openmm orders cancel --exchange bitget --id 1385288398060044291 --symbol SNEK/USDT
+
+# Kraken Example
+openmm orders cancel --exchange kraken --id OQN3UE-LRH6U-MPLZ5I --symbol ADA/EUR
 ```
 
 **List Options:**
@@ -209,6 +234,10 @@ openmm ticker --exchange gateio --symbol ETH/USDT --json
 # Bitget Examples
 openmm ticker --exchange bitget --symbol SNEK/USDT
 openmm ticker --exchange bitget --symbol BTC/USDT --json
+
+# Kraken Examples
+openmm ticker --exchange kraken --symbol ADA/EUR
+openmm ticker --exchange kraken --symbol BTC/USD --json
 ```
 
 **Options:**
@@ -229,6 +258,10 @@ openmm orderbook --exchange gateio --symbol BTC/USDT --limit 5
 # Bitget Examples
 openmm orderbook --exchange bitget --symbol SNEK/USDT
 openmm book --exchange bitget --symbol BTC/USDT --json
+
+# Kraken Examples
+openmm orderbook --exchange kraken --symbol ADA/EUR
+openmm orderbook --exchange kraken --symbol ETH/USD --limit 5 --json
 ```
 
 **Options:**
@@ -253,6 +286,11 @@ openmm trades --exchange gateio --symbol ETH/USDT --json
 openmm trades --exchange bitget --symbol SNEK/USDT
 openmm trades --exchange bitget --symbol BTC/USDT --limit 50
 openmm trades --exchange bitget --symbol SNEK/USDT --json
+
+# Kraken Examples
+openmm trades --exchange kraken --symbol ADA/EUR
+openmm trades --exchange kraken --symbol BTC/USD --limit 50
+openmm trades --exchange kraken --symbol ETH/EUR --json
 ```
 
 **Options:**
@@ -282,11 +320,16 @@ BITGET_API_KEY=your_bitget_api_key
 BITGET_SECRET=your_bitget_secret_key
 BITGET_PASSPHRASE=your_bitget_passphrase  # Set when creating API key - API TOKEN
 
+# Kraken Configuration
+KRAKEN_API_KEY=your_kraken_api_key
+KRAKEN_SECRET=your_kraken_secret_key
+
 ```
 
 ### Symbol Format
-- Use standard format: `BTC/USDT`, `ETH/USDT`, `INDY/USDT`
+- Use standard format: `BTC/USDT`, `ETH/USDT`, `INDY/USDT`, `ADA/EUR`, `BTC/USD`
 - The CLI automatically converts to exchange-specific format
+- Kraken supports both USD/EUR fiat pairs and USDT pairs
 
 ---
 
@@ -302,6 +345,9 @@ openmm balance --exchange gateio --asset BTC
 
 # Bitget - Check USDT Balance
 openmm balance --exchange bitget --asset USDT
+
+# Kraken - Check ADA Balance
+openmm balance --exchange kraken --asset ADA
 ```
 
 ### Get Ticker Price
@@ -314,6 +360,9 @@ openmm ticker --exchange gateio --symbol BTC/USDT
 
 # Bitget - Get SNEK/USDT Price
 openmm ticker --exchange bitget --symbol SNEK/USDT
+
+# Kraken - Get ADA/EUR Price
+openmm ticker --exchange kraken --symbol ADA/EUR
 ```
 
 ### View Order Book
@@ -326,6 +375,9 @@ openmm orderbook --exchange gateio --symbol BTC/USDT --limit 5
 
 # Bitget - SNEK/USDT Order Book
 openmm orderbook --exchange bitget --symbol SNEK/USDT --limit 10
+
+# Kraken - ADA/EUR Order Book
+openmm orderbook --exchange kraken --symbol ADA/EUR --limit 5
 ```
 
 ### Place Orders
@@ -338,6 +390,9 @@ openmm orders create --exchange gateio --symbol BTC/USDT --side buy --type limit
 
 # Bitget - Limit Buy Order
 openmm orders create --exchange bitget --symbol SNEK/USDT --side buy --type limit --amount 10000 --price 0.00001
+
+# Kraken - Limit Buy Order  
+openmm orders create --exchange kraken --symbol ADA/EUR --side buy --type limit --amount 50 --price 0.45
 ```
 
 ### List Open Orders
@@ -350,6 +405,9 @@ openmm orders list --exchange gateio
 
 # Bitget - Open Orders for SNEK/USDT
 openmm orders list --exchange bitget --symbol SNEK/USDT
+
+# Kraken - Open Orders for ADA/EUR
+openmm orders list --exchange kraken --symbol ADA/EUR
 ```
 
 ---
