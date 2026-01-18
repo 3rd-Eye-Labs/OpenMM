@@ -131,6 +131,24 @@ export class KrakenConnector extends BaseExchangeConnector {
   }
 
   async cancelAllOrders(symbol?: string): Promise<void> {
+    // Try WebSocket v2 cancel_all first
+    if (this.webSocket && this.webSocket.isPrivateConnected()) {
+      try {
+        await this.webSocket.cancelAllOrders(symbol);
+        this.logger.info(
+          symbol
+            ? `All orders for ${symbol} cancelled via WebSocket`
+            : 'All orders cancelled via WebSocket'
+        );
+        return;
+      } catch (wsError) {
+        this.logger.warn('WebSocket cancel_all failed, falling back to REST API', {
+          error: wsError,
+        });
+      }
+    }
+
+    // Fallback to REST API
     if (!this.auth) throw new Error('Not authenticated');
 
     try {

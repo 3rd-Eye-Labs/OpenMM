@@ -37,6 +37,10 @@ export class KrakenWebSocket {
   private nextReqId = 1;
   private authToken?: string;
   private auth?: KrakenAuth;
+  private pendingCancelRequests = new Map<
+    number,
+    { resolve: () => void; reject: (error: Error) => void; timestamp: number }
+  >();
 
   constructor(
     publicWsUrl: string = 'wss://ws.kraken.com/v2',
@@ -61,9 +65,7 @@ export class KrakenWebSocket {
         this.ws.on('message', (data: Buffer) => this.onMessage(data));
         this.ws.on('close', () => this.onClose());
         this.ws.on('error', error => this.onError(error, reject));
-        this.ws.on('pong', () => {
-          this.logger.debug('Received pong from Kraken public WebSocket');
-        });
+        this.ws.on('pong', () => {});
       } catch (error) {
         this.status = 'error';
         reject(error);
@@ -134,11 +136,19 @@ export class KrakenWebSocket {
   }
 
   private handleSubscriptionResponse(message: KrakenWebSocketMessage): void {
+    const subscription = Array.from(this.subscriptions.values()).find(
+      sub => sub.reqId === message.req_id
+    );
+
     if (message.success === false || message.error) {
       this.logger.error('❌ Subscription failed:', {
         error: message.error,
         reqId: message.req_id,
       });
+
+      if (subscription && subscription.type === 'orders' && subscription.reject) {
+        subscription.reject(new Error(message.error || 'Subscription failed'));
+      }
       return;
     }
 
@@ -147,6 +157,10 @@ export class KrakenWebSocket {
         reqId: message.req_id,
         subscription: message.subscription,
       });
+
+      if (subscription && subscription.type === 'orders' && subscription.resolve) {
+        subscription.resolve();
+      }
     }
   }
 
@@ -408,9 +422,7 @@ export class KrakenWebSocket {
         this.privateWs.on('message', (data: Buffer) => this.onPrivateMessage(data));
         this.privateWs.on('close', () => this.onPrivateClose());
         this.privateWs.on('error', error => this.onPrivateError(error, reject));
-        this.privateWs.on('pong', () => {
-          this.logger.debug('Received pong from Kraken private WebSocket');
-        });
+        this.privateWs.on('pong', () => {});
       } catch (error) {
         this.privateStatus = 'error';
         reject(error);
@@ -470,8 +482,13 @@ export class KrakenWebSocket {
 
       if (parsedMessage.channel === 'executions') {
         this.handleUserOrderUpdate(parsedMessage);
-      } else if (parsedMessage.channel === 'balances') {
-        this.handleBalanceUpdate(parsedMessage);
+      } else if (parsedMessage.type === 'update' && parsedMessage.channel === 'executions') {
+        this.handleUserOrderUpdate(parsedMessage);
+      } else if (parsedMessage.method === 'subscribe' && parsedMessage.success) {
+      } else if (parsedMessage.type === 'snapshot' && parsedMessage.channel === 'executions') {
+        this.handleUserOrderUpdate(parsedMessage);
+      } else if (parsedMessage.method === 'cancel_all') {
+        this.handleCancelAllResponse(parsedMessage);
       }
     } catch (error) {
       this.logger.error('❌ Error processing Kraken private message:', {
@@ -489,11 +506,16 @@ export class KrakenWebSocket {
       sub => sub.type === 'user_trades'
     );
 
+    if (!message.data || !Array.isArray(message.data)) {
+      return;
+    }
+
     // Handle order updates
     for (const sub of orderSubscriptions) {
-      const orders = message.data.map((orderData: any) =>
-        this.dataMapper.mapWebSocketOrder(orderData)
-      );
+      const orders = message.data.map((orderData: any) => {
+        return this.dataMapper.mapWebSocketOrder(orderData);
+      });
+
       orders.forEach((order: Order) => {
         if (sub.type === 'orders') {
           (sub.callback as (data: Order) => void)(order);
@@ -515,13 +537,49 @@ export class KrakenWebSocket {
     }
   }
 
-  private handleBalanceUpdate(message: any): void {
-    this.logger.debug('Balance update received:', message);
+  private handleCancelAllResponse(message: any): void {
+    const reqId = message.req_id;
+    const pending = this.pendingCancelRequests.get(reqId);
+
+    if (!pending) {
+      return;
+    }
+
+    this.pendingCancelRequests.delete(reqId);
+
+    if (message.success === false || message.error) {
+      this.logger.error('❌ cancel_all failed:', {
+        error: message.error,
+        reqId,
+      });
+      pending.reject(new Error(message.error || 'cancel_all failed'));
+    } else {
+      this.logger.info(`✅ Cancelled ${message.result?.count || 0} orders via WebSocket`);
+      pending.resolve();
+    }
+
+    const now = Date.now();
+    for (const [id, req] of this.pendingCancelRequests.entries()) {
+      if (now - req.timestamp > 30000) {
+        this.pendingCancelRequests.delete(id);
+        req.reject(new Error('cancel_all request timed out'));
+      }
+    }
   }
 
   async subscribeUserOrders(callback: (order: Order) => void): Promise<string> {
     if (!this.authToken) {
       throw new Error('Not authenticated to private WebSocket');
+    }
+
+    let attempts = 0;
+    while (this.privateWs?.readyState !== WebSocket.OPEN && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+
+    if (this.privateWs?.readyState !== WebSocket.OPEN) {
+      throw new Error('Private WebSocket not ready after 5 seconds');
     }
 
     const subscriptionId = `user_orders_${Date.now()}`;
@@ -539,16 +597,15 @@ export class KrakenWebSocket {
       method: 'subscribe',
       params: {
         channel: 'executions',
-        snapshot_orders: true,
         token: this.authToken,
+        snapshot: true,
       },
       req_id: reqId,
     };
 
-    if (this.privateWs?.readyState === WebSocket.OPEN) {
-      this.privateWs.send(JSON.stringify(subscribeMessage));
-      this.logger.info('👤 Subscribed to user orders');
-    }
+    this.privateWs.send(JSON.stringify(subscribeMessage));
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     return subscriptionId;
   }
@@ -587,6 +644,59 @@ export class KrakenWebSocket {
     return subscriptionId;
   }
 
+  async cancelAllOrders(symbol?: string): Promise<void> {
+    if (!this.authToken) {
+      throw new Error('Not authenticated to private WebSocket');
+    }
+
+    if (this.privateWs?.readyState !== WebSocket.OPEN) {
+      throw new Error('Private WebSocket not connected');
+    }
+
+    const reqId = this.getNextReqId();
+
+    const responsePromise = new Promise<void>((resolve, reject) => {
+      this.pendingCancelRequests.set(reqId, {
+        resolve,
+        reject,
+        timestamp: Date.now(),
+      });
+
+      // Set timeout for response
+      setTimeout(() => {
+        if (this.pendingCancelRequests.has(reqId)) {
+          this.pendingCancelRequests.delete(reqId);
+          reject(new Error('cancel_all request timed out after 10 seconds'));
+        }
+      }, 10000);
+    });
+
+    const cancelMessage: any = {
+      method: 'cancel_all',
+      params: {
+        token: this.authToken,
+      },
+      req_id: reqId,
+    };
+
+    if (symbol) {
+      this.logger.warn(
+        '⚠️ Kraken WebSocket v2 cancel_all does not support filtering by symbol - cancelling ALL orders'
+      );
+    }
+
+    this.privateWs.send(JSON.stringify(cancelMessage));
+
+    try {
+      await responsePromise;
+    } catch (error) {
+      this.logger.error('❌ Failed to cancel orders via WebSocket:', {
+        error: error instanceof Error ? error.message : error,
+      });
+      throw error;
+    }
+  }
+
   private startPing(): void {
     this.pingTimer = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
@@ -595,7 +705,6 @@ export class KrakenWebSocket {
           req_id: this.getNextReqId(),
         };
         this.ws.send(JSON.stringify(pingMessage));
-        this.logger.debug('Sent ping to Kraken public WebSocket');
       }
     }, this.pingInterval);
   }
@@ -615,7 +724,6 @@ export class KrakenWebSocket {
           req_id: this.getNextReqId(),
         };
         this.privateWs.send(JSON.stringify(pingMessage));
-        this.logger.debug('Sent ping to Kraken private WebSocket');
       }
     }, this.pingInterval);
   }
