@@ -21,7 +21,7 @@ describe('Price Aggregation Integration Tests', () => {
     it('should get real price for MIN token', async () => {
       let retryCount = 0;
       let result = undefined;
-      
+
       // Retry logic for network issues
       while (retryCount < 3) {
         try {
