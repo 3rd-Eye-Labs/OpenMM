@@ -327,19 +327,19 @@ describe('Grid Strategy End-to-End Workflow', () => {
     test('should handle order placement → fill → grid recreation correctly', async () => {
       await gridStrategy.start();
       expect(gridStrategy.currentStatus).toBe('running');
-      
+
       // Wait for initial setup
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       const initialOrders = await mockExchange.getOpenOrders('INDY/USDT');
       expect(initialOrders.length).toBeGreaterThan(0);
-      
+
       const orderToFill = initialOrders[0];
       mockExchange.simulateOrderFill(orderToFill.id);
-      
+
       // Wait for order processing
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const fillUpdate = orderUpdates.find(
         update => update.id === orderToFill.id && update.status === 'filled'
       );

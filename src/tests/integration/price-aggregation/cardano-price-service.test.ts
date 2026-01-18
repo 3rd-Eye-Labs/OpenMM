@@ -42,7 +42,7 @@ describe('CardanoPriceService Integration', () => {
     test('should fetch INDY price successfully', async () => {
       let retryCount = 0;
       let price = undefined;
-      
+
       while (retryCount < 3) {
         try {
           price = await priceService.getTokenPrice('INDY');
@@ -55,7 +55,7 @@ describe('CardanoPriceService Integration', () => {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-      
+
       expect(price).toBeDefined();
       expect(price!.symbol).toBe('INDY/USDT');
       expect(price!.price).toBeGreaterThan(0);
@@ -67,7 +67,7 @@ describe('CardanoPriceService Integration', () => {
     test('should fetch SNEK price successfully', async () => {
       let retryCount = 0;
       let price = undefined;
-      
+
       // Retry logic for network issues
       while (retryCount < 3) {
         try {
@@ -81,7 +81,7 @@ describe('CardanoPriceService Integration', () => {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-      
+
       expect(price).toBeDefined();
       expect(price!.symbol).toBe('SNEK/USDT');
       expect(price!.price).toBeGreaterThan(0);
