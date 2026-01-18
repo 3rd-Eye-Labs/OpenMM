@@ -63,17 +63,17 @@ export interface KrakenRawOrderData {
   limit_price?: string;
   filled_qty?: string;
   exec_qty?: string;
+  // WebSocket v2 data
+  cum_exec_qty?: string;
+  cum_qty?: string | number;
   leaves_qty?: string;
-  status: string;
+  status?: string;
+  ord_status?: string;
+  order_status?: string;
+  exec_type?: string;
+  avg_price?: string | number;
   timestamp?: number;
   [key: string]: unknown;
-}
-
-/**
- * Raw balance data as received from Kraken REST API
- */
-export interface KrakenRawBalance {
-  [asset: string]: string;
 }
 
 /**

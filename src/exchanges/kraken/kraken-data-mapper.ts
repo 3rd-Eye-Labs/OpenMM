@@ -14,10 +14,11 @@ import { KrakenUtils } from './kraken-utils';
 export class KrakenDataMapper {
   mapBalance(balances: Record<string, string>): Record<string, Balance> {
     const result: Record<string, Balance> = {};
-    for (const [asset, amount] of Object.entries(balances)) {
+    for (const [krakenAsset, amount] of Object.entries(balances)) {
       const total = parseFloat(amount);
-      result[asset] = {
-        asset,
+      const standardAsset = KrakenUtils.fromKrakenAsset(krakenAsset);
+      result[standardAsset] = {
+        asset: standardAsset,
         free: total,
         used: 0,
         total,
@@ -150,18 +151,50 @@ export class KrakenDataMapper {
   }
 
   mapWebSocketOrder(data: KrakenRawOrderData): Order {
-    const status = data.status ? KrakenUtils.mapOrderStatus(data.status) : 'open';
+    const rawStatus = data.order_status || data.ord_status || data.status || 'open';
+    const status = KrakenUtils.mapOrderStatus(rawStatus);
+
+    const symbol = data.symbol ? KrakenUtils.fromKrakenSymbol(data.symbol) : '';
+
+    const cumQty =
+      typeof data.cum_qty === 'number' ? data.cum_qty : parseFloat(data.cum_qty || '0');
+    const filled =
+      cumQty || parseFloat(data.cum_exec_qty || data.exec_qty || data.filled_qty || '0');
+
+    let amount = parseFloat(data.order_qty || data.qty || '0');
+    if (amount === 0 && filled > 0) {
+      amount = filled;
+    }
+
+    const remaining = amount > 0 ? Math.max(0, amount - filled) : 0;
+
+    let finalStatus = status;
+
+    if (data.order_status === 'filled' || data.exec_type === 'filled') {
+      finalStatus = 'filled';
+    } else if (
+      data.order_status === 'partially_filled' ||
+      (data.exec_type === 'trade' && filled > 0 && filled < amount)
+    ) {
+      finalStatus = 'partially_filled';
+    } else if (data.order_status === 'new' || data.exec_type === 'new') {
+      finalStatus = 'open';
+    } else if (data.order_status === 'canceled' || data.exec_type === 'canceled') {
+      finalStatus = 'cancelled';
+    }
 
     return {
       id: data.order_id || data.ord_id || data.orderId || Date.now().toString(),
-      symbol: data.symbol || '',
+      symbol,
       type: data.order_type === 'market' ? 'market' : 'limit',
       side: data.side === 'buy' ? 'buy' : 'sell',
-      price: parseFloat(data.limit_price || data.price || '0'),
-      amount: parseFloat(data.order_qty || data.qty || '0'),
-      filled: parseFloat(data.exec_qty || data.filled_qty || '0'),
-      remaining: parseFloat(data.leaves_qty || '0'),
-      status,
+      price: parseFloat(
+        data.avg_price ? String(data.avg_price) : data.limit_price || data.price || '0'
+      ),
+      amount,
+      filled,
+      remaining,
+      status: finalStatus,
       timestamp: typeof data.timestamp === 'number' ? data.timestamp : Date.now(),
     };
   }

@@ -31,6 +31,8 @@ export type KrakenSubscriptionInfo =
       symbol?: string;
       id: string;
       reqId?: number;
+      resolve?: () => void;
+      reject?: (error: Error) => void;
     }
   | {
       callback: (data: Trade) => void;
