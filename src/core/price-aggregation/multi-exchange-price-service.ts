@@ -95,19 +95,12 @@ export class MultiExchangePriceService {
     const results = await Promise.all(pricePromises);
 
     const availableExchanges = results.filter(r => r.available);
-    const unavailableExchanges = results.filter(r => !r.available);
 
     this.logger.info(
       `${symbol} available on ${availableExchanges.length} exchanges: ${availableExchanges
         .map(r => r.exchange)
         .join(', ')}`
     );
-
-    if (unavailableExchanges.length > 0) {
-      this.logger.debug(
-        `${symbol} not available on: ${unavailableExchanges.map(r => r.exchange).join(', ')}`
-      );
-    }
 
     return results;
   }

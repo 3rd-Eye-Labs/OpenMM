@@ -115,7 +115,6 @@ export class KrakenWebSocket {
       }
 
       if (parsedMessage.channel === 'status' && parsedMessage.type === 'update') {
-        this.logger.debug('Kraken status update:', parsedMessage.data);
         return;
       }
 

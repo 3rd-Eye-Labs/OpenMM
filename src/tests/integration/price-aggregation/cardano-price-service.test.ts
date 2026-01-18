@@ -40,20 +40,53 @@ describe('CardanoPriceService Integration', () => {
     });
 
     test('should fetch INDY price successfully', async () => {
-      const price = await priceService.getTokenPrice('INDY');
-      expect(price.symbol).toBe('INDY/USDT');
-      expect(price.price).toBeGreaterThan(0);
-      expect(price.confidence).toBeGreaterThan(0);
-      expect(price.timestamp).toBeInstanceOf(Date);
-      expect(price.sources.length).toBeGreaterThan(0);
-    }, 30000);
+      let retryCount = 0;
+      let price = undefined;
+      
+      while (retryCount < 3) {
+        try {
+          price = await priceService.getTokenPrice('INDY');
+          break;
+        } catch (error) {
+          retryCount++;
+          if (retryCount >= 3) {
+            throw error;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      expect(price).toBeDefined();
+      expect(price!.symbol).toBe('INDY/USDT');
+      expect(price!.price).toBeGreaterThan(0);
+      expect(price!.confidence).toBeGreaterThan(0);
+      expect(price!.timestamp).toBeInstanceOf(Date);
+      expect(price!.sources.length).toBeGreaterThan(0);
+    }, 60000);
 
     test('should fetch SNEK price successfully', async () => {
-      const price = await priceService.getTokenPrice('SNEK');
-      expect(price.symbol).toBe('SNEK/USDT');
-      expect(price.price).toBeGreaterThan(0);
-      expect(price.confidence).toBeGreaterThan(0);
-    }, 30000);
+      let retryCount = 0;
+      let price = undefined;
+      
+      // Retry logic for network issues
+      while (retryCount < 3) {
+        try {
+          price = await priceService.getTokenPrice('SNEK');
+          break;
+        } catch (error) {
+          retryCount++;
+          if (retryCount >= 3) {
+            throw error;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      expect(price).toBeDefined();
+      expect(price!.symbol).toBe('SNEK/USDT');
+      expect(price!.price).toBeGreaterThan(0);
+      expect(price!.confidence).toBeGreaterThan(0);
+    }, 60000);
   });
 
   describe('Error Handling', () => {
