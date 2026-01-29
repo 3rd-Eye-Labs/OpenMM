@@ -1,4 +1,10 @@
-import { Order, OrderSide, GridLevel, GridOrderManagerConfig } from '../../types';
+import {
+  Order,
+  OrderSide,
+  GridLevel,
+  GridOrderManagerConfig,
+  DynamicGridConfig,
+} from '../../types';
 import { GridCalculator } from './grid-calculator';
 import { createLogger } from '../../utils';
 
@@ -55,11 +61,11 @@ export class GridOrderManager {
   async handleOrderFill(
     filledOrder: Order,
     currentPrice: number,
-    gridSpacing: number,
-    gridLevels: number,
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
     cancelAllOrdersFn: (symbol: string) => Promise<void>,
+    dynamicGridConfig: DynamicGridConfig,
+    minOrderValue?: number,
     cancelOrderFn?: (orderId: string, symbol: string) => Promise<void>
   ): Promise<void> {
     this.logger.info(
@@ -90,12 +96,12 @@ export class GridOrderManager {
         return;
       }
 
-      await this.recreateGridAtPrice(
+      await this.recreateGrid(
         currentPrice,
-        gridSpacing,
-        gridLevels,
+        dynamicGridConfig,
         availableBalance,
-        placeOrderFn
+        placeOrderFn,
+        minOrderValue
       );
     } finally {
       this.isAdjusting = false;
@@ -104,12 +110,12 @@ export class GridOrderManager {
 
   async handlePriceDeviation(
     newPrice: number,
-    gridSpacing: number,
-    gridLevels: number,
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
     cancelAllOrdersFn: (symbol: string) => Promise<void>,
     symbol: string,
+    dynamicGridConfig: DynamicGridConfig,
+    minOrderValue?: number,
     cancelOrderFn?: (orderId: string, symbol: string) => Promise<void>
   ): Promise<void> {
     const deviation = Math.abs(newPrice - this.currentGridCenter) / this.currentGridCenter;
@@ -128,12 +134,12 @@ export class GridOrderManager {
           return;
         }
 
-        await this.recreateGridAtPrice(
+        await this.recreateGrid(
           newPrice,
-          gridSpacing,
-          gridLevels,
+          dynamicGridConfig,
           availableBalance,
-          placeOrderFn
+          placeOrderFn,
+          minOrderValue
         );
       } finally {
         this.isAdjusting = false;
@@ -197,16 +203,23 @@ export class GridOrderManager {
     }
   }
 
-  private async recreateGridAtPrice(
+  /**
+   * Recreate the grid using the dynamic grid calculator.
+   * This replaces the old recreateGridAtPrice method with full dynamic support.
+   */
+  private async recreateGrid(
     centerPrice: number,
-    gridSpacing: number,
-    gridLevels: number,
+    dynamicGridConfig: DynamicGridConfig,
     availableBalance: number,
-    placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>
+    placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
+    minOrderValue?: number
   ): Promise<void> {
-    const levels = this.gridCalculator.calculateGridLevels(centerPrice, gridSpacing, gridLevels);
-    const orderSize = this.gridCalculator.calculateOrderSizes(availableBalance, gridLevels);
-    const gridWithSizes = this.gridCalculator.assignOrderSizes(levels, orderSize);
+    const gridWithSizes = this.gridCalculator.generateDynamicGrid(
+      centerPrice,
+      dynamicGridConfig,
+      availableBalance,
+      minOrderValue
+    );
 
     await this.placeInitialGrid(gridWithSizes, placeOrderFn);
     this.currentGridCenter = centerPrice;
