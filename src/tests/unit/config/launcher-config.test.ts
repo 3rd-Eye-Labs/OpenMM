@@ -67,6 +67,8 @@ describe('Launcher Config', () => {
         adjustmentDebounce: 2000,
         maxPositionSize: 0.8,
         safetyReservePercentage: 0.2,
+        spacingModel: 'linear',
+        sizeModel: 'flat',
       });
     });
 

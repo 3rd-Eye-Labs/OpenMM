@@ -1,5 +1,13 @@
 import { GridOrderManager } from '../../../../strategies/grid/grid-order-manager';
-import { Order, GridLevel } from '../../../../types';
+import { Order, GridLevel, DynamicGridConfig } from '../../../../types';
+
+const defaultDynamicConfig: DynamicGridConfig = {
+  levels: 3,
+  spacingModel: 'linear',
+  baseSpacing: 0.02,
+  sizeModel: 'flat',
+  baseSize: 50,
+};
 
 describe('GridOrderManager', () => {
   let manager: GridOrderManager;
@@ -127,11 +135,10 @@ describe('GridOrderManager', () => {
       await manager.handleOrderFill(
         filledOrder,
         105,
-        0.02,
-        3,
         100,
         mockPlaceOrder,
-        mockCancelAllOrders
+        mockCancelAllOrders,
+        defaultDynamicConfig
       );
       expect(mockCancelAllOrders).toHaveBeenCalledWith('INDY/USDT');
       expect(mockPlaceOrder).toHaveBeenCalled();
@@ -153,22 +160,20 @@ describe('GridOrderManager', () => {
       await manager.handleOrderFill(
         filledOrder,
         105,
-        0.02,
-        3,
         100,
         mockPlaceOrder,
-        mockCancelAllOrders
+        mockCancelAllOrders,
+        defaultDynamicConfig
       );
       mockCancelAllOrders.mockClear();
       mockPlaceOrder.mockClear();
       await manager.handleOrderFill(
         filledOrder,
         106,
-        0.02,
-        3,
         100,
         mockPlaceOrder,
-        mockCancelAllOrders
+        mockCancelAllOrders,
+        defaultDynamicConfig
       );
       expect(mockCancelAllOrders).not.toHaveBeenCalled();
       expect(mockPlaceOrder).not.toHaveBeenCalled();
@@ -202,12 +207,11 @@ describe('GridOrderManager', () => {
       mockCancelAllOrders.mockResolvedValue(undefined);
       await manager.handlePriceDeviation(
         newPrice,
-        0.02,
-        3,
         100,
         mockPlaceOrder,
         mockCancelAllOrders,
-        'INDY/USDT'
+        'INDY/USDT',
+        defaultDynamicConfig
       );
       expect(mockCancelAllOrders).toHaveBeenCalledWith('INDY/USDT');
       expect(mockPlaceOrder).toHaveBeenCalled();
@@ -219,12 +223,11 @@ describe('GridOrderManager', () => {
       mockPlaceOrder.mockClear();
       await manager.handlePriceDeviation(
         newPrice,
-        0.02,
-        3,
         100,
         mockPlaceOrder,
         mockCancelAllOrders,
-        'INDY/USDT'
+        'INDY/USDT',
+        defaultDynamicConfig
       );
       expect(mockCancelAllOrders).not.toHaveBeenCalled();
       expect(mockPlaceOrder).not.toHaveBeenCalled();
