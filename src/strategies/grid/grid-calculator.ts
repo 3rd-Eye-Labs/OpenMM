@@ -279,5 +279,4 @@ export class GridCalculator {
       throw new Error(`Volatility multiplier must be positive, got ${config.volatilityMultiplier}`);
     }
   }
-
 }
