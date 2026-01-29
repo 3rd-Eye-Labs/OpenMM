@@ -1,3 +1,5 @@
+import { SpacingModel, SizeModel } from '../types';
+
 export interface LauncherConfig {
   exchange: string;
   strategy: string;
@@ -13,6 +15,14 @@ export interface GridLauncherParams {
   adjustmentDebounce?: number;
   maxPositionSize?: number;
   safetyReservePercentage?: number;
+
+  // Dynamic grid parameters
+  spacingModel?: SpacingModel;
+  spacingFactor?: number;
+  customSpacings?: number[];
+  sizeModel?: SizeModel;
+  sizeWeights?: number[];
+  gridProfilePath?: string;
 }
 
 export const DEFAULT_GRID_PARAMS: GridLauncherParams = {
@@ -24,4 +34,6 @@ export const DEFAULT_GRID_PARAMS: GridLauncherParams = {
   adjustmentDebounce: 2000,
   maxPositionSize: 0.8,
   safetyReservePercentage: 0.2,
+  spacingModel: 'linear',
+  sizeModel: 'flat',
 };
