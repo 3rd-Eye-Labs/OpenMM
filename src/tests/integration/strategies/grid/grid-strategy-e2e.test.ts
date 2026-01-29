@@ -273,6 +273,13 @@ describe('Grid Strategy End-to-End Workflow', () => {
       minConfidence: 0.6,
       priceDeviationThreshold: 0.015,
       adjustmentDebounce: 1000,
+      dynamicGrid: {
+        levels: 5,
+        spacingModel: 'linear',
+        baseSpacing: 0.02,
+        sizeModel: 'flat',
+        baseSize: 10,
+      },
     },
     parameters: {
       gridLevels: 5,
