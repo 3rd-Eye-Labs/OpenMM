@@ -1,3 +1,5 @@
+import { DynamicGridConfig } from './grid';
+
 /**
  * Strategy types supported by OpenMM
  */
@@ -31,6 +33,8 @@ export interface GridConfig {
   minConfidence: number;
   priceDeviationThreshold: number;
   adjustmentDebounce: number;
+  /** Dynamic grid configuration for advanced order level generation */
+  dynamicGrid?: DynamicGridConfig;
 }
 
 /**
