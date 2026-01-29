@@ -4,12 +4,16 @@ import { executeCommand, handleError } from '../utils/error-handler';
 import { StrategyFactory } from '../../core/strategy/strategy-factory';
 import { LauncherConfig, GridLauncherParams } from '../../config/launcher-config';
 import { BaseStrategy } from '../../core/strategy/base-strategy';
+import { SpacingModel, SizeModel } from '../../types';
 import chalk from 'chalk';
 
 export const tradeCommand = new Command('trade')
   .description('Start trading with specified strategy and parameters')
   .requiredOption('-s, --strategy <strategy>', 'Trading strategy to use (grid)')
-  .requiredOption('-e, --exchange <exchange>', 'Exchange to trade on (mexc, bitget, gateio)')
+  .requiredOption(
+    '-e, --exchange <exchange>',
+    'Exchange to trade on (mexc, bitget, gateio, kraken)'
+  )
   .requiredOption('--symbol <symbol>', 'Trading pair (INDYUSDT, INDY/USDT, BTCUSDT, etc.)')
 
   .option('--levels <number>', 'Grid: Number of levels each side (default: 5)', '5')
@@ -24,6 +28,23 @@ export const tradeCommand = new Command('trade')
     '0.8'
   )
   .option('--safety-reserve <decimal>', 'Grid: Safety reserve as % of balance (0.2 = 20%)', '0.2')
+
+  // Dynamic grid options
+  .option(
+    '--spacing-model <model>',
+    'Grid: Spacing model - linear, geometric, or custom (default: linear)',
+    'linear'
+  )
+  .option(
+    '--spacing-factor <number>',
+    'Grid: Geometric spacing multiplier per level (default: 1.3)'
+  )
+  .option(
+    '--size-model <model>',
+    'Grid: Size distribution - flat, pyramidal, or custom (default: flat)',
+    'flat'
+  )
+  .option('--grid-profile <path>', 'Grid: Load full grid configuration from a JSON profile file')
 
   .option('--dry-run', 'Simulate trading without placing real orders')
 
@@ -69,10 +90,36 @@ export const tradeCommand = new Command('trade')
         let params: any = {};
 
         if (strategyType === 'grid') {
-          console.log(chalk.gray(`Grid Levels: ${options.levels} each side`));
+          const spacingModel = options.spacingModel as SpacingModel;
+          const sizeModel = options.sizeModel as SizeModel;
+
+          if (!['linear', 'geometric', 'custom'].includes(spacingModel)) {
+            throw new Error(
+              `Invalid spacing model: ${spacingModel}. Must be: linear, geometric, or custom`
+            );
+          }
+
+          if (!['flat', 'pyramidal', 'custom'].includes(sizeModel)) {
+            throw new Error(
+              `Invalid size model: ${sizeModel}. Must be: flat, pyramidal, or custom`
+            );
+          }
+
+          // Validate levels (1-10 per side)
+          const levels = parseInt(options.levels);
+          if (levels < 1 || levels > 10) {
+            throw new Error(`Grid levels must be between 1 and 10, got ${levels}`);
+          }
+
+          console.log(chalk.gray(`Grid Levels: ${options.levels} per side (${levels * 2} total)`));
           console.log(
             chalk.gray(`Grid Spacing: ${(parseFloat(options.spacing) * 100).toFixed(1)}%`)
           );
+          console.log(chalk.gray(`Spacing Model: ${spacingModel}`));
+          if (spacingModel === 'geometric' && options.spacingFactor) {
+            console.log(chalk.gray(`Spacing Factor: ${options.spacingFactor}`));
+          }
+          console.log(chalk.gray(`Size Model: ${sizeModel}`));
           console.log(chalk.gray(`Order Size: $${options.size}`));
           console.log(
             chalk.gray(`Max Position: ${(parseFloat(options.maxPosition) * 100).toFixed(0)}%`)
@@ -81,8 +128,12 @@ export const tradeCommand = new Command('trade')
             chalk.gray(`Safety Reserve: ${(parseFloat(options.safetyReserve) * 100).toFixed(0)}%`)
           );
 
+          if (options.gridProfile) {
+            console.log(chalk.gray(`Grid Profile: ${options.gridProfile}`));
+          }
+
           params = {
-            gridLevels: parseInt(options.levels),
+            gridLevels: levels,
             gridSpacing: parseFloat(options.spacing),
             orderSize: parseFloat(options.size),
             minConfidence: parseFloat(options.confidence),
@@ -90,6 +141,10 @@ export const tradeCommand = new Command('trade')
             adjustmentDebounce: parseInt(options.debounce),
             maxPositionSize: parseFloat(options.maxPosition),
             safetyReservePercentage: parseFloat(options.safetyReserve),
+            spacingModel,
+            sizeModel,
+            spacingFactor: options.spacingFactor ? parseFloat(options.spacingFactor) : undefined,
+            gridProfilePath: options.gridProfile,
           } as GridLauncherParams;
         }
 
@@ -115,27 +170,78 @@ tradeCommand.addHelpText(
   'after',
   `
 Examples:
-  $ openmm trade --strategy grid --exchange mexc --symbol INDYUSDT                    # Start INDY/USDT grid with defaults
-  $ openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT --levels 7     # Bitget SNEK/USDT grid
-  $ openmm trade --strategy grid --exchange gateio --symbol SNEK/USDT --levels 7     # Gate.io SNEK/USDT grid
-  $ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT --levels 7 --size 100  # Custom parameters
-  $ openmm trade --strategy grid --exchange bitget --symbol BTCUSDT --spacing 0.015  # BTC grid with 1.5% spacing
-  $ openmm trade --strategy grid --exchange gateio --symbol BTCUSDT --spacing 0.015  # Gate.io BTC grid with 1.5% spacing
-  $ openmm trade --strategy grid --exchange mexc --symbol INDYUSDT --dry-run         # Test mode (no real orders)
+
+  # 1. Linear spacing + Flat sizing (default behavior)
+  $ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR --levels 5 --spacing 0.02 --size 5
+
+  # 2. Geometric spacing + Flat sizing
+  $ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR --levels 10 --spacing 0.003 --spacing-model geometric --spacing-factor 1.3 --size 5
+
+  # 3. Geometric spacing + Pyramidal sizing
+  $ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR --levels 10 --spacing 0.005 --spacing-model geometric --spacing-factor 1.5 --size-model pyramidal --size 5
+
+  # 4. Linear spacing + Pyramidal sizing
+  $ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR --levels 8 --spacing 0.01 --size-model pyramidal --size 5
+
+  # 5. Geometric with aggressive factor (wider outer levels)
+  $ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR --levels 10 --spacing 0.002 --spacing-model geometric --spacing-factor 2.0 --size-model pyramidal --size 5
+
+  # 6. Load full configuration from a JSON profile file
+  $ openmm trade --strategy grid --exchange gateio --symbol SNEK/USDT --grid-profile ./profiles/aggressive.json
+
+  # 7. Multi-exchange examples
+  $ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT --levels 10 --spacing 0.005 --spacing-model geometric --spacing-factor 1.3 --size-model pyramidal --size 5
+  $ openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT --levels 7 --spacing 0.01 --size-model pyramidal --size 5
+  $ openmm trade --strategy grid --exchange gateio --symbol SNEK/USDT --levels 8 --spacing 0.004 --spacing-model geometric --spacing-factor 1.4 --size-model pyramidal --size 5
 
 Grid Strategy Parameters:
-  --levels: Number of buy and sell orders each side (default: 5, range: 1-20)
-  --spacing: Price spacing between grid levels (default: 0.02 = 2%)
-  --size: Order size in quote currency like USDT (default: 50)
-  --confidence: Minimum price confidence to trade (default: 0.6 = 60%)
-  --deviation: Price movement % to trigger grid recreation (default: 0.015 = 1.5%)
-  --debounce: Delay between grid adjustments in ms (default: 2000ms)
-  --max-position: Maximum position size as % of balance (default: 0.8 = 80%)
-  --safety-reserve: Safety reserve as % of balance (default: 0.2 = 20%)
+  --levels <number>           Number of buy and sell orders each side (default: 5, max: 10)
+  --spacing <decimal>         Base price spacing between grid levels (default: 0.02 = 2%)
+  --size <number>             Base order size in quote currency like USDT (default: 50)
+  --confidence <decimal>      Minimum price confidence to trade (default: 0.6 = 60%)
+  --deviation <decimal>       Price movement % to trigger grid recreation (default: 0.015 = 1.5%)
+  --debounce <ms>             Delay between grid adjustments in ms (default: 2000ms)
+  --max-position <decimal>    Maximum position size as % of balance (default: 0.8 = 80%)
+  --safety-reserve <decimal>  Safety reserve as % of balance (default: 0.2 = 20%)
+
+Dynamic Grid Parameters:
+  --spacing-model <model>     How spacing between levels is calculated (default: linear)
+                              linear    - Equal spacing between all levels
+                              geometric - Spacing increases by factor per level (wider at edges)
+                              custom    - User-defined via grid profile file
+  --spacing-factor <number>   Geometric spacing multiplier per level (default: 1.3)
+                              Example: factor=1.5, base=0.5% → gaps: 0.5%, 0.75%, 1.125%...
+  --size-model <model>        How order sizes are distributed across levels (default: flat)
+                              flat      - Equal size for all levels
+                              pyramidal - Larger sizes near center, smaller at edges
+                              custom    - User-defined weights via grid profile file
+  --grid-profile <path>       Load complete grid config from JSON file (overrides CLI params)
+
+Grid Profile File Format (JSON):
+  {
+    "name": "my-profile",
+    "levels": 10,
+    "spacingModel": "geometric",
+    "baseSpacing": 0.005,
+    "spacingFactor": 1.3,
+    "sizeModel": "pyramidal",
+    "baseSize": 50
+  }
+
+  For custom spacing/sizing, provide arrays:
+  {
+    "levels": 5,
+    "spacingModel": "custom",
+    "customSpacings": [0.005, 0.012, 0.022, 0.035, 0.055],
+    "sizeModel": "custom",
+    "sizeWeights": [1.5, 1.3, 1.0, 0.8, 0.6],
+    "baseSize": 50
+  }
 
 Note: Ensure exchange-specific environment variables are set:
   - MEXC: MEXC_API_KEY and MEXC_SECRET_KEY
   - Bitget: BITGET_API_KEY, BITGET_SECRET, and BITGET_PASSPHRASE
   - Gate.io: GATEIO_API_KEY and GATEIO_SECRET
+  - Kraken: KRAKEN_API_KEY and KRAKEN_SECRET
 `
 );
