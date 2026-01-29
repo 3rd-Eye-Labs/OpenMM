@@ -16,6 +16,10 @@ export class GridOrderManager {
     this.gridCalculator = new GridCalculator();
   }
 
+  setCurrentGridCenter(price: number): void {
+    this.currentGridCenter = price;
+  }
+
   async placeInitialGrid(
     levels: GridLevel[],
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>
@@ -55,7 +59,8 @@ export class GridOrderManager {
     gridLevels: number,
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
-    cancelAllOrdersFn: (symbol: string) => Promise<void>
+    cancelAllOrdersFn: (symbol: string) => Promise<void>,
+    cancelOrderFn?: (orderId: string, symbol: string) => Promise<void>
   ): Promise<void> {
     this.logger.info(
       `Order FILLED: ${filledOrder.side.toUpperCase()} ${filledOrder.filled} @ $${filledOrder.price}`,
@@ -69,8 +74,22 @@ export class GridOrderManager {
     this.isAdjusting = true;
     this.lastAdjustmentTime = Date.now();
 
+    this.activeOrders = this.activeOrders.filter(o => o.id !== filledOrder.id);
+
     try {
-      await this.cancelAllOrders(cancelAllOrdersFn, filledOrder.symbol);
+      const cancelled = await this.cancelAllOrders(
+        cancelAllOrdersFn,
+        filledOrder.symbol,
+        cancelOrderFn
+      );
+
+      if (!cancelled) {
+        this.logger.error(
+          '❌ Order cancellation failed - aborting grid recreation to prevent duplicate orders'
+        );
+        return;
+      }
+
       await this.recreateGridAtPrice(
         currentPrice,
         gridSpacing,
@@ -90,7 +109,8 @@ export class GridOrderManager {
     availableBalance: number,
     placeOrderFn: (side: OrderSide, amount: number, price: number) => Promise<Order>,
     cancelAllOrdersFn: (symbol: string) => Promise<void>,
-    symbol: string
+    symbol: string,
+    cancelOrderFn?: (orderId: string, symbol: string) => Promise<void>
   ): Promise<void> {
     const deviation = Math.abs(newPrice - this.currentGridCenter) / this.currentGridCenter;
 
@@ -99,7 +119,15 @@ export class GridOrderManager {
       this.lastAdjustmentTime = Date.now();
 
       try {
-        await this.cancelAllOrders(cancelAllOrdersFn, symbol);
+        const cancelled = await this.cancelAllOrders(cancelAllOrdersFn, symbol, cancelOrderFn);
+
+        if (!cancelled) {
+          this.logger.error(
+            '❌ Order cancellation failed - aborting grid recreation to prevent duplicate orders'
+          );
+          return;
+        }
+
         await this.recreateGridAtPrice(
           newPrice,
           gridSpacing,
@@ -115,15 +143,18 @@ export class GridOrderManager {
 
   private async cancelAllOrders(
     cancelAllOrdersFn: (symbol: string) => Promise<void>,
-    symbol: string
-  ): Promise<void> {
+    symbol: string,
+    cancelOrderFn?: (orderId: string, symbol: string) => Promise<void>
+  ): Promise<boolean> {
     if (this.activeOrders.length === 0) {
-      return;
+      return true;
     }
 
     try {
       await cancelAllOrdersFn(symbol);
       this.activeOrders = [];
+      this.logger.info(`✅ Successfully cancelled all orders for ${symbol}`);
+      return true;
     } catch (error) {
       this.logger.warn(
         `⚠️ Bulk cancellation failed for ${symbol}, falling back to individual cancellation`,
@@ -131,6 +162,38 @@ export class GridOrderManager {
           error: error instanceof Error ? error.message : String(error),
         }
       );
+
+      if (!cancelOrderFn) {
+        this.logger.error(
+          '❌ Individual order cancellation not available - cannot recover from bulk cancellation failure'
+        );
+        return false;
+      }
+
+      const failedCancellations: string[] = [];
+      const ordersToCancel = [...this.activeOrders];
+
+      for (const order of ordersToCancel) {
+        try {
+          await cancelOrderFn(order.id, order.symbol);
+          this.activeOrders = this.activeOrders.filter(o => o.id !== order.id);
+        } catch (cancelError) {
+          this.logger.error(`Failed to cancel order ${order.id}:`, {
+            error: cancelError instanceof Error ? cancelError.message : String(cancelError),
+          });
+          failedCancellations.push(order.id);
+        }
+      }
+
+      if (failedCancellations.length > 0) {
+        this.logger.error(
+          `❌ Failed to cancel ${failedCancellations.length} orders. Aborting grid recreation.`
+        );
+        return false;
+      }
+
+      this.activeOrders = [];
+      return true;
     }
   }
 

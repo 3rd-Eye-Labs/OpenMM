@@ -166,8 +166,6 @@ export class GateioUserDataStream {
         this.handleUserTradeUpdates(result);
       } else if (channel === 'spot.balances') {
         this.handleBalanceUpdates(result);
-      } else {
-        this.logger.debug('🔄 Unknown private channel:', channel);
       }
     } catch (error) {
       this.logger.error('❌ Error processing private channel data:', { error, message });
@@ -341,9 +339,6 @@ export class GateioUserDataStream {
    */
   private scheduleReconnect(): void {
     this.reconnectAttempts++;
-    this.logger.debug(
-      `🔄 Scheduling user stream reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectDelay}ms`
-    );
 
     this.reconnectTimer = setTimeout(async () => {
       try {
