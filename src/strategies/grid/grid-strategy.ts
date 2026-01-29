@@ -7,6 +7,7 @@ import {
   GridStrategyConfig,
   GridOrderManagerConfig,
   RiskManagerConfig,
+  DynamicGridConfig,
 } from '../../types';
 import { BaseExchangeConnector } from '../../core/exchange/base-exchange-connector';
 import { CardanoPriceService } from '../../core/price-aggregation';
@@ -86,21 +87,19 @@ export class GridStrategy extends BaseStrategy {
       const ticker = await this.exchangeConnector.getTicker(this.getSymbol());
       const exchangeMidPrice = (ticker.bid + ticker.ask) / 2;
 
-      const gridLevels = this.calculator.calculateGridLevels(
-        exchangeMidPrice,
-        this.gridConfig.gridSpacing,
-        this.gridConfig.gridLevels
-      );
-
+      const dynamicConfig = this.getDynamicGridConfig();
       const minOrderValue = this.config
         ? ExchangeUtils.getMinimumOrderValue(this.config.exchange, this.config.symbol)
         : 0;
-      const orderSize = this.calculator.calculateOrderSizes(
+
+      const gridWithSizes = this.calculator.generateDynamicGrid(
+        exchangeMidPrice,
+        dynamicConfig,
         balance,
-        this.gridConfig.gridLevels,
         minOrderValue
       );
-      const gridWithSizes = this.calculator.assignOrderSizes(gridLevels, orderSize);
+
+      this.logGridConfiguration(dynamicConfig, gridWithSizes.length);
 
       await this.setupOrderSubscription();
 
@@ -114,7 +113,7 @@ export class GridStrategy extends BaseStrategy {
       this.orderManager.setCurrentGridCenter(exchangeMidPrice);
 
       const openOrders = await this.exchangeConnector?.getOpenOrders(this.getSymbol());
-      const expectedOrderCount = this.gridConfig.gridLevels * 2; // buy + sell orders
+      const expectedOrderCount = dynamicConfig.levels * 2; // buy + sell orders
       const actualOrderCount = openOrders?.length || 0;
 
       if (actualOrderCount < expectedOrderCount) {
@@ -175,15 +174,19 @@ export class GridStrategy extends BaseStrategy {
 
     try {
       const balance = await this.getAvailableBalance();
+      const dynamicConfig = this.getDynamicGridConfig();
+      const minOrderValue = this.config
+        ? ExchangeUtils.getMinimumOrderValue(this.config.exchange, this.config.symbol)
+        : 0;
 
       await this.orderManager.handlePriceDeviation(
         price,
-        this.gridConfig.gridSpacing,
-        this.gridConfig.gridLevels,
         balance,
         (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
         (symbol: string) => this.cancelAllOrders(symbol),
         symbol,
+        dynamicConfig,
+        minOrderValue,
         (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
       );
     } catch (error) {
@@ -208,15 +211,19 @@ export class GridStrategy extends BaseStrategy {
 
         const exchangeMidPrice = (ticker.bid + ticker.ask) / 2;
         const balance = await this.getAvailableBalance();
+        const dynamicConfig = this.getDynamicGridConfig();
+        const minOrderValue = this.config
+          ? ExchangeUtils.getMinimumOrderValue(this.config.exchange, this.config.symbol)
+          : 0;
 
         await this.orderManager.handleOrderFill(
           order,
           exchangeMidPrice,
-          this.gridConfig.gridSpacing,
-          this.gridConfig.gridLevels,
           balance,
           (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
           (symbol: string) => this.cancelAllOrders(symbol),
+          dynamicConfig,
+          minOrderValue,
           (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
         );
       } catch (error) {
@@ -231,6 +238,35 @@ export class GridStrategy extends BaseStrategy {
 
   setRiskConfig(riskConfig: RiskManagerConfig): void {
     this.riskManager = new RiskManager(riskConfig);
+  }
+
+  /**
+   * Get the DynamicGridConfig from the current gridConfig.
+   * dynamicGrid is always set by the StrategyFactory.
+   */
+  private getDynamicGridConfig(): DynamicGridConfig {
+    if (!this.gridConfig?.dynamicGrid) {
+      throw new Error('DynamicGridConfig is required but not set in gridConfig');
+    }
+    return this.gridConfig.dynamicGrid;
+  }
+
+  /**
+   * Log the active grid configuration for visibility
+   */
+  private logGridConfiguration(config: DynamicGridConfig, totalOrders: number): void {
+    this.logger.info(`📊 Grid Configuration:`);
+    this.logger.info(`  Levels: ${config.levels} per side (${totalOrders} total orders)`);
+    this.logger.info(`  Spacing Model: ${config.spacingModel}`);
+    this.logger.info(`  Base Spacing: ${(config.baseSpacing * 100).toFixed(2)}%`);
+    if (config.spacingModel === 'geometric') {
+      this.logger.info(`  Spacing Factor: ${config.spacingFactor}`);
+    }
+    this.logger.info(`  Size Model: ${config.sizeModel}`);
+    this.logger.info(`  Base Size: $${config.baseSize}`);
+    if (config.volatilityMultiplier && config.volatilityMultiplier !== 1.0) {
+      this.logger.info(`  Volatility Multiplier: ${config.volatilityMultiplier}`);
+    }
   }
 
   private async placeOrder(side: OrderSide, amount: number, price: number): Promise<Order> {
