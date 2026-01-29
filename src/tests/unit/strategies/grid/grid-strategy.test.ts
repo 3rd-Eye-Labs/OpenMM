@@ -157,6 +157,13 @@ describe('GridStrategy', () => {
       minConfidence: 0.6,
       priceDeviationThreshold: 0.015,
       adjustmentDebounce: 2000,
+      dynamicGrid: {
+        levels: 3,
+        spacingModel: 'linear',
+        baseSpacing: 0.02,
+        sizeModel: 'flat',
+        baseSize: 100,
+      },
     },
     parameters: {
       gridLevels: 3,
@@ -358,6 +365,13 @@ describe('GridStrategy', () => {
             minConfidence: 0.1,
             priceDeviationThreshold: 0.001,
             adjustmentDebounce: 100,
+            dynamicGrid: {
+              levels: 1,
+              spacingModel: 'linear',
+              baseSpacing: 0.01,
+              sizeModel: 'flat',
+              baseSize: 10,
+            },
           },
         };
         newStrategy.setExchangeConnector(mockExchange);
