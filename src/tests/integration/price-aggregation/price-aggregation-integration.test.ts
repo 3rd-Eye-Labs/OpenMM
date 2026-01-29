@@ -19,21 +19,38 @@ describe('Price Aggregation Integration Tests', () => {
 
   describe('Real API Integration', () => {
     it('should get real price for MIN token', async () => {
-      const result = await priceService.getTokenPrice('MIN');
+      let retryCount = 0;
+      let result = undefined;
 
-      expect(result.symbol).toBe('MIN/USDT');
-      expect(result.price).toBeGreaterThan(0);
-      expect(result.price).toBeLessThan(1000);
-      expect(result.confidence).toBeGreaterThan(0);
-      expect(result.confidence).toBeLessThanOrEqual(1);
-      expect(result.sources).toHaveLength(2);
-      expect(result.timestamp).toBeInstanceOf(Date);
+      // Retry logic for network issues
+      while (retryCount < 3) {
+        try {
+          result = await priceService.getTokenPrice('MIN');
+          break; // Success, exit retry loop
+        } catch (error) {
+          retryCount++;
+          if (retryCount >= 3) {
+            throw error; // Re-throw after max retries
+          }
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
 
-      const hasIrisSource = result.sources.some(s => s.exchange === 'cardano');
-      const hasCexSource = result.sources.some(s => s.exchange.includes('cex'));
+      expect(result).toBeDefined();
+      expect(result!.symbol).toBe('MIN/USDT');
+      expect(result!.price).toBeGreaterThan(0);
+      expect(result!.price).toBeLessThan(1000);
+      expect(result!.confidence).toBeGreaterThan(0);
+      expect(result!.confidence).toBeLessThanOrEqual(1);
+      expect(result!.sources).toHaveLength(2);
+      expect(result!.timestamp).toBeInstanceOf(Date);
+
+      const hasIrisSource = result!.sources.some(s => s.exchange === 'cardano');
+      const hasCexSource = result!.sources.some(s => s.exchange.includes('cex'));
       expect(hasIrisSource).toBe(true);
       expect(hasCexSource).toBe(true);
-    }, 30000);
+    }, 60000);
 
     it('should get real price for INDY token', async () => {
       const result = await priceService.getTokenPrice('INDY');
@@ -43,7 +60,7 @@ describe('Price Aggregation Integration Tests', () => {
       expect(result.price).toBeLessThan(100);
       expect(result.confidence).toBeGreaterThan(0);
       expect(result.sources).toHaveLength(2);
-    }, 30000);
+    }, 60000);
 
     it('should get real price for SNEK token', async () => {
       const result = await priceService.getTokenPrice('SNEK');
@@ -53,7 +70,7 @@ describe('Price Aggregation Integration Tests', () => {
       expect(result.price).toBeLessThan(10000);
       expect(result.confidence).toBeGreaterThan(0);
       expect(result.sources).toHaveLength(2);
-    }, 30000);
+    }, 60000);
 
     it('should handle price comparison between tokens', async () => {
       const [minPrice, indyPrice] = await Promise.all([
@@ -136,7 +153,7 @@ describe('Price Aggregation Integration Tests', () => {
         expect(result.price).toBeGreaterThan(0);
         expect(result.confidence).toBeGreaterThan(0);
       });
-    }, 30000);
+    }, 60000);
   });
 
   describe('Data Quality Tests', () => {
@@ -163,7 +180,7 @@ describe('Price Aggregation Integration Tests', () => {
       expect(result.confidence).toBeLessThanOrEqual(0.95);
 
       expect(result.confidence).toBeGreaterThan(0.4);
-    }, 30000);
+    }, 60000);
 
     it('should provide complete source information', async () => {
       const result = await priceService.getTokenPrice('MIN');
@@ -179,6 +196,6 @@ describe('Price Aggregation Integration Tests', () => {
         expect(typeof source.isActive).toBe('boolean');
         expect(source.latency).toBeGreaterThanOrEqual(0);
       });
-    }, 30000);
+    }, 60000);
   });
 });

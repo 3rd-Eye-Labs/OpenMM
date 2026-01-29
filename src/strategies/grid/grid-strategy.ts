@@ -82,8 +82,12 @@ export class GridStrategy extends BaseStrategy {
       }
 
       const balance = await this.getAvailableBalance();
+
+      const ticker = await this.exchangeConnector.getTicker(this.getSymbol());
+      const exchangeMidPrice = (ticker.bid + ticker.ask) / 2;
+
       const gridLevels = this.calculator.calculateGridLevels(
-        aggregatedPrice.price,
+        exchangeMidPrice,
         this.gridConfig.gridSpacing,
         this.gridConfig.gridLevels
       );
@@ -98,15 +102,45 @@ export class GridStrategy extends BaseStrategy {
       );
       const gridWithSizes = this.calculator.assignOrderSizes(gridLevels, orderSize);
 
+      await this.setupOrderSubscription();
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       await this.orderManager.placeInitialGrid(
         gridWithSizes,
         (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price)
       );
 
+      this.orderManager.setCurrentGridCenter(exchangeMidPrice);
+
+      const openOrders = await this.exchangeConnector?.getOpenOrders(this.getSymbol());
+      const expectedOrderCount = this.gridConfig.gridLevels * 2; // buy + sell orders
+      const actualOrderCount = openOrders?.length || 0;
+
+      if (actualOrderCount < expectedOrderCount) {
+        this.logger.info(
+          `${expectedOrderCount - actualOrderCount} orders filled immediately, recreating grid...`
+        );
+
+        setTimeout(async () => {
+          try {
+            const ticker = await this.exchangeConnector?.getTicker(this.getSymbol());
+            if (ticker) {
+              const exchangeMidPrice = (ticker.bid + ticker.ask) / 2;
+              await this.onPriceUpdate(this.getSymbol(), exchangeMidPrice);
+            }
+          } catch (error) {
+            this.logger.error('Failed to recreate grid after immediate fills:', {
+              error: String(error),
+            });
+          }
+        }, 2000);
+      }
+
       this.startPriceMonitoring();
-      await this.setupOrderSubscription();
     } catch (error) {
-      this.handleError(error, 'start');
+      this.logger.error('❌ Grid strategy start failed:', { error: String(error) });
+      throw error;
     }
   }
 
@@ -125,7 +159,7 @@ export class GridStrategy extends BaseStrategy {
           try {
             await this.exchangeConnector.cancelOrder(order.id, order.symbol);
           } catch (error) {
-            this.logger.error(`Failed to cancel order ${order.id}:`, { error });
+            this.logger.error(`Failed to cancel order ${order.id}:`, { error: String(error) });
           }
         }
       }
@@ -149,10 +183,11 @@ export class GridStrategy extends BaseStrategy {
         balance,
         (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
         (symbol: string) => this.cancelAllOrders(symbol),
-        symbol
+        symbol,
+        (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
       );
     } catch (error) {
-      this.logger.error('Price update handling failed:', { error });
+      this.logger.error('Price update handling failed:', { error: String(error) });
     }
   }
 
@@ -163,26 +198,29 @@ export class GridStrategy extends BaseStrategy {
 
     if ((order.status === 'filled' || order.status === 'partially_filled') && this.gridConfig) {
       if (this.orderManager.isCurrentlyAdjusting()) {
-        this.logger.info(`⏸️  Grid adjustment in progress, ignoring ${order.status} event`);
+        this.logger.info(`⏸️ Grid adjustment in progress, ignoring ${order.status} event`);
         return;
       }
 
       try {
-        const { base } = parseSymbol(this.getSymbol());
-        const aggregatedPrice = await this.priceService.getTokenPrice(base);
+        const ticker = await this.exchangeConnector?.getTicker(this.getSymbol());
+        if (!ticker) return;
+
+        const exchangeMidPrice = (ticker.bid + ticker.ask) / 2;
         const balance = await this.getAvailableBalance();
 
         await this.orderManager.handleOrderFill(
           order,
-          aggregatedPrice.price,
+          exchangeMidPrice,
           this.gridConfig.gridSpacing,
           this.gridConfig.gridLevels,
           balance,
           (side: OrderSide, amount: number, price: number) => this.placeOrder(side, amount, price),
-          (symbol: string) => this.cancelAllOrders(symbol)
+          (symbol: string) => this.cancelAllOrders(symbol),
+          (orderId: string, symbol: string) => this.cancelOrder(orderId, symbol)
         );
       } catch (error) {
-        this.logger.error('Order fill handling failed:', { error });
+        this.logger.error('Order fill handling failed:', { error: String(error) });
       }
     }
   }
@@ -202,6 +240,14 @@ export class GridStrategy extends BaseStrategy {
 
     const symbol = this.getSymbol();
     return await this.exchangeConnector.createOrder(symbol, 'limit', side, amount, price);
+  }
+
+  private async cancelOrder(orderId: string, symbol: string): Promise<void> {
+    if (!this.exchangeConnector) {
+      throw new Error('Exchange connector not set');
+    }
+
+    await this.exchangeConnector.cancelOrder(orderId, symbol);
   }
 
   private async cancelAllOrders(symbol: string): Promise<void> {
@@ -237,11 +283,13 @@ export class GridStrategy extends BaseStrategy {
   private startPriceMonitoring(): void {
     this.priceUpdateInterval = setInterval(async () => {
       try {
-        const { base } = parseSymbol(this.getSymbol());
-        const aggregatedPrice = await this.priceService.getTokenPrice(base);
-        await this.onPriceUpdate(this.getSymbol(), aggregatedPrice.price);
+        const ticker = await this.exchangeConnector?.getTicker(this.getSymbol());
+        if (ticker) {
+          const exchangeMidPrice = (ticker.bid + ticker.ask) / 2;
+          await this.onPriceUpdate(this.getSymbol(), exchangeMidPrice);
+        }
       } catch (error) {
-        this.logger.error('Price monitoring failed:', { error });
+        this.logger.error('Price monitoring failed:', { error: String(error) });
       }
     }, 30000);
   }
@@ -253,11 +301,16 @@ export class GridStrategy extends BaseStrategy {
 
     try {
       await this.exchangeConnector.connectUserDataStream();
+
       await this.exchangeConnector.subscribeUserOrders((order: Order) => {
         this.onOrderUpdate(order);
       });
+
+      if (!this.exchangeConnector.isUserDataStreamConnected()) {
+        throw new Error('Failed to establish user data stream connection');
+      }
     } catch (error) {
-      this.logger.error('Failed to setup order subscription:', { error });
+      this.logger.error('Failed to setup order subscription:', { error: String(error) });
     }
   }
 }

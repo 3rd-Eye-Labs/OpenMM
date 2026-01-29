@@ -83,7 +83,7 @@ describe('ExchangeFactory', () => {
 
     it('should throw error for kraken exchange', async () => {
       await expect(ExchangeFactory.getExchange('kraken')).rejects.toThrow(
-        'Kraken connector not yet implemented'
+        'API key and secret are required for Kraken'
       );
     });
 

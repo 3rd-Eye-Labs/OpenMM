@@ -104,7 +104,6 @@ export class BitgetWebSocket {
       const parsedMessage = JSON.parse(message);
 
       if (parsedMessage.event === 'pong') {
-        this.logger.debug('📡 Received pong');
         return;
       }
 
@@ -142,8 +141,6 @@ export class BitgetWebSocket {
         this.handleOrderBookData(arg.instId, data);
       } else if (arg.channel === 'trade') {
         this.handleTradeData(arg.instId, data);
-      } else {
-        this.logger.debug('🔄 Unknown channel data:', { channel: arg.channel, instId: arg.instId });
       }
     } catch (error) {
       this.logger.error('❌ Error processing subscription data:', { error, message });
@@ -428,7 +425,6 @@ export class BitgetWebSocket {
     this.pingTimer = setInterval(() => {
       if (this.ws && this.status === 'connected') {
         this.ws.send(JSON.stringify({ op: 'ping' }));
-        this.logger.debug('📡 Sent ping');
       }
     }, this.pingInterval);
   }

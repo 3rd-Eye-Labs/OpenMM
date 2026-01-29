@@ -238,8 +238,6 @@ export class BitgetUserDataStream {
         this.handleFillUpdates(data);
       } else if (arg.channel === 'account') {
         this.handleAccountUpdates(data);
-      } else {
-        this.logger.debug('🔄 Unknown private channel data:', { channel: arg.channel });
       }
     } catch (error) {
       this.logger.error('❌ Error processing private channel data:', { error, message });

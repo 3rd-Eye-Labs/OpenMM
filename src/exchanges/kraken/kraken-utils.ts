@@ -167,19 +167,6 @@ export class KrakenUtils {
   }
 
   /**
-   * Validate Kraken order response
-   */
-  static isValidOrderResponse(response: unknown): boolean {
-    const order = response as Record<string, unknown>;
-    return (
-      order &&
-      typeof order.txid === 'string' &&
-      typeof order.status === 'string' &&
-      order.descr !== undefined
-    );
-  }
-
-  /**
    * Convert order side from Kraken format
    * Kraken: buy/sell → Standard: buy/sell
    */
@@ -215,5 +202,43 @@ export class KrakenUtils {
     };
 
     return statusMap[status.toLowerCase()] || 'rejected';
+  }
+
+  /**
+   * Convert Kraken asset name to standard asset name
+   * Kraken: ZEUR → Standard: EUR
+   * Kraken: ZUSD → Standard: USD
+   * Kraken: XXBT → Standard: BTC
+   * Kraken: ADA → Standard: ADA (Cardano native token)
+   */
+  static fromKrakenAsset(krakenAsset: string): string {
+    const assetMap: Record<string, string> = {
+      ZEUR: 'EUR',
+      ZUSD: 'USD',
+      ZGBP: 'GBP',
+      XXBT: 'BTC',
+      XETH: 'ETH',
+      ADA: 'ADA',
+      USDT: 'USDT',
+      USDC: 'USDC',
+    };
+
+    if (assetMap[krakenAsset]) {
+      return assetMap[krakenAsset];
+    }
+
+    if (krakenAsset.startsWith('Z') && krakenAsset.length === 4) {
+      return krakenAsset.substring(1); // ZSNEK → SNEK, ZNIGHT → NIGHT
+    }
+
+    if (krakenAsset.startsWith('X') && krakenAsset.length === 4) {
+      return krakenAsset.substring(1); // XSNEK → SNEK
+    }
+
+    if (krakenAsset.startsWith('XX') && krakenAsset.length === 5) {
+      return krakenAsset.substring(2); // XXSNEK → SNEK
+    }
+
+    return krakenAsset;
   }
 }
