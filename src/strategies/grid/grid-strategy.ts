@@ -14,6 +14,7 @@ import { CardanoPriceService } from '../../core/price-aggregation';
 import { RiskManager } from '../../core/risk-management/risk-manager';
 import { GridOrderManager } from './grid-order-manager';
 import { GridCalculator } from './grid-calculator';
+import { VolatilityTracker } from './volatility-tracker';
 import { parseSymbol } from '../../utils/symbol-utils';
 import { createLogger, ExchangeUtils } from '../../utils';
 
@@ -24,6 +25,7 @@ export class GridStrategy extends BaseStrategy {
   private calculator: GridCalculator;
   private exchangeConnector?: BaseExchangeConnector;
   private gridConfig?: GridConfig;
+  private volatilityTracker?: VolatilityTracker;
   private priceUpdateInterval?: NodeJS.Timeout;
   private logger = createLogger('grid-strategy');
 
@@ -62,6 +64,22 @@ export class GridStrategy extends BaseStrategy {
     const gridStrategyConfig = config as GridStrategyConfig;
     this.config = config;
     this.gridConfig = gridStrategyConfig.gridConfig;
+
+    // Initialize volatility tracker if configured
+    if (this.gridConfig.volatilityConfig?.enabled) {
+      const vc = this.gridConfig.volatilityConfig;
+      this.volatilityTracker = new VolatilityTracker({
+        windowSize: vc.windowSize,
+        lowThreshold: vc.lowThreshold,
+        highThreshold: vc.highThreshold,
+        lowMultiplier: vc.lowMultiplier,
+        highMultiplier: vc.highMultiplier,
+      });
+      this.logger.info(
+        `📈 Volatility tracking enabled (window: ${vc.windowSize} samples, ` +
+          `thresholds: ${(vc.lowThreshold * 100).toFixed(1)}%/${(vc.highThreshold * 100).toFixed(1)}%)`
+      );
+    }
 
     this.setStatus('idle');
   }
@@ -267,6 +285,9 @@ export class GridStrategy extends BaseStrategy {
     if (config.volatilityMultiplier && config.volatilityMultiplier !== 1.0) {
       this.logger.info(`  Volatility Multiplier: ${config.volatilityMultiplier}`);
     }
+    if (this.volatilityTracker) {
+      this.logger.info(`  Volatility Tracking: enabled`);
+    }
   }
 
   private async placeOrder(side: OrderSide, amount: number, price: number): Promise<Order> {
@@ -322,6 +343,27 @@ export class GridStrategy extends BaseStrategy {
         const ticker = await this.exchangeConnector?.getTicker(this.getSymbol());
         if (ticker) {
           const exchangeMidPrice = (ticker.bid + ticker.ask) / 2;
+
+          // Record price for volatility tracking
+          if (this.volatilityTracker) {
+            this.volatilityTracker.recordPrice(exchangeMidPrice);
+
+            if (this.volatilityTracker.hasMultiplierChanged()) {
+              const newMultiplier = this.volatilityTracker.getMultiplier();
+              const dynamicConfig = this.getDynamicGridConfig();
+              dynamicConfig.volatilityMultiplier = newMultiplier;
+
+              this.logger.info(
+                `🔄 Volatility adjustment: spreading grid with multiplier ${newMultiplier}x ` +
+                  `(volatility: ${(this.volatilityTracker.getVolatility() * 100).toFixed(2)}%)`
+              );
+
+              // Trigger grid recreation with updated multiplier
+              await this.onPriceUpdate(this.getSymbol(), exchangeMidPrice);
+              return;
+            }
+          }
+
           await this.onPriceUpdate(this.getSymbol(), exchangeMidPrice);
         }
       } catch (error) {
