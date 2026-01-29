@@ -131,6 +131,14 @@ These parameters control how order levels and sizes are distributed across the g
   - `custom` - User-defined weight multipliers via grid profile file
 - `--grid-profile <path>` - Load complete grid configuration from a JSON profile file
 
+### Volatility Parameters
+
+These parameters control automatic spread adjustment based on market volatility:
+
+- `--volatility` - Enable volatility-based dynamic spread adjustment (off by default)
+- `--volatility-low <decimal>` - Low volatility threshold (default: 0.02 = 2%). Below this, grid spacing stays normal.
+- `--volatility-high <decimal>` - High volatility threshold (default: 0.05 = 5%). Above this, grid spacing is widened maximally.
+
 ## Dynamic Grid Configuration
 
 ### Spacing Models
@@ -359,6 +367,47 @@ openmm trade --strategy grid --exchange gateio --symbol SNEK/USDT \
   --size 5
 ```
 
+### Volatility-Based Spread Adjustment
+
+When enabled with `--volatility`, the grid automatically widens during volatile market conditions and tightens when the market calms down. The system tracks price changes over a rolling 5-minute window (10 samples at 30-second intervals) and calculates volatility as the price range divided by the average price.
+
+**How it works:**
+- Volatility below low threshold (default 2%): Normal grid spacing (multiplier 1.0x)
+- Volatility between thresholds: Elevated spacing (multiplier 1.5x)
+- Volatility above high threshold (default 5%): Wide spacing (multiplier 2.0x)
+
+**8. Volatility with default thresholds (2% low, 5% high):**
+```bash
+openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR \
+  --levels 5 \
+  --spacing 0.01 \
+  --size 5 \
+  --volatility
+```
+
+**9. Volatility with custom thresholds (tighter sensitivity):**
+```bash
+openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR \
+  --levels 5 \
+  --spacing 0.01 \
+  --size 5 \
+  --volatility \
+  --volatility-low 0.01 \
+  --volatility-high 0.03
+```
+
+**10. Volatility combined with geometric spacing:**
+```bash
+openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
+  --levels 10 \
+  --spacing 0.005 \
+  --spacing-model geometric \
+  --spacing-factor 1.3 \
+  --size-model pyramidal \
+  --size 5 \
+  --volatility
+```
+
 ### Test Mode (No Real Orders)
 
 **MEXC Test:**
@@ -385,6 +434,12 @@ openmm trade --strategy grid --exchange kraken --symbol ADA/EUR --dry-run
 ```bash
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --levels 10 --spacing-model geometric --dry-run
+```
+
+**Volatility Test:**
+```bash
+openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR \
+  --levels 5 --spacing 0.01 --size 5 --volatility --dry-run
 ```
 
 ## Risk Management
