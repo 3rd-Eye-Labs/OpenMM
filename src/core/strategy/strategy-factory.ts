@@ -1,7 +1,13 @@
 import { BaseStrategy } from './base-strategy';
 import { BaseExchangeConnector } from '../exchange/base-exchange-connector';
 import { GridStrategy } from '../../strategies/grid/grid-strategy';
-import { GridStrategyConfig, GridConfig, DynamicGridConfig, GridProfile } from '../../types';
+import {
+  GridStrategyConfig,
+  GridConfig,
+  DynamicGridConfig,
+  GridProfile,
+  VolatilityConfig,
+} from '../../types';
 import {
   LauncherConfig,
   GridLauncherParams,
@@ -63,6 +69,19 @@ export class StrategyFactory {
       sizeWeights: gridParams.sizeWeights,
     };
 
+    // Build volatility config if enabled
+    let volatilityConfig: VolatilityConfig | undefined;
+    if (gridParams.volatilityEnabled) {
+      volatilityConfig = {
+        enabled: true,
+        windowSize: gridParams.volatilityWindowSize ?? 10,
+        lowThreshold: gridParams.volatilityLowThreshold ?? 0.02,
+        highThreshold: gridParams.volatilityHighThreshold ?? 0.05,
+        lowMultiplier: gridParams.volatilityLowMultiplier ?? 1.5,
+        highMultiplier: gridParams.volatilityHighMultiplier ?? 2.0,
+      };
+    }
+
     const gridConfig: GridConfig = {
       symbol: normalizedSymbol,
       gridLevels: gridParams.gridLevels!,
@@ -72,6 +91,7 @@ export class StrategyFactory {
       priceDeviationThreshold: gridParams.priceDeviationThreshold!,
       adjustmentDebounce: gridParams.adjustmentDebounce!,
       dynamicGrid,
+      volatilityConfig,
     };
 
     const strategyConfig: GridStrategyConfig = {
