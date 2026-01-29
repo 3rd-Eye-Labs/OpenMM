@@ -78,3 +78,23 @@ export interface GridProfile {
   baseSize: number;
   sizeWeights?: number[];
 }
+
+/**
+ * Configuration for volatility-based dynamic spread adjustment.
+ * When enabled, the grid automatically widens during volatile periods
+ * and tightens when the market calms down.
+ */
+export interface VolatilityConfig {
+  /** Whether volatility-based spread adjustment is enabled */
+  enabled: boolean;
+  /** Number of price samples in the rolling window (default: 10, ~5 minutes at 30s intervals) */
+  windowSize: number;
+  /** Volatility below this threshold keeps multiplier at 1.0 (default: 0.02 = 2%) */
+  lowThreshold: number;
+  /** Volatility above this threshold applies highest multiplier (default: 0.05 = 5%) */
+  highThreshold: number;
+  /** Multiplier when volatility is between low and high thresholds (default: 1.5) */
+  lowMultiplier: number;
+  /** Multiplier when volatility exceeds high threshold (default: 2.0) */
+  highMultiplier: number;
+}

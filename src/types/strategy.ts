@@ -1,4 +1,4 @@
-import { DynamicGridConfig } from './grid';
+import { DynamicGridConfig, VolatilityConfig } from './grid';
 
 /**
  * Strategy types supported by OpenMM
@@ -35,6 +35,8 @@ export interface GridConfig {
   adjustmentDebounce: number;
   /** Dynamic grid configuration for advanced order level generation */
   dynamicGrid?: DynamicGridConfig;
+  /** Volatility-based dynamic spread adjustment configuration */
+  volatilityConfig?: VolatilityConfig;
 }
 
 /**
