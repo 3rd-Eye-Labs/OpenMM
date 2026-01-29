@@ -46,6 +46,11 @@ export const tradeCommand = new Command('trade')
   )
   .option('--grid-profile <path>', 'Grid: Load full grid configuration from a JSON profile file')
 
+  // Volatility options
+  .option('--volatility', 'Grid: Enable volatility-based dynamic spread adjustment')
+  .option('--volatility-low <decimal>', 'Grid: Low volatility threshold (default: 0.02 = 2%)')
+  .option('--volatility-high <decimal>', 'Grid: High volatility threshold (default: 0.05 = 5%)')
+
   .option('--dry-run', 'Simulate trading without placing real orders')
 
   .action(async options => {
@@ -132,6 +137,19 @@ export const tradeCommand = new Command('trade')
             console.log(chalk.gray(`Grid Profile: ${options.gridProfile}`));
           }
 
+          if (options.volatility) {
+            const lowThreshold = options.volatilityLow ? parseFloat(options.volatilityLow) : 0.02;
+            const highThreshold = options.volatilityHigh
+              ? parseFloat(options.volatilityHigh)
+              : 0.05;
+            console.log(chalk.gray(`Volatility Tracking: enabled`));
+            console.log(
+              chalk.gray(
+                `Volatility Thresholds: ${(lowThreshold * 100).toFixed(1)}% / ${(highThreshold * 100).toFixed(1)}%`
+              )
+            );
+          }
+
           params = {
             gridLevels: levels,
             gridSpacing: parseFloat(options.spacing),
@@ -145,6 +163,13 @@ export const tradeCommand = new Command('trade')
             sizeModel,
             spacingFactor: options.spacingFactor ? parseFloat(options.spacingFactor) : undefined,
             gridProfilePath: options.gridProfile,
+            volatilityEnabled: !!options.volatility,
+            volatilityLowThreshold: options.volatilityLow
+              ? parseFloat(options.volatilityLow)
+              : undefined,
+            volatilityHighThreshold: options.volatilityHigh
+              ? parseFloat(options.volatilityHigh)
+              : undefined,
           } as GridLauncherParams;
         }
 
@@ -189,7 +214,11 @@ Examples:
   # 6. Load full configuration from a JSON profile file
   $ openmm trade --strategy grid --exchange gateio --symbol SNEK/USDT --grid-profile ./profiles/aggressive.json
 
-  # 7. Multi-exchange examples
+  # 7. Volatility-based dynamic spread adjustment
+  $ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR --levels 5 --spacing 0.01 --size 5 --volatility
+  $ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR --levels 5 --spacing 0.01 --size 5 --volatility --volatility-low 0.01 --volatility-high 0.03
+
+  # 8. Multi-exchange examples
   $ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT --levels 10 --spacing 0.005 --spacing-model geometric --spacing-factor 1.3 --size-model pyramidal --size 5
   $ openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT --levels 7 --spacing 0.01 --size-model pyramidal --size 5
   $ openmm trade --strategy grid --exchange gateio --symbol SNEK/USDT --levels 8 --spacing 0.004 --spacing-model geometric --spacing-factor 1.4 --size-model pyramidal --size 5
@@ -216,6 +245,13 @@ Dynamic Grid Parameters:
                               pyramidal - Larger sizes near center, smaller at edges
                               custom    - User-defined weights via grid profile file
   --grid-profile <path>       Load complete grid config from JSON file (overrides CLI params)
+
+Volatility Parameters:
+  --volatility                Enable volatility-based dynamic spread adjustment (off by default)
+  --volatility-low <decimal>  Low volatility threshold (default: 0.02 = 2%)
+                              Below this, grid spacing stays normal (multiplier 1.0)
+  --volatility-high <decimal> High volatility threshold (default: 0.05 = 5%)
+                              Above this, grid spacing is widened maximally (multiplier 2.0)
 
 Grid Profile File Format (JSON):
   {

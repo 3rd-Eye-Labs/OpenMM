@@ -23,6 +23,14 @@ export interface GridLauncherParams {
   sizeModel?: SizeModel;
   sizeWeights?: number[];
   gridProfilePath?: string;
+
+  // Volatility parameters
+  volatilityEnabled?: boolean;
+  volatilityWindowSize?: number;
+  volatilityLowThreshold?: number;
+  volatilityHighThreshold?: number;
+  volatilityLowMultiplier?: number;
+  volatilityHighMultiplier?: number;
 }
 
 export const DEFAULT_GRID_PARAMS: GridLauncherParams = {
