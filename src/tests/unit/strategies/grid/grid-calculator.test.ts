@@ -183,9 +183,9 @@ describe('GridCalculator', () => {
         baseSize: 50,
       };
 
-      expect(() =>
-        calculator.generateDynamicGrid(100, config, 10000)
-      ).toThrow('Custom spacing model requires exactly 3 spacing values');
+      expect(() => calculator.generateDynamicGrid(100, config, 10000)).toThrow(
+        'Custom spacing model requires exactly 3 spacing values'
+      );
     });
 
     it('should throw if custom spacings are not in increasing order', () => {
@@ -198,9 +198,9 @@ describe('GridCalculator', () => {
         baseSize: 50,
       };
 
-      expect(() =>
-        calculator.generateDynamicGrid(100, config, 10000)
-      ).toThrow('Custom spacings must be in increasing order');
+      expect(() => calculator.generateDynamicGrid(100, config, 10000)).toThrow(
+        'Custom spacings must be in increasing order'
+      );
     });
   });
 
@@ -266,9 +266,9 @@ describe('GridCalculator', () => {
         sizeWeights: [1.0, 0.5], // only 2, need 3
       };
 
-      expect(() =>
-        calculator.generateDynamicGrid(100, config, 10000)
-      ).toThrow('Custom size model requires exactly 3 weight values');
+      expect(() => calculator.generateDynamicGrid(100, config, 10000)).toThrow(
+        'Custom size model requires exactly 3 weight values'
+      );
     });
   });
 
