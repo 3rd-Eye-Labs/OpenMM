@@ -53,3 +53,6 @@ temp/
 
 # Optional eslint cache
 .eslintcache
+
+# Claude Code local keys
+.claude/keys.local.json

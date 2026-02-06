@@ -5,12 +5,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "openmm": "dist/cli/cli.js"
+    "openmm": "dist/cli/cli.js",
+    "openmm-mcp-server": "dist/mcp/server.js"
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "dev": "ts-node src/index.ts",
     "cli": "ts-node src/cli/cli.ts",
+    "mcp": "ts-node src/mcp/server.ts",
+    "mcp:build": "node dist/mcp/server.js",
     "test": "jest",
     "test:unit": "jest --testPathIgnorePatterns=integration",
     "test:integration": "jest --testPathPattern=integration --runInBand",
@@ -35,11 +38,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "chalk": "^4.1.2",
     "commander": "^14.0.2",
     "dotenv": "^16.6.1",
     "winston": "^3.11.0",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
