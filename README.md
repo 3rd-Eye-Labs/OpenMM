@@ -1,5 +1,9 @@
 # OpenMM - Cardano's Universal Market Making Toolkit
 
+[![npm version](https://img.shields.io/npm/v/@3rd-eye-labs/openmm)](https://www.npmjs.com/package/@3rd-eye-labs/openmm)
+[![npm downloads](https://img.shields.io/npm/dm/@3rd-eye-labs/openmm)](https://www.npmjs.com/package/@3rd-eye-labs/openmm)
+[![license](https://img.shields.io/npm/l/@3rd-eye-labs/openmm)](https://github.com/3rd-Eye-Labs/OpenMM/blob/main/LICENSE)
+
 OpenMM is an open-source SDK designed to democratize market-making for Cardano projects. It provides a unified interface for trading Cardano Native Tokens (CNTs) across multiple centralized exchanges.
 
 ## What is OpenMM?
