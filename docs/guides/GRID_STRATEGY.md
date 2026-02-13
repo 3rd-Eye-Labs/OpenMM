@@ -69,7 +69,6 @@ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --levels 5 \
   --spacing 0.02 \
   --size 50 \
-  --confidence 0.7 \
   --max-position 0.6 \
   --safety-reserve 0.3
 ```
@@ -81,7 +80,6 @@ openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT \
   --levels 3 \
   --spacing 0.015 \
   --size 25 \
-  --confidence 0.8 \
   --max-position 0.7 \
   --safety-reserve 0.3
 ```
@@ -93,7 +91,6 @@ openmm trade --strategy grid --exchange kraken --symbol SNEK/EUR \
   --levels 4 \
   --spacing 0.01 \
   --size 15 \
-  --confidence 0.75 \
   --max-position 0.6 \
   --safety-reserve 0.25
 ```
@@ -232,8 +229,7 @@ Profile values override corresponding CLI parameters.
 ```bash
 openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
   --levels 3 \
-  --spacing 0.01 \
-  --confidence 0.8
+  --spacing 0.01
 ```
 
 **Bitget - Conservative SNEK Trading:**
@@ -241,8 +237,7 @@ openmm trade --strategy grid --exchange mexc --symbol INDY/USDT \
 openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT \
   --levels 2 \
   --spacing 0.02 \
-  --size 20 \
-  --confidence 0.8
+  --size 20
 ```
 
 **Kraken - Conservative ADA Trading:**
@@ -250,8 +245,7 @@ openmm trade --strategy grid --exchange bitget --symbol SNEK/USDT \
 openmm trade --strategy grid --exchange kraken --symbol ADA/EUR \
   --levels 3 \
   --spacing 0.015 \
-  --size 10 \
-  --confidence 0.8
+  --size 10
 ```
 
 ### Active Trading Strategies
