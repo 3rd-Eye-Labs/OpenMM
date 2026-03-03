@@ -11,7 +11,7 @@ OpenMM is an open-source SDK designed to democratize market-making for Cardano p
 
 Traditional market-making services are expensive and fragmented, making it difficult for smaller Cardano projects to maintain healthy liquidity. OpenMM solves this by offering:
 
-- **Multi-Exchange Support**: Trade on MEXC, Gate.io, Bitget, Kraken and more through a single interface
+- **Multi-Exchange Support**: 13 tools that work across 4 exchanges (MEXC, Gate.io, Bitget, Kraken) for any trading pair — one interface, unlimited assets
 - **Advanced Strategies**: Grid trading, liquidity provision, and dynamic rebalancing
 - **Complete CNT Integration**: Full support for Cardano Native Tokens
 
