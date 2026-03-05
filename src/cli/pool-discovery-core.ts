@@ -49,6 +49,7 @@ export class PoolDiscoveryCLI {
       limit?: number;
       minLiquidity?: number;
       showAll?: boolean;
+      json?: boolean;
     } = {}
   ): Promise<DiscoveryResult> {
     const symbol = tokenSymbol.toUpperCase();
@@ -60,12 +61,14 @@ export class PoolDiscoveryCLI {
     }
 
     const tokenConfig = getTokenConfig(symbol);
-    const { limit = 10, minLiquidity, showAll = false } = options;
+    const { limit = 10, minLiquidity, showAll = false, json = false } = options;
 
-    console.log(`🔍 Discovering liquidity pools for ${symbol} token...`);
-    console.log(`Policy ID: ${tokenConfig.policyId}`);
-    console.log(`Asset Name (hex): ${tokenConfig.assetName}`);
-    console.log('─'.repeat(80));
+    if (!json) {
+      console.log(`🔍 Discovering liquidity pools for ${symbol} token...`);
+      console.log(`Policy ID: ${tokenConfig.policyId}`);
+      console.log(`Asset Name (hex): ${tokenConfig.assetName}`);
+      console.log('─'.repeat(80));
+    }
 
     try {
       const pools = await this.poolDiscovery.discoverPools('lovelace', tokenConfig);
@@ -158,46 +161,78 @@ export class PoolDiscoveryCLI {
   /**
    * Get live price information for discovered pools
    */
-  async getPoolPrices(identifiers: string[], tokenSymbol: string): Promise<void> {
+  async getPoolPrices(identifiers: string[], tokenSymbol: string, json = false): Promise<void> {
     if (identifiers.length === 0) {
-      console.log('❌ No pool identifiers provided');
+      if (json) {
+        console.log(JSON.stringify({ error: 'No pool identifiers provided' }, null, 2));
+      } else {
+        console.log('❌ No pool identifiers provided');
+      }
       return;
     }
 
-    console.log('\n💰 Getting live prices from Iris API...');
+    if (!json) console.log('\n💰 Getting live prices from Iris API...');
 
     try {
       const prices = await this.irisClient.fetchPrices(identifiers, 'OpenMM-PoolDiscovery/1.0');
 
-      console.log('─'.repeat(60));
-      console.log('Pool ID                           | Price (ADA)');
-      console.log('─'.repeat(60));
-
-      identifiers.forEach((id, index) => {
-        const price = prices[index] || 0;
-        const shortId = id.substring(0, 33).padEnd(33);
-        console.log(`${shortId} | ${price.toFixed(8)}`);
-      });
-
       const avgAdaPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
-      console.log('─'.repeat(60));
-      console.log(`Average Price: ${avgAdaPrice.toFixed(8)} ADA per ${tokenSymbol}`);
 
-      try {
-        console.log('\n💵 Getting full market price...');
-        const aggregatedPrice = await this.priceService.getTokenPrice(tokenSymbol);
+      if (json) {
+        const result: Record<string, unknown> = {
+          symbol: tokenSymbol,
+          pools: identifiers.map((id, i) => ({
+            identifier: id,
+            priceAda: prices[i] || 0,
+          })),
+          averagePriceAda: avgAdaPrice,
+        };
+
+        try {
+          const aggregatedPrice = await this.priceService.getTokenPrice(tokenSymbol);
+          result.priceUsdt = aggregatedPrice.price;
+          result.confidence = aggregatedPrice.confidence;
+          result.sources = aggregatedPrice.sources.map(s => s.name);
+          result.timestamp = aggregatedPrice.timestamp.toISOString();
+        } catch {
+          // USDT price unavailable — ADA price still included
+        }
+
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log('─'.repeat(60));
+        console.log('Pool ID                           | Price (ADA)');
+        console.log('─'.repeat(60));
+
+        identifiers.forEach((id, index) => {
+          const price = prices[index] || 0;
+          const shortId = id.substring(0, 33).padEnd(33);
+          console.log(`${shortId} | ${price.toFixed(8)}`);
+        });
 
         console.log('─'.repeat(60));
-        console.log(`${tokenSymbol}/USDT Price: $${aggregatedPrice.price.toFixed(8)}`);
-        console.log(`Confidence: ${(aggregatedPrice.confidence * 100).toFixed(1)}%`);
-        console.log(`Sources: ${aggregatedPrice.sources.map(s => s.name).join(', ')}`);
-        console.log(`Updated: ${aggregatedPrice.timestamp.toLocaleString()}`);
-      } catch (usdtError) {
-        console.log(`❌ Fa iled to get USDT price: ${usdtError}`);
-        console.log(`✅ ADA price available: ${avgAdaPrice.toFixed(8)} ADA per ${tokenSymbol}`);
+        console.log(`Average Price: ${avgAdaPrice.toFixed(8)} ADA per ${tokenSymbol}`);
+
+        try {
+          console.log('\n💵 Getting full market price...');
+          const aggregatedPrice = await this.priceService.getTokenPrice(tokenSymbol);
+
+          console.log('─'.repeat(60));
+          console.log(`${tokenSymbol}/USDT Price: $${aggregatedPrice.price.toFixed(8)}`);
+          console.log(`Confidence: ${(aggregatedPrice.confidence * 100).toFixed(1)}%`);
+          console.log(`Sources: ${aggregatedPrice.sources.map(s => s.name).join(', ')}`);
+          console.log(`Updated: ${aggregatedPrice.timestamp.toLocaleString()}`);
+        } catch (usdtError) {
+          console.log(`❌ Failed to get USDT price: ${usdtError}`);
+          console.log(`✅ ADA price available: ${avgAdaPrice.toFixed(8)} ADA per ${tokenSymbol}`);
+        }
       }
     } catch (error) {
-      console.log(`❌ Failed to fetch prices: ${error}`);
+      if (json) {
+        console.log(JSON.stringify({ error: `Failed to fetch prices: ${error}` }, null, 2));
+      } else {
+        console.log(`❌ Failed to fetch prices: ${error}`);
+      }
     }
   }
 
