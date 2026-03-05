@@ -12,6 +12,7 @@ export const poolDiscoveryCommand = new Command('pool-discovery')
       .option('--limit <number>', 'Limit number of pools shown', '10')
       .option('--min-liquidity <number>', 'Filter pools by minimum TVL')
       .option('--show-all', 'Show all pools (ignore limit)')
+      .option('--json', 'Output in JSON format')
       .action(async (token, options) => {
         await executeCommand(async () => {
           const cli = new PoolDiscoveryCLI();
@@ -19,10 +20,15 @@ export const poolDiscoveryCommand = new Command('pool-discovery')
             limit: parseInt(options.limit),
             minLiquidity: options.minLiquidity ? parseInt(options.minLiquidity) : undefined,
             showAll: options.showAll || false,
+            json: options.json || false,
           };
 
           const result = await cli.discoverTokenPools(token, discoverOptions);
-          cli.displayResults(result);
+          if (options.json) {
+            console.log(JSON.stringify(result, null, 2));
+          } else {
+            cli.displayResults(result);
+          }
         }, 'pool-discovery discover');
       })
   )
@@ -41,11 +47,13 @@ export const poolDiscoveryCommand = new Command('pool-discovery')
     new Command('prices')
       .description('Get live prices for token pools')
       .argument('<token>', 'Token symbol')
-      .action(async token => {
+      .option('--json', 'Output in JSON format')
+      .action(async (token, options) => {
         await executeCommand(async () => {
           const cli = new PoolDiscoveryCLI();
-          const result = await cli.discoverTokenPools(token, { limit: 3 });
-          await cli.getPoolPrices(result.recommendedIdentifiers, token);
+          const json = options.json || false;
+          const result = await cli.discoverTokenPools(token, { limit: 3, json });
+          await cli.getPoolPrices(result.recommendedIdentifiers, token, json);
         }, 'pool-discovery prices');
       })
   )
