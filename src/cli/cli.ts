@@ -11,6 +11,7 @@ import { ohlcvCommand } from './commands/ohlcv';
 import { poolDiscoveryCommand } from './commands/pool-discovery';
 import { tradeCommand } from './commands/trade';
 import { priceComparisonCommand } from './commands/price-comparison';
+import { walletCommand } from './commands/wallet';
 
 const program = new Command();
 
@@ -25,6 +26,7 @@ program.addCommand(ohlcvCommand);
 program.addCommand(poolDiscoveryCommand);
 program.addCommand(tradeCommand);
 program.addCommand(priceComparisonCommand);
+program.addCommand(walletCommand);
 
 program.exitOverride(err => {
   if (err.code === 'commander.unknownCommand') {
