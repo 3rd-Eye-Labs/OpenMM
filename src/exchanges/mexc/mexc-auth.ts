@@ -115,6 +115,7 @@ export class MexcAuth {
 
   /**
    * Make public request (no authentication required)
+   * Note: MEXC public endpoints should NOT include API key header
    */
   async makePublicRequest(endpoint: string, params: Record<string, unknown> = {}): Promise<any> {
     const queryString = Object.entries(params)
@@ -126,7 +127,9 @@ export class MexcAuth {
       : `${this.baseUrl}${endpoint}`;
 
     const response = await fetch(url, {
-      headers: this.createPublicHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     return this.handleResponse(response, endpoint);

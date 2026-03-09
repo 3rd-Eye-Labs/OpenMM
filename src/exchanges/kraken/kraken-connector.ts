@@ -8,6 +8,8 @@ import {
   OrderSide,
   Balance,
   WebSocketStatus,
+  OHLCV,
+  OHLCVTimeframe,
 } from '../../types';
 import { KrakenAuth } from './kraken-auth';
 import { KrakenDataMapper } from './kraken-data-mapper';
@@ -299,6 +301,61 @@ export class KrakenConnector extends BaseExchangeConnector {
       return trades;
     } catch (error) {
       this.handleError(error, 'getRecentTrades');
+    }
+  }
+
+  /**
+   * Get OHLCV candlestick data
+   * Kraken API: /0/public/OHLC
+   */
+  async getOHLCV(symbol: string, timeframe: OHLCVTimeframe, limit: number = 720): Promise<OHLCV[]> {
+    const krakenSymbol = KrakenUtils.toKrakenSymbol(symbol);
+
+    // Kraken uses interval in minutes
+    const timeframeMap: Record<OHLCVTimeframe, number> = {
+      '1m': 1,
+      '5m': 5,
+      '15m': 15,
+      '30m': 30,
+      '1h': 60,
+      '4h': 240,
+      '1d': 1440,
+      '1w': 10080,
+    };
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/0/public/OHLC?pair=${krakenSymbol}&interval=${timeframeMap[timeframe]}`
+      );
+      const data = await response.json();
+
+      if (data.error && data.error.length > 0) {
+        throw new Error(KrakenUtils.mapErrorMessage(data.error));
+      }
+
+      // Kraken returns: { result: { PAIR: [[time, open, high, low, close, vwap, volume, count], ...], last: ... } }
+      const resultKey = Object.keys(data.result).find(k => k !== 'last');
+      if (!resultKey) {
+        throw new Error('No OHLCV data returned');
+      }
+
+      const ohlcvData = data.result[resultKey] as Array<
+        [number, string, string, string, string, string, string, number]
+      >;
+
+      // Kraken returns all available data, limit on our side
+      const limitedData = ohlcvData.slice(-limit);
+
+      return limitedData.map(k => ({
+        timestamp: k[0] * 1000, // Kraken returns seconds, convert to ms
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[6]),
+      }));
+    } catch (error) {
+      this.handleError(error, 'getOHLCV');
     }
   }
 
