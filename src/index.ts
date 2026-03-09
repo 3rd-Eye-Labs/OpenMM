@@ -12,6 +12,9 @@ export  { KrakenConnector } from './exchanges/kraken/kraken-connector';
 
 // Exchange factory
 export { ExchangeFactory, SupportedExchange } from './cli/exchange-factory';
+
+// x402 Payment Support
+export * as x402 from './x402';
 import { createLogger } from './utils';
 
 export class OpenMM {
