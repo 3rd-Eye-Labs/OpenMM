@@ -9,6 +9,8 @@ import {
   Balance,
   ExchangeCredentials,
   WebSocketStatus,
+  OHLCV,
+  OHLCVTimeframe,
 } from '../../types';
 import { BitgetAuth, BitgetCredentials } from './bitget-auth';
 import { BitgetUtils } from './bitget-utils';
@@ -515,6 +517,63 @@ export class BitgetConnector extends BaseExchangeConnector {
     } catch (error: unknown) {
       const errorMessage = BitgetUtils.mapErrorMessage(error);
       this.handleError(new Error(errorMessage), 'getRecentTrades');
+    }
+  }
+
+  /**
+   * Get OHLCV candlestick data
+   * Bitget API: /api/v2/spot/market/candles
+   *
+   * @param symbol - Trading pair symbol (e.g., 'BTC/USDT')
+   * @param timeframe - Candle timeframe (1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w)
+   * @param limit - Number of candles to fetch (default 500, max 1000)
+   * @returns Promise resolving to array of OHLCV data
+   */
+  async getOHLCV(symbol: string, timeframe: OHLCVTimeframe, limit: number = 500): Promise<OHLCV[]> {
+    try {
+      if (!ExchangeUtils.isValidSymbol(symbol)) {
+        throw new Error(`Invalid symbol format: ${symbol}`);
+      }
+
+      const bitgetSymbol = toExchangeFormat(symbol);
+
+      // Bitget timeframe mapping (granularity)
+      const timeframeMap: Record<OHLCVTimeframe, string> = {
+        '1m': '1min',
+        '5m': '5min',
+        '15m': '15min',
+        '30m': '30min',
+        '1h': '1h',
+        '4h': '4h',
+        '1d': '1day',
+        '1w': '1week',
+      };
+
+      const response = await this.makePublicRequest('/api/v2/spot/market/candles', {
+        symbol: bitgetSymbol,
+        granularity: timeframeMap[timeframe],
+        limit: Math.min(limit, 1000).toString(),
+      });
+
+      if (!response || !Array.isArray(response.data)) {
+        return [];
+      }
+
+      // Bitget returns: [[timestamp, open, high, low, close, volume, quoteVolume], ...]
+      // Returned in reverse order (newest first)
+      return response.data
+        .map((k: any[]) => ({
+          timestamp: parseInt(k[0]),
+          open: parseFloat(k[1]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          close: parseFloat(k[4]),
+          volume: parseFloat(k[5]),
+        }))
+        .reverse(); // Return in chronological order
+    } catch (error: unknown) {
+      const errorMessage = BitgetUtils.mapErrorMessage(error);
+      this.handleError(new Error(errorMessage), 'getOHLCV');
     }
   }
 

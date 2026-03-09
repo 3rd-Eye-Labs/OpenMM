@@ -1,4 +1,4 @@
-import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide } from '../../types';
+import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide, OHLCV, OHLCVTimeframe } from '../../types';
 import { Balance, ExchangeCredentials, WebSocketStatus } from '../../types';
 
 /**
@@ -61,6 +61,7 @@ export abstract class BaseExchangeConnector {
   abstract getTicker(symbol: string): Promise<Ticker>;
   abstract getOrderBook(symbol: string): Promise<OrderBook>;
   abstract getRecentTrades(symbol: string): Promise<Trade[]>;
+  abstract getOHLCV(symbol: string, timeframe: OHLCVTimeframe, limit?: number): Promise<OHLCV[]>;
 
   // WebSocket methods for real-time data
   abstract connectWebSocket(): Promise<void>;

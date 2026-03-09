@@ -13,6 +13,8 @@ import {
   GateioRawBalance,
   GateioRawOrderBook,
   GateioRawTrade,
+  OHLCV,
+  OHLCVTimeframe,
 } from '../../types';
 import { GateioAuth } from './gateio-auth';
 import { GateioUtils } from './gateio-utils';
@@ -451,6 +453,65 @@ export class GateioConnector extends BaseExchangeConnector {
       const errorMessage = GateioUtils.mapErrorMessage(error);
       this.logger.error('Get recent trades failed', { symbol, error: errorMessage });
       this.handleError(new Error(errorMessage), 'getRecentTrades');
+    }
+  }
+
+  /**
+   * Get OHLCV candlestick data
+   * Gate.io API: /spot/candlesticks
+   *
+   * @param symbol - Trading pair symbol (e.g., 'BTC/USDT')
+   * @param timeframe - Candle timeframe (1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w)
+   * @param limit - Number of candles to fetch (default 500, max 1000)
+   * @returns Promise resolving to array of OHLCV data
+   */
+  async getOHLCV(symbol: string, timeframe: OHLCVTimeframe, limit: number = 500): Promise<OHLCV[]> {
+    try {
+      if (!GateioUtils.isValidSymbol(symbol)) {
+        throw new Error(`Invalid symbol format: ${symbol}`);
+      }
+
+      const currencyPair = GateioUtils.toGateioSymbol(symbol);
+
+      // Gate.io timeframe mapping
+      const timeframeMap: Record<OHLCVTimeframe, string> = {
+        '1m': '1m',
+        '5m': '5m',
+        '15m': '15m',
+        '30m': '30m',
+        '1h': '1h',
+        '4h': '4h',
+        '1d': '1d',
+        '1w': '7d',
+      };
+
+      const response = await this.makePublicRequest('/spot/candlesticks', {
+        currency_pair: currencyPair,
+        interval: timeframeMap[timeframe],
+        limit: Math.min(limit, 1000).toString(),
+      });
+
+      if (!Array.isArray(response)) {
+        this.logger.warn('Gate.io candlesticks returned unexpected format', { response });
+        return [];
+      }
+
+      // Gate.io returns: [[timestamp, volume, close, high, low, open], ...]
+      // Note: Gate.io returns in reverse order (newest first), and timestamp is in seconds
+      return response
+        .map((k: any[]) => ({
+          timestamp: parseInt(k[0]) * 1000, // Convert to ms
+          open: parseFloat(k[5]),
+          high: parseFloat(k[3]),
+          low: parseFloat(k[4]),
+          close: parseFloat(k[2]),
+          volume: parseFloat(k[1]),
+        }))
+        .reverse(); // Return in chronological order
+    } catch (error: unknown) {
+      const errorMessage = GateioUtils.mapErrorMessage(error);
+      this.logger.error('Get OHLCV failed', { symbol, timeframe, error: errorMessage });
+      this.handleError(new Error(errorMessage), 'getOHLCV');
     }
   }
 

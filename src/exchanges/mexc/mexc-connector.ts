@@ -8,6 +8,8 @@ import {
   OrderSide,
   Balance,
   WebSocketStatus,
+  OHLCV,
+  OHLCVTimeframe,
 } from '../../types';
 import { MexcAuth } from './mexc-auth';
 import { MexcWebSocket } from './mexc-websocket';
@@ -259,6 +261,46 @@ export class MexcConnector extends BaseExchangeConnector {
       return trades.map((trade: any) => this.dataMapper.mapTrade(trade, symbol));
     } catch (error: unknown) {
       this.handleError(error, 'getRecentTrades');
+    }
+  }
+
+  /**
+   * Get OHLCV candlestick data
+   * MEXC API: /api/v3/klines
+   */
+  async getOHLCV(symbol: string, timeframe: OHLCVTimeframe, limit: number = 500): Promise<OHLCV[]> {
+    try {
+      const mexcSymbol = toExchangeFormat(symbol);
+
+      // MEXC timeframe mapping (MEXC uses 60m instead of 1h)
+      const timeframeMap: Record<OHLCVTimeframe, string> = {
+        '1m': '1m',
+        '5m': '5m',
+        '15m': '15m',
+        '30m': '30m',
+        '1h': '60m',
+        '4h': '4h',
+        '1d': '1d',
+        '1w': '1w',
+      };
+
+      const klines = await this.makePublicRequest('/klines', {
+        symbol: mexcSymbol,
+        interval: timeframeMap[timeframe],
+        limit: Math.min(limit, 1000), // MEXC max limit is 1000
+      });
+
+      // MEXC returns: [openTime, open, high, low, close, volume, closeTime, quoteVolume, ...]
+      return klines.map((k: any[]) => ({
+        timestamp: k[0],
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[5]),
+      }));
+    } catch (error: unknown) {
+      this.handleError(error, 'getOHLCV');
     }
   }
 
