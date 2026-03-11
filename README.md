@@ -23,8 +23,8 @@ This toolkit aims to improve liquidity for Cardano projects, reduce trading spre
 
 ```bash
 # 1. Install & Setup OpenMM
-npm install -g openmm
-npx openmm setup
+npm install -g @3rd-eye-labs/openmm
+npx @3rd-eye-labs/openmm setup
 ```
 
 The setup wizard will:
@@ -45,7 +45,7 @@ Configures Claude Desktop, Claude Code, Cursor, or Windsurf to use OpenMM tools.
 ### Verify Installation
 
 ```bash
-openmm balance --exchange mexc
+npx @3rd-eye-labs/openmm balance --exchange mexc
 ```
 
 Or ask your AI agent: *"What is my balance on MEXC?"*
