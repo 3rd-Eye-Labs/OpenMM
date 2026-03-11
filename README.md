@@ -17,7 +17,40 @@ Traditional market-making services are expensive and fragmented, making it diffi
 
 This toolkit aims to improve liquidity for Cardano projects, reduce trading spreads, and potentially become the standard liquidity infrastructure for the Cardano ecosystem.
 
-## Getting Started
+## ⚡ Quick Start
+
+### CLI Tool
+
+```bash
+# 1. Install & Setup OpenMM
+npm install -g openmm
+npx openmm setup
+```
+
+The setup wizard will:
+- Let you select exchanges (MEXC, Gate.io, Kraken, Bitget)
+- Prompt for API credentials
+- Create a `.env` file with your credentials
+
+### MCP Server — For AI Agents
+
+```bash
+# 2. Install & Setup OpenMM MCP (13 tools)
+npm install -g @qbtlabs/openmm-mcp
+npx @qbtlabs/openmm-mcp setup
+```
+
+Configures Claude Desktop, Claude Code, Cursor, or Windsurf to use OpenMM tools.
+
+### Verify Installation
+
+```bash
+openmm balance --exchange mexc
+```
+
+Or ask your AI agent: *"What is my balance on MEXC?"*
+
+## Getting Started (Development)
 
 ### Prerequisites
 
