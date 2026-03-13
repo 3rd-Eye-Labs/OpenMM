@@ -60,7 +60,24 @@ export async function ordersRoutes(app: FastifyInstance): Promise<void> {
           type: 'object',
           properties: {
             exchange: { type: 'string' },
-            orders: { type: 'array', items: { $ref: '#/components/schemas/Order' } },
+            orders: { 
+              type: 'array', 
+              items: { 
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  symbol: { type: 'string' },
+                  side: { type: 'string' },
+                  type: { type: 'string' },
+                  price: { type: 'number' },
+                  amount: { type: 'number' },
+                  filled: { type: 'number' },
+                  remaining: { type: 'number' },
+                  status: { type: 'string' },
+                  timestamp: { type: 'number' },
+                },
+              },
+            },
             count: { type: 'number' },
           },
         },

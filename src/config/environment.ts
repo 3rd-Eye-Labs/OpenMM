@@ -94,6 +94,10 @@ class EnvironmentValidator {
 
       return config;
     } catch (error) {
+      // In test environment, don't exit - just throw
+      if (process.env.NODE_ENV === 'test') {
+        throw error;
+      }
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('Environment validation failed', { error: errorMessage });
       logger.error('Please check your .env file and ensure all required variables are set');
@@ -103,5 +107,8 @@ class EnvironmentValidator {
   }
 }
 
-export const config = EnvironmentValidator.validate();
+// Skip validation in test environment
+export const config = process.env.NODE_ENV === 'test' 
+  ? {} as EnvironmentConfig 
+  : EnvironmentValidator.validate();
 export default config;
