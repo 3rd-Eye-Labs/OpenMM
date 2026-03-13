@@ -7,6 +7,7 @@ import { balanceRoutes } from './balance';
 import { ordersRoutes } from './orders';
 import { cardanoRoutes } from './cardano';
 import { priceRoutes } from './price';
+import { strategyRoutes } from './strategy';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // Health check routes
@@ -28,6 +29,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
   // Price comparison routes
   await app.register(priceRoutes, { prefix: '/api/v1' });
+
+  // Strategy routes
+  await app.register(strategyRoutes, { prefix: '/api/v1' });
 
   // Future route registrations:
   // await app.register(balanceRoutes, { prefix: '/api/v1' });
