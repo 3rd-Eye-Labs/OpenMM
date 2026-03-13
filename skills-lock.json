@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "skills": {
+    "indigo-analytics": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "8ceb5eed48fc880e4cfef15e076244de03a94c5b501d27b359c1ffc3b3c54c74"
+    },
+    "indigo-assets": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "4fdaff4b255663fd7b60bfb7b74d9578afb08d94d3a04e90871a2df70bb15078"
+    },
+    "indigo-cdp": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "2d7d5e383883dd2887432bd322f9698be6776ff3cf2d88478fdb8b8bb3b694c9"
+    },
+    "indigo-dex": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "621a28587e9ff3a21eef0309146d4fd6b37e3d53c09f1f03a308677bd0a5e719"
+    },
+    "indigo-governance": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "b15654ff8a09b7251da99f489af05e8ea49e082bb7a8b687d786987e15ef0b8d"
+    },
+    "indigo-ipfs": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "72c83563bbc4bdb95736159a6799a33314379ac2d5a30a979f9806a2774c29f6"
+    },
+    "indigo-redemption": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "24141ec186e4bfdd0a2f569d37d38a4040b5b020a3f6135a6f0a80888dab4892"
+    },
+    "indigo-stability": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "fd9ca95d88533e035e2215746973cca53ceec59ac91ff7d536fac225767cb3e5"
+    },
+    "indigo-staking": {
+      "source": "IndigoProtocol/indigo-ai",
+      "sourceType": "github",
+      "computedHash": "8c3748bb9f4d58901dce489f7d0f447724affbe2d80573dd91b3ec08aa1211d7"
+    }
+  }
+}
