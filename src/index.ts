@@ -15,6 +15,9 @@ export { ExchangeFactory, SupportedExchange } from './cli/exchange-factory';
 
 // x402 Payment Support
 export * as x402 from './x402';
+
+// REST API Server
+export * from './api';
 import { createLogger } from './utils';
 
 export class OpenMM {
