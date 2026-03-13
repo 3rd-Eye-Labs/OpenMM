@@ -28,6 +28,7 @@ async function runCli() {
   const { priceComparisonCommand } = await import('./commands/price-comparison.js');
   const { walletCommand } = await import('./commands/wallet.js');
   const { setupCommand } = await import('./commands/setup.js');
+  const { serveCommand } = await import('./commands/serve.js');
 
   const program = new Command();
 
@@ -44,6 +45,7 @@ async function runCli() {
   program.addCommand(tradeCommand);
   program.addCommand(priceComparisonCommand);
   program.addCommand(walletCommand);
+  program.addCommand(serveCommand);
 
   program.exitOverride(err => {
     if (err.code === 'commander.unknownCommand') {
