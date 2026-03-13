@@ -4,6 +4,7 @@ import { tickerRoutes } from './ticker';
 import { orderbookRoutes } from './orderbook';
 import { tradesRoutes } from './trades';
 import { balanceRoutes } from './balance';
+import { ordersRoutes } from './orders';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // Health check routes
@@ -16,6 +17,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
   // Account routes
   await app.register(balanceRoutes, { prefix: '/api/v1' });
+
+  // Order management routes
+  await app.register(ordersRoutes, { prefix: '/api/v1' });
 
   // Future route registrations:
   // await app.register(balanceRoutes, { prefix: '/api/v1' });
