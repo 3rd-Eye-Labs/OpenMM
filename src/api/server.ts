@@ -25,6 +25,12 @@ export async function createApiServer(options: ApiServerOptions = {}): Promise<F
 
   const app = Fastify({
     logger: false, // We use our own logger
+    ajv: {
+      customOptions: {
+        strict: 'log', // Allow unknown keywords like 'example'
+        keywords: ['example'], // Explicitly allow 'example' keyword
+      },
+    },
   });
 
   // CORS
