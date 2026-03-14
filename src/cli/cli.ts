@@ -53,7 +53,7 @@ async function runCli() {
       console.log(chalk.yellow('Run "openmm --help" to see available commands'));
       process.exit(1);
     }
-    if (err.code === 'commander.helpDisplayed') {
+    if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {
       process.exit(0);
     }
     throw err;
