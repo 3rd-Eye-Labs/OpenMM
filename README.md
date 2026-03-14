@@ -5,6 +5,8 @@
 [![license](https://img.shields.io/npm/l/@3rd-eye-labs/openmm)](https://github.com/3rd-Eye-Labs/OpenMM/blob/main/LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/3rd-Eye-Labs/OpenMM)
 
+**📚 [Documentation](https://docs.openmm.io)** · **🤖 [AI Skills Portal](https://agents.openmm.io)** · **🔌 [API Reference](https://api.openmm.io)**
+
 OpenMM is an open-source SDK designed to democratize market-making for Cardano projects. It provides a unified interface for trading Cardano Native Tokens (CNTs) across multiple centralized exchanges.
 
 ## What is OpenMM?
