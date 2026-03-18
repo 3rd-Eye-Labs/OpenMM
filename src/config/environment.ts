@@ -33,82 +33,120 @@ interface EnvironmentConfig {
 }
 
 class EnvironmentValidator {
-  private static validateRequired(key: string, value: string | undefined): string {
-    if (!value || value.trim() === '') {
-      throw new Error(`Required environment variable ${key} is missing or empty`);
-    }
-    return value.trim();
-  }
-
   private static validateOptional(value: string | undefined): string | undefined {
     return value && value.trim() !== '' ? value.trim() : undefined;
   }
 
+  /**
+   * Validate environment configuration.
+   * 
+   * IMPORTANT: This method throws errors instead of calling process.exit()
+   * to allow callers (like MCP servers) to handle errors gracefully.
+   * 
+   * All exchange credentials are now optional - validation happens at
+   * runtime when a specific exchange is used.
+   */
   static validate(): EnvironmentConfig {
-    try {
-      const config: EnvironmentConfig = {
-        mexc: {
-          apiKey: this.validateRequired('MEXC_API_KEY', process.env.MEXC_API_KEY),
-          secret: this.validateRequired('MEXC_SECRET', process.env.MEXC_SECRET),
-          uid: this.validateOptional(process.env.MEXC_UID),
-        },
+    const config: EnvironmentConfig = {
+      // MEXC is now optional like other exchanges
+      mexc: process.env.MEXC_API_KEY && process.env.MEXC_SECRET
+        ? {
+            apiKey: process.env.MEXC_API_KEY.trim(),
+            secret: process.env.MEXC_SECRET.trim(),
+            uid: this.validateOptional(process.env.MEXC_UID),
+          }
+        : { apiKey: '', secret: '' }, // Empty config - will fail at runtime if used
 
-        logLevel: process.env.LOG_LEVEL || 'info',
-        nodeEnv: process.env.NODE_ENV || 'development',
+      logLevel: process.env.LOG_LEVEL || 'info',
+      nodeEnv: process.env.NODE_ENV || 'development',
+    };
+
+    if (process.env.GATEIO_API_KEY && process.env.GATEIO_SECRET) {
+      config.gateio = {
+        apiKey: process.env.GATEIO_API_KEY.trim(),
+        secret: process.env.GATEIO_SECRET.trim(),
       };
+    }
 
-      if (process.env.GATEIO_API_KEY && process.env.GATEIO_SECRET) {
-        config.gateio = {
-          apiKey: process.env.GATEIO_API_KEY,
-          secret: process.env.GATEIO_SECRET,
-        };
-      }
+    if (
+      process.env.BITGET_API_KEY &&
+      process.env.BITGET_SECRET &&
+      process.env.BITGET_PASSPHRASE
+    ) {
+      config.bitget = {
+        apiKey: process.env.BITGET_API_KEY.trim(),
+        secret: process.env.BITGET_SECRET.trim(),
+        passphrase: process.env.BITGET_PASSPHRASE.trim(),
+      };
+    }
 
-      if (
-        process.env.BITGET_API_KEY &&
-        process.env.BITGET_SECRET &&
-        process.env.BITGET_PASSPHRASE
-      ) {
-        config.bitget = {
-          apiKey: process.env.BITGET_API_KEY,
-          secret: process.env.BITGET_SECRET,
-          passphrase: process.env.BITGET_PASSPHRASE,
-        };
-      }
+    if (process.env.KRAKEN_API_KEY && process.env.KRAKEN_SECRET) {
+      config.kraken = {
+        apiKey: process.env.KRAKEN_API_KEY.trim(),
+        secret: process.env.KRAKEN_SECRET.trim(),
+      };
+    }
 
-      if (process.env.KRAKEN_API_KEY && process.env.KRAKEN_SECRET) {
-        config.kraken = {
-          apiKey: process.env.KRAKEN_API_KEY,
-          secret: process.env.KRAKEN_SECRET,
-        };
-      }
+    const validLogLevels = ['error', 'warn', 'info', 'debug'];
+    if (!validLogLevels.includes(config.logLevel)) {
+      // Throw instead of process.exit - let caller handle it
+      throw new Error(
+        `Invalid LOG_LEVEL: ${config.logLevel}. Must be one of: ${validLogLevels.join(', ')}`
+      );
+    }
 
-      const validLogLevels = ['error', 'warn', 'info', 'debug'];
-      if (!validLogLevels.includes(config.logLevel)) {
-        const errorMessage = `Invalid LOG_LEVEL: ${config.logLevel}. Must be one of: ${validLogLevels.join(', ')}`;
-        logger.error('Environment validation failed', { error: errorMessage });
-        logger.error('Please check your .env file and ensure all required variables are set');
-        logger.error('See .env.example for reference');
-        process.exit(1);
-      }
+    return config;
+  }
 
-      return config;
-    } catch (error) {
-      // In test environment, don't exit - just throw
-      if (process.env.NODE_ENV === 'test') {
-        throw error;
+  /**
+   * Validate that a specific exchange is configured.
+   * Call this at runtime when an exchange is actually used.
+   */
+  static validateExchange(exchange: 'mexc' | 'gateio' | 'bitget' | 'kraken'): void {
+    const cfg = config[exchange];
+    if (!cfg || !cfg.apiKey || !cfg.secret) {
+      throw new Error(
+        `Exchange ${exchange.toUpperCase()} is not configured. ` +
+        `Please set ${exchange.toUpperCase()}_API_KEY and ${exchange.toUpperCase()}_SECRET environment variables.`
+      );
+    }
+    if (exchange === 'bitget') {
+      const bitgetCfg = config.bitget;
+      if (!bitgetCfg?.passphrase) {
+        throw new Error(
+          `Bitget requires BITGET_PASSPHRASE environment variable.`
+        );
       }
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Environment validation failed', { error: errorMessage });
-      logger.error('Please check your .env file and ensure all required variables are set');
-      logger.error('See .env.example for reference');
-      process.exit(1);
     }
   }
 }
 
-// Skip validation in test environment
-export const config = process.env.NODE_ENV === 'test' 
-  ? {} as EnvironmentConfig 
-  : EnvironmentValidator.validate();
+// Lazy validation - validates at import but doesn't call process.exit()
+// Errors are thrown and can be caught by the caller
+let _config: EnvironmentConfig | null = null;
+
+export const config: EnvironmentConfig = new Proxy({} as EnvironmentConfig, {
+  get(_, prop: string) {
+    if (!_config) {
+      try {
+        _config = EnvironmentValidator.validate();
+      } catch (error) {
+        // Log the error but don't exit - let the caller handle it
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.warn('Environment validation warning', { error: errorMessage });
+        logger.warn('Some exchanges may not be available. Set credentials to enable them.');
+        // Return a minimal config so the module can still load
+        _config = {
+          mexc: { apiKey: '', secret: '' },
+          logLevel: 'info',
+          nodeEnv: process.env.NODE_ENV || 'development',
+        };
+      }
+    }
+    return (_config as any)[prop];
+  },
+});
+
+// Export the validator for runtime exchange validation
+export { EnvironmentValidator };
 export default config;
