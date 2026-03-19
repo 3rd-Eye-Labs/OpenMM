@@ -9,7 +9,7 @@ Before starting the API server, configure exchange credentials in your environme
 ```bash
 # .env file
 MEXC_API_KEY=your-api-key
-MEXC_SECRET_KEY=your-secret-key
+MEXC_SECRET=your-secret-key
 
 GATEIO_API_KEY=your-api-key
 GATEIO_SECRET_KEY=your-secret-key

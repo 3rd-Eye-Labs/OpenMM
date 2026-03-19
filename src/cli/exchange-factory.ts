@@ -91,4 +91,22 @@ export class ExchangeFactory {
     await Promise.all(disconnectPromises);
     this.connectors.clear();
   }
+
+  /**
+   * Clear a specific connector from cache (forces re-creation on next call)
+   */
+  static clearConnector(exchangeName: SupportedExchange): void {
+    const connector = this.connectors.get(exchangeName);
+    if (connector?.disconnect) {
+      connector.disconnect().catch(() => {});
+    }
+    this.connectors.delete(exchangeName);
+  }
+
+  /**
+   * Clear all cached connectors (forces re-creation on next call)
+   */
+  static clearAllConnectors(): void {
+    this.disconnectAll().catch(() => {});
+  }
 }

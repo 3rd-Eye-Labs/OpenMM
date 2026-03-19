@@ -43,7 +43,7 @@ Create a `.env` file in your working directory:
 ```env
 # MEXC (required)
 MEXC_API_KEY=your-api-key
-MEXC_SECRET_KEY=your-secret-key
+MEXC_SECRET=your-secret-key
 
 # Gate.io (optional)
 GATEIO_API_KEY=your-api-key

@@ -4,7 +4,7 @@ jest.setTimeout(60000);
 
 // Mock environment variables for API tests
 process.env.MEXC_API_KEY = 'test-key';
-process.env.MEXC_SECRET_KEY = 'test-secret';
+process.env.MEXC_SECRET = 'test-secret';
 process.env.GATEIO_API_KEY = 'test-key';
 process.env.GATEIO_SECRET_KEY = 'test-secret';
 process.env.BITGET_API_KEY = 'test-key';

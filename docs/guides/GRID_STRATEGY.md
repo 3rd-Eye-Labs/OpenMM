@@ -10,7 +10,7 @@ This guide explains how to run the Grid Trading Strategy using OpenMM's unified 
 
    # For MEXC
    export MEXC_API_KEY="your_api_key"
-   export MEXC_SECRET_KEY="your_secret_key"
+   export MEXC_SECRET="your_secret_key"
 
    # For Bitget
    export BITGET_API_KEY="your_api_key"
@@ -513,7 +513,7 @@ The system will:
 ```
 Error: MEXC credentials not found
 ```
-Solution: Verify `MEXC_API_KEY` and `MEXC_SECRET_KEY` environment variables
+Solution: Verify `MEXC_API_KEY` and `MEXC_SECRET` environment variables
 
 **Invalid credentials (Bitget):**
 ```

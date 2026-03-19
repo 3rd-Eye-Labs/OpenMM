@@ -72,7 +72,7 @@ export async function healthRoutes(app: FastifyInstance): Promise<void> {
   }, async (_request: FastifyRequest, _reply: FastifyReply): Promise<HealthResponse> => {
     const exchanges = {
       mexc: {
-        configured: !!(process.env.MEXC_API_KEY && process.env.MEXC_SECRET_KEY),
+        configured: !!(process.env.MEXC_API_KEY && process.env.MEXC_SECRET),
       },
       gateio: {
         configured: !!(process.env.GATEIO_API_KEY && process.env.GATEIO_SECRET_KEY),

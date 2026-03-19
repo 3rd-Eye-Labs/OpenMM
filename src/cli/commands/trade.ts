@@ -275,7 +275,7 @@ Grid Profile File Format (JSON):
   }
 
 Note: Ensure exchange-specific environment variables are set:
-  - MEXC: MEXC_API_KEY and MEXC_SECRET_KEY
+  - MEXC: MEXC_API_KEY and MEXC_SECRET
   - Bitget: BITGET_API_KEY, BITGET_SECRET, and BITGET_PASSPHRASE
   - Gate.io: GATEIO_API_KEY and GATEIO_SECRET
   - Kraken: KRAKEN_API_KEY and KRAKEN_SECRET

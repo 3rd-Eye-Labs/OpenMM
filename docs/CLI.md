@@ -309,7 +309,7 @@ Ensure your `.env` file contains the necessary API credentials:
 ```env
 # MEXC Configuration
 MEXC_API_KEY=your_mexc_api_key
-MEXC_SECRET_KEY=your_mexc_secret_key
+MEXC_SECRET=your_mexc_secret_key
 
 # Gate.io Configuration
 GATEIO_API_KEY=your_gateio_api_key
