@@ -1,7 +1,11 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { createLogger } from '../utils';
 
-dotenv.config();
+// Load .env from SDK directory for CLI usage.
+// override: false ensures MCP env vars (passed by client) take priority.
+const envPath = path.join(__dirname, '..', '..', '.env');
+dotenv.config({ path: envPath, override: false });
 
 const logger = createLogger('environment-validator');
 
