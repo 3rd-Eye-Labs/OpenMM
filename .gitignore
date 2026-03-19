@@ -52,4 +52,5 @@ temp/
 .npm
 
 # Optional eslint cache
-.eslintcache
+.eslintcache.claude/keys.local.json
+fetch_notion.py
