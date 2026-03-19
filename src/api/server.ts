@@ -6,7 +6,7 @@ import { createLogger } from '../utils';
 import { registerRoutes } from './routes';
 import { openApiConfig } from './openapi';
 
-const logger = createLogger('api-server', './logs/api.log');
+const logger = createLogger('api-server');
 
 export interface ApiServerOptions {
   host?: string;

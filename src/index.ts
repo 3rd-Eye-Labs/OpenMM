@@ -21,7 +21,7 @@ export * from './api';
 import { createLogger } from './utils';
 
 export class OpenMM {
-  private logger = createLogger('openmm', './logs/openmm.log');
+  private logger = createLogger('openmm');
 
   constructor() {
     this.logger.info('OpenMM Universal Market Making Toolkit initialized');
