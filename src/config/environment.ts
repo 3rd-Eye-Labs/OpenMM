@@ -125,23 +125,30 @@ class EnvironmentValidator {
 // Errors are thrown and can be caught by the caller
 let _config: EnvironmentConfig | null = null;
 
+/**
+ * Clear cached config - call this if env vars change after initial load.
+ */
+export function resetConfig(): void {
+  _config = null;
+}
+
 export const config: EnvironmentConfig = new Proxy({} as EnvironmentConfig, {
   get(_, prop: string) {
-    if (!_config) {
-      try {
-        _config = EnvironmentValidator.validate();
-      } catch (error) {
-        // Log the error but don't exit - let the caller handle it
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.warn('Environment validation warning', { error: errorMessage });
-        logger.warn('Some exchanges may not be available. Set credentials to enable them.');
-        // Return a minimal config so the module can still load
-        _config = {
-          mexc: { apiKey: '', secret: '' },
-          logLevel: 'info',
-          nodeEnv: process.env.NODE_ENV || 'development',
-        };
-      }
+    // Always re-validate to pick up env var changes
+    // This is slightly less efficient but ensures env vars are always fresh
+    try {
+      _config = EnvironmentValidator.validate();
+    } catch (error) {
+      // Log the error but don't exit - let the caller handle it
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn('Environment validation warning', { error: errorMessage });
+      logger.warn('Some exchanges may not be available. Set credentials to enable them.');
+      // Return a minimal config so the module can still load
+      _config = {
+        mexc: { apiKey: '', secret: '' },
+        logLevel: 'info',
+        nodeEnv: process.env.NODE_ENV || 'development',
+      };
     }
     return (_config as any)[prop];
   },
