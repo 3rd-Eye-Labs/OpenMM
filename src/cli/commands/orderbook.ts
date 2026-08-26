@@ -23,7 +23,7 @@ export const orderbookCommand = new Command('orderbook')
       }
 
       try {
-        const connector = await ExchangeFactory.getExchange(exchange);
+        const connector = await ExchangeFactory.getExchange(exchange, { requireAuth: false });
         const orderbook = await connector.getOrderBook(symbol);
 
         if (options.json) {

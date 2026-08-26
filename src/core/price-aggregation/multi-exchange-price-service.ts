@@ -28,7 +28,7 @@ export class MultiExchangePriceService {
    */
   async isSymbolAvailable(exchange: SupportedExchange, symbol: string): Promise<boolean> {
     try {
-      const connector = await ExchangeFactory.getExchange(exchange);
+      const connector = await ExchangeFactory.getExchange(exchange, { requireAuth: false });
 
       await connector.getTicker(symbol);
       return true;
@@ -64,7 +64,7 @@ export class MultiExchangePriceService {
         };
       }
 
-      const connector = await ExchangeFactory.getExchange(exchange);
+      const connector = await ExchangeFactory.getExchange(exchange, { requireAuth: false });
       const ticker: Ticker = await connector.getTicker(symbol);
 
       return {

@@ -10,6 +10,7 @@ import {
   Trade,
   WebSocketStatus,
   GridStrategyConfig,
+  OHLCV,
 } from '../../../../types';
 import { BaseExchangeConnector } from '../../../../core/exchange/base-exchange-connector';
 /**
@@ -140,6 +141,9 @@ class MockExchangeConnector extends BaseExchangeConnector {
       ],
       timestamp: Date.now(),
     };
+  }
+  async getOHLCV(): Promise<OHLCV[]> {
+    return [];
   }
   async getRecentTrades(symbol: string): Promise<Trade[]> {
     return [

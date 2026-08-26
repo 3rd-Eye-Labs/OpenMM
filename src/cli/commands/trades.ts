@@ -22,7 +22,7 @@ export const tradesCommand = new Command('trades')
       }
 
       try {
-        const connector = await ExchangeFactory.getExchange(exchange);
+        const connector = await ExchangeFactory.getExchange(exchange, { requireAuth: false });
         const trades = await connector.getRecentTrades(symbol);
 
         const limitedTrades = trades.slice(0, limit);

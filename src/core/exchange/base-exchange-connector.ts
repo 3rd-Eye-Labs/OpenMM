@@ -1,4 +1,13 @@
-import { Order, OrderBook, Ticker, Trade, OrderType, OrderSide, OHLCV, OHLCVTimeframe } from '../../types';
+import {
+  Order,
+  OrderBook,
+  Ticker,
+  Trade,
+  OrderType,
+  OrderSide,
+  OHLCV,
+  OHLCVTimeframe,
+} from '../../types';
 import { Balance, ExchangeCredentials, WebSocketStatus } from '../../types';
 
 /**
@@ -10,6 +19,11 @@ export abstract class BaseExchangeConnector {
   protected readonly exchangeName: string;
   protected credentials?: ExchangeCredentials;
   protected connected: boolean = false;
+  /**
+   * True when the connector was established via connectPublic() and therefore
+   * may only be used for unauthenticated market-data endpoints.
+   */
+  protected publicOnly: boolean = false;
 
   constructor(exchangeId: string, exchangeName: string) {
     this.exchangeId = exchangeId;
@@ -28,6 +42,16 @@ export abstract class BaseExchangeConnector {
     return this.connected;
   }
 
+  /**
+   * Whether this connector can perform authenticated (private) operations.
+   *
+   * Note: isConnected() returns true for public-only connectors too — use this
+   * method when you need to know that credentials are actually usable.
+   */
+  isAuthenticated(): boolean {
+    return this.connected && !this.publicOnly;
+  }
+
   setCredentials(credentials: ExchangeCredentials): void {
     this.credentials = credentials;
   }
@@ -39,9 +63,43 @@ export abstract class BaseExchangeConnector {
     return this.credentials;
   }
 
+  /**
+   * Whether usable API credentials are present on this connector.
+   */
+  protected hasCredentials(): boolean {
+    return Boolean(this.credentials?.apiKey && this.credentials?.secret);
+  }
+
+  /**
+   * Guard for private endpoints. Throws a clear, actionable error when the
+   * connector was established in public-only mode.
+   */
+  protected assertAuthenticated(operation: string): void {
+    if (this.publicOnly) {
+      throw new Error(
+        `${this.exchangeName} is connected in public-only mode: "${operation}" requires API ` +
+          `credentials. Configure credentials for ${this.exchangeName} and obtain the connector ` +
+          `with requireAuth: true.`
+      );
+    }
+  }
+
   // Abstract methods to be implemented by subclasses
   abstract connect(): Promise<void>;
   abstract disconnect(): Promise<void>;
+
+  /**
+   * Establish a connection limited to public market-data endpoints.
+   *
+   * Public endpoints (getTicker, getOrderBook, getRecentTrades, getOHLCV) require
+   * no authentication, so this path deliberately performs no credential validation.
+   * Subclasses that route public traffic through an auth/transport object override
+   * this to construct that object without credentials.
+   */
+  async connectPublic(): Promise<void> {
+    this.publicOnly = true;
+    this.connected = true;
+  }
 
   // Rest API methods Order management
   abstract getBalance(): Promise<Record<string, Balance>>;
