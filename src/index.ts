@@ -8,10 +8,10 @@ export { BaseStrategy } from './core/strategy/base-strategy';
 export { MexcConnector } from './exchanges/mexc/mexc-connector';
 export { GateioConnector } from './exchanges/gateio/gateio-connector';
 export { BitgetConnector } from './exchanges/bitget/bitget-connector';
-export  { KrakenConnector } from './exchanges/kraken/kraken-connector';
+export { KrakenConnector } from './exchanges/kraken/kraken-connector';
 
 // Exchange factory
-export { ExchangeFactory, SupportedExchange } from './cli/exchange-factory';
+export { ExchangeFactory, SupportedExchange, GetExchangeOptions } from './cli/exchange-factory';
 
 // x402 Payment Support
 export * as x402 from './x402';

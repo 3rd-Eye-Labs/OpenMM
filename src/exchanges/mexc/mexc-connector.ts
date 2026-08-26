@@ -67,12 +67,31 @@ export class MexcConnector extends BaseExchangeConnector {
   }
 
   /**
+   * Connect for public market-data endpoints only.
+   *
+   * MEXC routes public traffic through MexcAuth, so a credential-free handler is
+   * created here. No credential validation is performed because the /api/v3
+   * public endpoints are unauthenticated.
+   */
+  async connectPublic(): Promise<void> {
+    try {
+      this.auth = MexcAuth.forPublicRequests(this.baseUrl);
+      this.publicOnly = true;
+      this.connected = true;
+    } catch (error: unknown) {
+      this.connected = false;
+      this.handleError(error, 'connectPublic');
+    }
+  }
+
+  /**
    * Override disconnect to also disconnect user data stream
    */
   async disconnect(): Promise<void> {
     await this.disconnectWebSocket();
     await this.disconnectUserDataStream();
     this.connected = false;
+    this.publicOnly = false;
     this.auth = undefined;
     this.userStream = undefined;
   }

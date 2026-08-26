@@ -111,6 +111,25 @@ export class BitgetConnector extends BaseExchangeConnector {
   }
 
   /**
+   * Connect for public market-data endpoints only.
+   *
+   * Bitget routes public traffic through BitgetAuth, so a credential-free handler
+   * is created here. No credential validation is performed because the /api/v2
+   * public endpoints are unauthenticated.
+   */
+  async connectPublic(): Promise<void> {
+    try {
+      this.auth = BitgetAuth.forPublicRequests(this.baseUrl);
+      this.publicOnly = true;
+      this.connected = true;
+      this.logger.info('Connected to Bitget public API');
+    } catch (error) {
+      this.connected = false;
+      this.handleError(error, 'connectPublic');
+    }
+  }
+
+  /**
    * Disconnect from Bitget API and clean up resources
    *
    * @returns Promise that resolves when successfully disconnected from Bitget API

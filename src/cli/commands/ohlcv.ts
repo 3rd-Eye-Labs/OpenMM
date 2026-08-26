@@ -20,7 +20,11 @@ export const ohlcvCommand = new Command('ohlcv')
   .description('Get historical OHLCV (candlestick) data for a trading pair')
   .requiredOption('-e, --exchange <exchange>', 'Exchange to query')
   .requiredOption('-s, --symbol <symbol>', 'Trading pair symbol (e.g., BTC/USDT)')
-  .option('-t, --timeframe <timeframe>', 'Candle timeframe (1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w)', '1h')
+  .option(
+    '-t, --timeframe <timeframe>',
+    'Candle timeframe (1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w)',
+    '1h'
+  )
   .option('-l, --limit <limit>', 'Number of candles to fetch (default: 100, max: 1000)', '100')
   .option('--json', 'Output in JSON format')
   .action(async options => {
@@ -41,7 +45,7 @@ export const ohlcvCommand = new Command('ohlcv')
       }
 
       try {
-        const connector = await ExchangeFactory.getExchange(exchange);
+        const connector = await ExchangeFactory.getExchange(exchange, { requireAuth: false });
         const ohlcv = await connector.getOHLCV(symbol, timeframe, limit);
 
         if (options.json) {
@@ -82,7 +86,9 @@ export const ohlcvCommand = new Command('ohlcv')
             const high = candle.high.toFixed(8).padStart(12);
             const low = candle.low.toFixed(8).padStart(12);
             const close = candle.close.toFixed(8).padStart(12);
-            const volume = candle.volume.toLocaleString(undefined, { maximumFractionDigits: 2 }).padStart(12);
+            const volume = candle.volume
+              .toLocaleString(undefined, { maximumFractionDigits: 2 })
+              .padStart(12);
 
             // Color based on candle direction
             const priceColor = candle.close >= candle.open ? chalk.green : chalk.red;
@@ -102,11 +108,15 @@ export const ohlcvCommand = new Command('ohlcv')
           const priceChangePercent = (priceChange / oldestCandle.open) * 100;
 
           console.log(`\n${chalk.bold('Summary')}:`);
-          console.log(`  Period:        ${new Date(oldestCandle.timestamp).toLocaleString()} - ${new Date(latestCandle.timestamp).toLocaleString()}`);
+          console.log(
+            `  Period:        ${new Date(oldestCandle.timestamp).toLocaleString()} - ${new Date(latestCandle.timestamp).toLocaleString()}`
+          );
           console.log(`  Highest High:  ${chalk.green('$' + highestHigh.toFixed(8))}`);
           console.log(`  Lowest Low:    ${chalk.red('$' + lowestLow.toFixed(8))}`);
-          console.log(`  Total Volume:  ${chalk.blue(totalVolume.toLocaleString(undefined, { maximumFractionDigits: 2 }))}`);
-          
+          console.log(
+            `  Total Volume:  ${chalk.blue(totalVolume.toLocaleString(undefined, { maximumFractionDigits: 2 }))}`
+          );
+
           const changeColor = priceChange >= 0 ? chalk.green : chalk.red;
           const changeSign = priceChange >= 0 ? '+' : '';
           console.log(

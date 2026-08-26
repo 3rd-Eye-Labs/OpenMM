@@ -49,8 +49,23 @@ export class KrakenConnector extends BaseExchangeConnector {
     }
   }
 
+  /**
+   * Connect for public market-data endpoints only.
+   *
+   * Kraken's public methods call /0/public/* directly and never use KrakenAuth,
+   * so no auth handler is constructed here. Private methods continue to guard on
+   * `this.auth` being undefined.
+   */
+  async connectPublic(): Promise<void> {
+    this.publicOnly = true;
+    this.connected = true;
+    this.logger.info('Connected to Kraken public REST API');
+  }
+
   async disconnect(): Promise<void> {
     this.connected = false;
+    this.publicOnly = false;
+    this.auth = undefined;
     this.logger.info('Disconnected from Kraken REST API');
   }
 

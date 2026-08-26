@@ -63,6 +63,9 @@ class MockExchangeConnector extends BaseExchangeConnector {
   async getRecentTrades() {
     return [];
   }
+  async getOHLCV() {
+    return [];
+  }
 
   async connectWebSocket(): Promise<void> {}
   async disconnectWebSocket(): Promise<void> {}

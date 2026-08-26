@@ -13,6 +13,7 @@ import { createLogger } from '../../utils';
 export class GateioAuth {
   private readonly credentials: ExchangeCredentials;
   private readonly baseUrl: string;
+  private readonly publicOnly: boolean;
   private logger = createLogger('gateio-auth');
 
   /**
@@ -20,11 +21,31 @@ export class GateioAuth {
    *
    * @param credentials - Gate.io API credentials including API key and secret
    * @param baseUrl - Base URL for Gate.io API (defaults to production)
+   * @param options - Set publicOnly to build a handler for unauthenticated endpoints
    */
-  constructor(credentials: ExchangeCredentials, baseUrl: string = 'https://api.gateio.ws') {
+  constructor(
+    credentials: ExchangeCredentials,
+    baseUrl: string = 'https://api.gateio.ws',
+    options: { publicOnly?: boolean } = {}
+  ) {
     this.credentials = credentials;
     this.baseUrl = baseUrl;
-    this.validateCredentials();
+    this.publicOnly = options.publicOnly === true;
+
+    // Public-only handlers serve unauthenticated endpoints and are deliberately
+    // constructible without credentials. Signing is blocked in makeRequest().
+    if (!this.publicOnly) {
+      this.validateCredentials();
+    }
+  }
+
+  /**
+   * Create a handler restricted to unauthenticated (public) endpoints
+   *
+   * @param baseUrl - Base URL for Gate.io API (defaults to production)
+   */
+  static forPublicRequests(baseUrl: string = 'https://api.gateio.ws'): GateioAuth {
+    return new GateioAuth({ apiKey: '', secret: '' }, baseUrl, { publicOnly: true });
   }
 
   /**
@@ -125,6 +146,12 @@ export class GateioAuth {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: Record<string, unknown>
   ): Promise<any> {
+    if (this.publicOnly) {
+      throw new Error(
+        'Gate.io authentication handler is public-only: this request requires API credentials'
+      );
+    }
+
     const timestamp = Math.floor(Date.now() / 1000);
 
     const queryString = Object.entries(params)

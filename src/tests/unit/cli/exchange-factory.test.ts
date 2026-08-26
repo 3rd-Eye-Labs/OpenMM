@@ -102,6 +102,85 @@ describe('ExchangeFactory', () => {
     });
   });
 
+  // QBT-688: public market-data endpoints need no credentials.
+  describe('getExchange with requireAuth: false', () => {
+    beforeEach(() => {
+      mockConnector.connectPublic = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('should use connectPublic instead of connect', async () => {
+      await ExchangeFactory.getExchange('mexc', { requireAuth: false });
+      expect(mockConnector.connectPublic).toHaveBeenCalledTimes(1);
+      expect(mockConnector.connect).not.toHaveBeenCalled();
+    });
+
+    it('should default to requiring auth when the option is omitted', async () => {
+      await ExchangeFactory.getExchange('mexc');
+      expect(mockConnector.connect).toHaveBeenCalledTimes(1);
+      expect(mockConnector.connectPublic).not.toHaveBeenCalled();
+    });
+
+    it('should default to requiring auth when an empty options object is passed', async () => {
+      await ExchangeFactory.getExchange('mexc', {});
+      expect(mockConnector.connect).toHaveBeenCalledTimes(1);
+      expect(mockConnector.connectPublic).not.toHaveBeenCalled();
+    });
+
+    it.each(['gateio', 'bitget', 'kraken'] as const)(
+      'should not require credentials for %s',
+      async exchange => {
+        await expect(
+          ExchangeFactory.getExchange(exchange, { requireAuth: false })
+        ).resolves.toBeDefined();
+      }
+    );
+
+    it('should reuse an existing authenticated connector for public requests', async () => {
+      const authenticated = await ExchangeFactory.getExchange('mexc');
+      const publicConnector = await ExchangeFactory.getExchange('mexc', { requireAuth: false });
+
+      expect(publicConnector).toBe(authenticated);
+      expect(MockMexcConnector).toHaveBeenCalledTimes(1);
+      expect(mockConnector.connectPublic).not.toHaveBeenCalled();
+    });
+
+    it('should NOT hand a public-only connector to an authenticated caller', async () => {
+      // Ordering trap: a public call first must not poison the authenticated path.
+      const publicConnector = await ExchangeFactory.getExchange('mexc', { requireAuth: false });
+
+      const secondInstance = { ...mockConnector, connect: jest.fn().mockResolvedValue(undefined) };
+      MockMexcConnector.mockImplementationOnce(() => secondInstance as any);
+
+      const authenticated = await ExchangeFactory.getExchange('mexc');
+
+      expect(authenticated).not.toBe(publicConnector);
+      expect(secondInstance.connect).toHaveBeenCalledTimes(1);
+    });
+
+    it('should cache public connectors separately from authenticated ones', async () => {
+      const first = await ExchangeFactory.getExchange('mexc', { requireAuth: false });
+      const second = await ExchangeFactory.getExchange('mexc', { requireAuth: false });
+
+      expect(first).toBe(second);
+      expect(mockConnector.connectPublic).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('clearConnector', () => {
+    beforeEach(() => {
+      mockConnector.connectPublic = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('should clear both the authenticated and public connectors', async () => {
+      await ExchangeFactory.getExchange('mexc');
+      await ExchangeFactory.getExchange('mexc', { requireAuth: false });
+
+      ExchangeFactory.clearConnector('mexc');
+
+      expect((ExchangeFactory as any).connectors.size).toBe(0);
+    });
+  });
+
   describe('createExchangeConnector - all branches', () => {
     it('should create MexcConnector for mexc', async () => {
       await ExchangeFactory.getExchange('mexc');

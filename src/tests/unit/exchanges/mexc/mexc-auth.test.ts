@@ -323,7 +323,6 @@ describe('MexcAuth', () => {
 
       expect(mockFetch).toHaveBeenCalledWith('https://api.mexc.com/api/v3/ticker/price', {
         headers: {
-          'x-mexc-apikey': 'test-api-key',
           'Content-Type': 'application/json',
         },
       });
@@ -372,7 +371,7 @@ describe('MexcAuth', () => {
       await expect(auth.makePublicRequest('/invalid')).rejects.toThrow('HTTP 404: Not Found');
     });
 
-    it('should use public headers', async () => {
+    it('should use public headers without the API key', async () => {
       const mockResponse = {
         ok: true,
         json: jest.fn().mockResolvedValue({}),
@@ -381,9 +380,9 @@ describe('MexcAuth', () => {
 
       await auth.makePublicRequest('/test');
 
+      // Public endpoints are unauthenticated and must not carry credentials.
       expect(mockFetch).toHaveBeenCalledWith(expect.any(String), {
         headers: {
-          'x-mexc-apikey': 'test-api-key',
           'Content-Type': 'application/json',
         },
       });

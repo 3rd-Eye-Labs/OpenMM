@@ -10,6 +10,7 @@ import {
   Trade,
   WebSocketStatus,
   GridStrategyConfig,
+  OHLCV,
 } from '../../../../types';
 jest.mock('../../../../core/price-aggregation/cardano-price-service');
 
@@ -86,6 +87,9 @@ class MockExchangeConnector extends BaseExchangeConnector {
     };
   }
   async getRecentTrades(symbol: string): Promise<Trade[]> {
+    return [];
+  }
+  async getOHLCV(): Promise<OHLCV[]> {
     return [];
   }
   async connectWebSocket(): Promise<void> {}

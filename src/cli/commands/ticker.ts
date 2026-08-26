@@ -15,7 +15,7 @@ export const tickerCommand = new Command('ticker')
       const symbol = validateSymbol(options.symbol);
 
       try {
-        const connector = await ExchangeFactory.getExchange(exchange);
+        const connector = await ExchangeFactory.getExchange(exchange, { requireAuth: false });
         const ticker = await connector.getTicker(symbol);
 
         if (options.json) {

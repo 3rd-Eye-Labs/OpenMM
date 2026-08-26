@@ -20,6 +20,7 @@ export interface BitgetCredentials extends ExchangeCredentials {
 export class BitgetAuth {
   private readonly credentials: BitgetCredentials;
   private readonly baseUrl: string;
+  private readonly publicOnly: boolean;
   private logger = createLogger('bitget-auth');
 
   /**
@@ -27,11 +28,33 @@ export class BitgetAuth {
    *
    * @param credentials - Bitget API credentials including API key, secret, and passphrase
    * @param baseUrl - Base URL for Bitget API (defaults to production)
+   * @param options - Set publicOnly to build a handler for unauthenticated endpoints
    */
-  constructor(credentials: BitgetCredentials, baseUrl: string = 'https://api.bitget.com') {
+  constructor(
+    credentials: BitgetCredentials,
+    baseUrl: string = 'https://api.bitget.com',
+    options: { publicOnly?: boolean } = {}
+  ) {
     this.credentials = credentials;
     this.baseUrl = baseUrl;
-    this.validateCredentials();
+    this.publicOnly = options.publicOnly === true;
+
+    // Public-only handlers serve unauthenticated endpoints and are deliberately
+    // constructible without credentials. Signing is blocked in makeRequest().
+    if (!this.publicOnly) {
+      this.validateCredentials();
+    }
+  }
+
+  /**
+   * Create a handler restricted to unauthenticated (public) endpoints
+   *
+   * @param baseUrl - Base URL for Bitget API (defaults to production)
+   */
+  static forPublicRequests(baseUrl: string = 'https://api.bitget.com'): BitgetAuth {
+    return new BitgetAuth({ apiKey: '', secret: '', passphrase: '' }, baseUrl, {
+      publicOnly: true,
+    });
   }
 
   /**
@@ -103,6 +126,12 @@ export class BitgetAuth {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: Record<string, unknown>
   ): Promise<any> {
+    if (this.publicOnly) {
+      throw new Error(
+        'Bitget authentication handler is public-only: this request requires API credentials'
+      );
+    }
+
     const timestamp = Date.now();
 
     const queryString = Object.entries(params)

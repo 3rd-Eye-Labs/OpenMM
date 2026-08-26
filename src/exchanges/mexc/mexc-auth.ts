@@ -11,11 +11,26 @@ import { createLogger } from '../../utils';
 export class MexcAuth {
   private readonly credentials: ExchangeCredentials;
   private readonly baseUrl: string;
+  private readonly publicOnly: boolean;
   private logger = createLogger('mexc-auth');
 
-  constructor(credentials: ExchangeCredentials, baseUrl: string = 'https://api.mexc.com/api/v3') {
+  constructor(
+    credentials: ExchangeCredentials,
+    baseUrl: string = 'https://api.mexc.com/api/v3',
+    options: { publicOnly?: boolean } = {}
+  ) {
     this.credentials = credentials;
     this.baseUrl = baseUrl;
+    this.publicOnly = options.publicOnly === true;
+  }
+
+  /**
+   * Create a handler restricted to unauthenticated (public) endpoints
+   *
+   * @param baseUrl - Base URL for MEXC API (defaults to production)
+   */
+  static forPublicRequests(baseUrl: string = 'https://api.mexc.com/api/v3'): MexcAuth {
+    return new MexcAuth({ apiKey: '', secret: '' }, baseUrl, { publicOnly: true });
   }
 
   /**
@@ -55,6 +70,12 @@ export class MexcAuth {
     params: Record<string, unknown> = {},
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'
   ): Promise<any> {
+    if (this.publicOnly) {
+      throw new Error(
+        'MEXC authentication handler is public-only: this request requires API credentials'
+      );
+    }
+
     const timestamp = Date.now();
     const queryParams = { ...params, timestamp };
 
