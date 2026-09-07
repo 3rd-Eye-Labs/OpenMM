@@ -14,7 +14,7 @@ A powerful REST API for automated trading, market making, and portfolio manageme
 - **Order Management**: Place, cancel, and track orders
 - **Market Data**: Real-time ticker, orderbook, and trades
 - **Grid Strategies**: Automated grid trading strategies
-- **Cardano DEX**: Token prices and pool discovery via Iris Protocol
+- **Cardano DEX**: Token prices via Minswap and SundaeSwap; legacy pool discovery via Iris
 - **Cross-Exchange**: Price comparison and arbitrage detection
 
 ## Authentication
@@ -188,7 +188,7 @@ Rate limits are inherited from the underlying exchanges. The API implements inte
             priceAda: { type: 'number', example: 0.00012 },
             priceUsdt: { type: 'number', example: 0.000045 },
             adaPrice: { type: 'number', example: 0.38 },
-            source: { type: 'string', example: 'iris' },
+            source: { type: 'string', example: 'minswap+sundaeswap' },
           },
           required: ['symbol', 'priceAda', 'priceUsdt'],
         },

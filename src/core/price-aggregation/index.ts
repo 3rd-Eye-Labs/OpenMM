@@ -4,6 +4,9 @@
  */
 
 export { CardanoPriceService } from './cardano-price-service';
+export { MinswapPriceProvider } from './minswap-price-provider';
+export { SundaeSwapPriceProvider } from './sundaeswap-price-provider';
+export type { CardanoDexPriceProvider, CardanoDexPriceQuote } from './cardano-dex-price-provider';
 export { IrisPoolDiscovery } from './iris-pool-discovery';
 export { IrisApiClient } from './iris-api-client';
 export {
@@ -11,6 +14,7 @@ export {
   isTokenSupported,
   getSupportedTokens,
   SUPPORTED_TOKENS,
+  CARDANO_DEX_API_CONFIG,
   IRIS_CONFIG,
   CEX_API_CONFIG,
 } from '../../config/price-aggregation';

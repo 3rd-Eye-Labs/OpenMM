@@ -36,9 +36,7 @@ describe('Cardano Routes', () => {
         price: 0.00012,
         confidence: 0.95,
         timestamp: new Date(),
-        sources: [
-          { id: 'iris-dex', name: 'Iris DEX Aggregator', exchange: 'cardano' },
-        ],
+        sources: [{ id: 'minswap', name: 'Minswap', exchange: 'cardano' }],
       });
 
       const response = await app.inject({

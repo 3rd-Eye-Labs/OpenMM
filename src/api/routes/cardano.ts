@@ -25,7 +25,7 @@ export async function cardanoRoutes(app: FastifyInstance): Promise<void> {
     schema: {
       tags: ['Cardano'],
       summary: 'Get Cardano DEX token price',
-      description: 'Returns aggregated price for a Cardano token from DEX pools via Iris Protocol. Price is TOKEN/USDT calculated via ADA bridge.',
+      description: 'Returns a liquidity-weighted Cardano token price from Minswap and SundaeSwap. Price is TOKEN/USDT calculated via an ADA bridge.',
       params: {
         type: 'object',
         required: ['symbol'],

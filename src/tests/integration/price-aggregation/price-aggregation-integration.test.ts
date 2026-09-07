@@ -43,12 +43,13 @@ describe('Price Aggregation Integration Tests', () => {
       expect(result!.price).toBeLessThan(1000);
       expect(result!.confidence).toBeGreaterThan(0);
       expect(result!.confidence).toBeLessThanOrEqual(1);
-      expect(result!.sources).toHaveLength(2);
+      expect(result!.sources.length).toBeGreaterThanOrEqual(2);
+      expect(result!.sources.length).toBeLessThanOrEqual(3);
       expect(result!.timestamp).toBeInstanceOf(Date);
 
-      const hasIrisSource = result!.sources.some(s => s.exchange === 'cardano');
+      const hasDexSource = result!.sources.some(s => ['minswap', 'sundaeswap'].includes(s.id));
       const hasCexSource = result!.sources.some(s => s.exchange.includes('cex'));
-      expect(hasIrisSource).toBe(true);
+      expect(hasDexSource).toBe(true);
       expect(hasCexSource).toBe(true);
     }, 60000);
 
@@ -59,7 +60,8 @@ describe('Price Aggregation Integration Tests', () => {
       expect(result.price).toBeGreaterThan(0);
       expect(result.price).toBeLessThan(100);
       expect(result.confidence).toBeGreaterThan(0);
-      expect(result.sources).toHaveLength(2);
+      expect(result.sources.length).toBeGreaterThanOrEqual(2);
+      expect(result.sources.length).toBeLessThanOrEqual(3);
     }, 60000);
 
     it('should get real price for SNEK token', async () => {
@@ -69,7 +71,8 @@ describe('Price Aggregation Integration Tests', () => {
       expect(result.price).toBeGreaterThan(0);
       expect(result.price).toBeLessThan(10000);
       expect(result.confidence).toBeGreaterThan(0);
-      expect(result.sources).toHaveLength(2);
+      expect(result.sources.length).toBeGreaterThanOrEqual(2);
+      expect(result.sources.length).toBeLessThanOrEqual(3);
     }, 60000);
 
     it('should handle price comparison between tokens', async () => {
@@ -185,7 +188,12 @@ describe('Price Aggregation Integration Tests', () => {
     it('should provide complete source information', async () => {
       const result = await priceService.getTokenPrice('MIN');
 
-      expect(result.sources).toHaveLength(2);
+      expect(result.sources.length).toBeGreaterThanOrEqual(2);
+      expect(result.sources.length).toBeLessThanOrEqual(3);
+      expect(result.sources.some(source => ['minswap', 'sundaeswap'].includes(source.id))).toBe(
+        true
+      );
+      expect(result.sources.some(source => source.id === 'cex-ada')).toBe(true);
 
       result.sources.forEach(source => {
         expect(source.id).toBeDefined();

@@ -20,17 +20,22 @@ GET /api/v1/cardano/price/{symbol}
 {
   "symbol": "INDY/USDT",
   "price": 0.52,
-  "confidence": 0.95,
+  "confidence": 0.9,
   "sources": [
     {
-      "id": "minswap-pool-1",
-      "name": "Minswap INDY/ADA",
+      "id": "minswap",
+      "name": "Minswap",
       "exchange": "cardano"
     },
     {
-      "id": "sundae-pool-1",
-      "name": "SundaeSwap INDY/ADA",
+      "id": "sundaeswap",
+      "name": "SundaeSwap",
       "exchange": "cardano"
+    },
+    {
+      "id": "cex-ada",
+      "name": "CEX ADA/USDT",
+      "exchange": "multi-cex-3"
     }
   ],
   "timestamp": "2026-03-14T00:00:00.000Z"
@@ -62,4 +67,8 @@ curl "http://localhost:3000/api/v1/cardano/price/snek"
 | Code | Error | Description |
 |------|-------|-------------|
 | 400 | Unsupported token | Token not in supported list |
-| 500 | Price fetch failed | Iris API error |
+| 500 | Price fetch failed | Both Cardano DEX providers or all ADA/USD sources are unavailable |
+
+The price service queries Minswap and SundaeSwap independently. If one DEX is
+temporarily unavailable, the other can still provide the TOKEN/ADA leg. Pool
+discovery is a separate endpoint and retains its legacy Iris integration.

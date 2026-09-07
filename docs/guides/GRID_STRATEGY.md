@@ -453,7 +453,7 @@ Total allocation is automatically capped at 80% of available balance regardless 
 
 ### Price Confidence Filtering
 - Only executes trades when price confidence >= minimum threshold
-- Sources price data from Cardano DEX via Iris API
+- Sources price data from Minswap and SundaeSwap with independent-provider fallback
 - Prevents trading on unreliable price data
 
 ### Dynamic Grid Management

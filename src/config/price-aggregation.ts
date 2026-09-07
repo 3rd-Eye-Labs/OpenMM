@@ -32,6 +32,18 @@ export const CEX_API_CONFIG = {
   },
 };
 
+export const CARDANO_DEX_API_CONFIG = {
+  MINSWAP: {
+    BASE_URL: 'https://api-mainnet-prod.minswap.org',
+    TIMEOUT: 10000,
+  },
+  SUNDAESWAP: {
+    GRAPHQL_URL: 'https://api.sundae.fi/graphql',
+    TIMEOUT: 10000,
+  },
+};
+
+// Kept for the separate Iris-based pool-discovery route.
 export const IRIS_CONFIG = {
   BASE_URL: 'https://iris.indigoprotocol.io',
   TIMEOUT: 10000,
