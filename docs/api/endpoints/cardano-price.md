@@ -71,4 +71,4 @@ curl "http://localhost:3000/api/v1/cardano/price/snek"
 
 The price service queries Minswap and SundaeSwap independently. If one DEX is
 temporarily unavailable, the other can still provide the TOKEN/ADA leg. Pool
-discovery is a separate endpoint and retains its legacy Iris integration.
+discovery is a separate endpoint backed by the same two keyless DEX providers.

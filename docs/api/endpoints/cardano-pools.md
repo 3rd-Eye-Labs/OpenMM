@@ -76,4 +76,4 @@ curl "http://localhost:3000/api/v1/cardano/pools/SNEK?minLiquidity=100000"
 | Code | Error | Description |
 |------|-------|-------------|
 | 400 | Unsupported token | Token not in supported list |
-| 500 | Discovery failed | Iris API error |
+| 500 | Discovery failed | Provider unavailable or no qualifying direct ADA pools |

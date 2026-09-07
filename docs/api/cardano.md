@@ -1,6 +1,6 @@
 # Cardano DEX
 
-Cardano DEX integration with resilient token pricing through Minswap and SundaeSwap, plus legacy pool discovery through Iris Protocol.
+Cardano DEX integration with resilient token pricing and direct ADA pool discovery through Minswap and SundaeSwap.
 
 ## Endpoints
 
@@ -28,4 +28,4 @@ Prices are calculated as TOKEN/USDT via ADA bridge:
 ## Data Sources
 
 - Token prices query Minswap and SundaeSwap independently and liquidity-weight the successful responses.
-- Pool discovery still uses the legacy Iris integration and is tracked as a separate migration.
+- Pool discovery queries Minswap and SundaeSwap independently and returns normalized direct ADA pools.

@@ -43,7 +43,7 @@ export const CARDANO_DEX_API_CONFIG = {
   },
 };
 
-// Kept for the separate Iris-based pool-discovery route.
+// Deprecated compatibility configuration; active price and pool discovery paths are keyless DEX APIs.
 export const IRIS_CONFIG = {
   BASE_URL: 'https://iris.indigoprotocol.io',
   TIMEOUT: 10000,

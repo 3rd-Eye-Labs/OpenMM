@@ -40,7 +40,7 @@ Currently supported exchanges:
 ## Cardano Integration
 
 OpenMM includes Cardano DEX integration through multiple providers:
-- **Pool Discovery** - Find liquidity pools through the legacy Iris integration
+- **Pool Discovery** - Find direct ADA liquidity pools through Minswap and SundaeSwap
 - **Price Aggregation** - Get resilient liquidity-weighted prices from Minswap and SundaeSwap
 - **Token Management** - Easy addition and configuration of new Cardano tokens
 

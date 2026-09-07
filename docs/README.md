@@ -10,7 +10,7 @@ OpenMM provides a unified interface for trading across multiple cryptocurrency e
 - 📊 **REST API** — Full-featured HTTP API with OpenAPI spec
 - 🤖 **MCP Server** — Model Context Protocol for AI agents
 - 💹 **Grid Trading** — Automated grid strategy with volatility tracking
-- 🦋 **Cardano DEX** — Price aggregation via Minswap and SundaeSwap; legacy pool discovery via Iris
+- 🦋 **Cardano DEX** — Price aggregation and direct ADA pool discovery via Minswap and SundaeSwap
 
 ## Quick Links
 

@@ -14,7 +14,7 @@ A powerful REST API for automated trading, market making, and portfolio manageme
 - **Order Management**: Place, cancel, and track orders
 - **Market Data**: Real-time ticker, orderbook, and trades
 - **Grid Strategies**: Automated grid trading strategies
-- **Cardano DEX**: Token prices via Minswap and SundaeSwap; legacy pool discovery via Iris
+- **Cardano DEX**: Token prices and pool discovery via Minswap and SundaeSwap
 - **Cross-Exchange**: Price comparison and arbitrage detection
 
 ## Authentication

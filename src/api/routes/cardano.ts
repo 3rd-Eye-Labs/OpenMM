@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { CardanoPriceService } from '../../core/price-aggregation/cardano-price-service';
-import { IrisPoolDiscovery } from '../../core/price-aggregation/iris-pool-discovery';
+import { CardanoPoolDiscovery } from '../../core/price-aggregation/cardano-pool-discovery';
 import { getTokenConfig, isTokenSupported } from '../../config/price-aggregation';
 
 interface PriceParams {
@@ -18,7 +18,7 @@ interface PoolsQuery {
 
 export async function cardanoRoutes(app: FastifyInstance): Promise<void> {
   const priceService = new CardanoPriceService();
-  const poolDiscovery = new IrisPoolDiscovery();
+  const poolDiscovery = new CardanoPoolDiscovery();
 
   // GET /cardano/price/:symbol - Get Cardano token price (QBT-365)
   app.get<{ Params: PriceParams }>('/cardano/price/:symbol', {
@@ -95,7 +95,7 @@ export async function cardanoRoutes(app: FastifyInstance): Promise<void> {
     schema: {
       tags: ['Cardano'],
       summary: 'Discover liquidity pools for a Cardano token',
-      description: 'Returns a list of DEX liquidity pools for a token, sorted by TVL. Uses Iris Protocol for pool discovery.',
+      description: 'Returns direct ADA liquidity pools from Minswap and SundaeSwap, sorted by TVL.',
       params: {
         type: 'object',
         required: ['symbol'],
@@ -160,10 +160,10 @@ export async function cardanoRoutes(app: FastifyInstance): Promise<void> {
     try {
       const tokenConfig = getTokenConfig(upperSymbol);
       
-      // Override minLiquidity if provided in query
+      // The API contract defaults to no TVL filter; callers may opt in.
       const configWithOverride = {
         ...tokenConfig,
-        minLiquidityThreshold: minLiquidity > 0 ? minLiquidity : tokenConfig.minLiquidityThreshold,
+        minLiquidityThreshold: minLiquidity,
       };
 
       const pools = await poolDiscovery.discoverPools('ADA', configWithOverride);
@@ -179,8 +179,8 @@ export async function cardanoRoutes(app: FastifyInstance): Promise<void> {
         price: pool.state?.price ?? 0,
         reserveA: pool.state?.reserveA ?? 0,
         reserveB: pool.state?.reserveB ?? 0,
-        tokenA: pool.pair?.tokenA?.ticker ?? pool.pair?.tokenA?.name ?? 'ADA',
-        tokenB: pool.pair?.tokenB?.ticker ?? pool.pair?.tokenB?.name ?? upperSymbol,
+        tokenA: pool.pair?.tokenA?.ticker ?? pool.pair?.tokenA?.name ?? upperSymbol,
+        tokenB: pool.pair?.tokenB?.ticker ?? pool.pair?.tokenB?.name ?? 'ADA',
       }));
 
       return {
