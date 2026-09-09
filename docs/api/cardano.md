@@ -1,6 +1,6 @@
 # Cardano DEX
 
-Cardano DEX integration via Iris Protocol for token pricing and pool discovery.
+Cardano DEX integration with resilient token pricing and direct ADA pool discovery through Minswap and SundaeSwap.
 
 ## Endpoints
 
@@ -22,15 +22,10 @@ Cardano DEX integration via Iris Protocol for token pricing and pool discovery.
 
 Prices are calculated as TOKEN/USDT via ADA bridge:
 1. Fetch TOKEN/ADA price from Cardano DEXs
-2. Fetch ADA/USDT from CEX (Kraken)
+2. Average available ADA/USDT prices from Binance, MEXC, CoinGecko, and Kraken
 3. Calculate: TOKEN/USDT = TOKEN/ADA × ADA/USDT
 
-## Data Source
+## Data Sources
 
-All data comes from [Iris Protocol](https://iris.indigoprotocol.io), which aggregates liquidity from:
-- Minswap
-- SundaeSwap
-- WingRiders
-- Spectrum
-- MuesliSwap
-- VyFinance
+- Token prices query Minswap and SundaeSwap independently and liquidity-weight the successful responses.
+- Pool discovery queries Minswap and SundaeSwap independently and returns normalized direct ADA pools.

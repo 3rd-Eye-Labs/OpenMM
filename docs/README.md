@@ -2,7 +2,7 @@
 
 **Open-source market making toolkit for AI agents and humans.**
 
-OpenMM provides a unified interface for trading across multiple cryptocurrency exchanges, with special support for Cardano DEX aggregation via Iris Protocol.
+OpenMM provides a unified interface for trading across multiple cryptocurrency exchanges, with resilient Cardano token pricing through Minswap and SundaeSwap.
 
 ## Features
 
@@ -10,7 +10,7 @@ OpenMM provides a unified interface for trading across multiple cryptocurrency e
 - 📊 **REST API** — Full-featured HTTP API with OpenAPI spec
 - 🤖 **MCP Server** — Model Context Protocol for AI agents
 - 💹 **Grid Trading** — Automated grid strategy with volatility tracking
-- 🦋 **Cardano DEX** — Pool discovery and price aggregation via Iris
+- 🦋 **Cardano DEX** — Price aggregation and direct ADA pool discovery via Minswap and SundaeSwap
 
 ## Quick Links
 

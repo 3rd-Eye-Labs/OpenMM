@@ -1,227 +1,233 @@
-import { CardanoPriceService } from '../../../../core/price-aggregation';
-import { IrisPoolDiscovery } from '../../../../core/price-aggregation';
-import { IrisApiClient } from '../../../../core/price-aggregation';
-import { PriceCalculator } from '../../../../core/price-aggregation/price-calculator';
-import { LiquidityPool, PriceCalculationResult } from '../../../../types';
+import {
+  CardanoDexPriceProvider,
+  CardanoDexPriceQuote,
+  CardanoPriceService,
+} from '../../../../core/price-aggregation';
 
-jest.mock('../../../../core/price-aggregation/iris-pool-discovery');
-jest.mock('../../../../core/price-aggregation/iris-api-client');
-jest.mock('../../../../core/price-aggregation/price-calculator');
+function provider(
+  id: CardanoDexPriceQuote['provider'],
+  result: Partial<CardanoDexPriceQuote> | Error
+): jest.Mocked<CardanoDexPriceProvider> {
+  const promise =
+    result instanceof Error
+      ? Promise.reject(result)
+      : Promise.resolve({
+          provider: id,
+          priceAda: 0.5,
+          liquidityAda: 100,
+          poolsUsed: 1,
+          timestamp: new Date('2026-09-07T00:00:00Z'),
+          ...result,
+        });
+  return {
+    id,
+    getTokenAdaQuote: jest.fn().mockReturnValue(promise),
+  };
+}
 
-global.fetch = jest.fn();
+function mockAdaUsd(...prices: Array<number | Error>): void {
+  const values = prices.length > 0 ? prices : [0.45, 0.45, 0.45, 0.45];
+  for (const value of values) {
+    if (value instanceof Error) {
+      (global.fetch as jest.Mock).mockRejectedValueOnce(value);
+    } else {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          price: String(value),
+          cardano: { usd: value },
+          result: { ADAUSD: { c: [String(value)] } },
+        }),
+      });
+    }
+  }
+}
 
 describe('CardanoPriceService', () => {
-  let service: CardanoPriceService;
-  let mockPoolDiscovery: jest.Mocked<IrisPoolDiscovery>;
-  let mockIrisClient: jest.Mocked<IrisApiClient>;
-  let mockPriceCalculator: jest.Mocked<PriceCalculator>;
-
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    (global.fetch as jest.Mock).mockClear();
-
-    service = new CardanoPriceService();
-    mockPoolDiscovery = (service as any).poolDiscovery;
-    mockIrisClient = (service as any).irisClient;
-    mockPriceCalculator = (service as any).priceCalculator;
+    global.fetch = jest.fn();
   });
 
   describe('getTokenPrice', () => {
-    it('should return aggregated price for supported token', async () => {
-      const mockPools: LiquidityPool[] = [
-        {
-          dex: 'MinswapV2',
-          identifier: 'pool1',
-          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 },
-        },
-      ];
-      mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
-      mockIrisClient.fetchPrices.mockResolvedValue([0.5]);
+    it('liquidity-weights Minswap and SundaeSwap quotes and multiplies by ADA/USD', async () => {
+      const minswap = provider('minswap', { priceAda: 0.4, liquidityAda: 100 });
+      const sundaeswap = provider('sundaeswap', { priceAda: 0.6, liquidityAda: 300 });
+      mockAdaUsd();
 
-      const mockPriceResult: PriceCalculationResult = {
-        price: 0.5,
-        confidence: 0.8,
-        poolsUsed: 1,
-        totalLiquidity: 1000000,
-        timestamp: new Date(),
-      };
-      mockPriceCalculator.calculateLiquidityWeightedPrice.mockReturnValue(mockPriceResult);
+      const result = await new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY');
 
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ price: '0.45' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ price: '0.46' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ cardano: { usd: 0.44 } }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ result: { ADAUSD: { c: ['0.47'] } } }),
-        });
-
-      const result = await service.getTokenPrice('INDY');
-
+      expect(minswap.getTokenAdaQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ symbol: 'INDY' })
+      );
+      expect(sundaeswap.getTokenAdaQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ symbol: 'INDY' })
+      );
       expect(result.symbol).toBe('INDY/USDT');
-      expect(result.price).toBeCloseTo(0.5 * 0.455, 3);
-      expect(result.confidence).toBe(0.8);
-      expect(result.sources).toHaveLength(2);
-      expect(result.sources[0].name).toBe('Iris DEX Aggregator');
-      expect(result.sources[1].name).toBe('CEX ADA/USDT');
+      expect(result.price).toBeCloseTo(0.55 * 0.45);
+      expect(result.confidence).toBeLessThan(0.9);
+      expect(result.confidence).toBeGreaterThanOrEqual(0.7);
+      expect(result.sources.map(source => source.id)).toEqual(['minswap', 'sundaeswap', 'cex-ada']);
     });
 
-    it('should throw error for unsupported token', async () => {
-      await expect(service.getTokenPrice('UNSUPPORTED')).rejects.toThrow(
-        'Unsupported token: UNSUPPORTED'
+    it('uses Minswap alone when SundaeSwap fails', async () => {
+      const minswap = provider('minswap', { priceAda: 0.5, liquidityAda: 100 });
+      const sundaeswap = provider('sundaeswap', new Error('GraphQL unavailable'));
+      mockAdaUsd();
+
+      const result = await new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY');
+
+      expect(result.price).toBeCloseTo(0.5 * 0.45);
+      expect(result.confidence).toBe(0.7);
+      expect(result.sources.map(source => source.id)).toEqual(['minswap', 'cex-ada']);
+    });
+
+    it('uses SundaeSwap alone when Minswap fails', async () => {
+      const minswap = provider('minswap', new Error('REST unavailable'));
+      const sundaeswap = provider('sundaeswap', { priceAda: 0.6, liquidityAda: 200 });
+      mockAdaUsd();
+
+      const result = await new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('SNEK');
+
+      expect(result.price).toBeCloseTo(0.6 * 0.45);
+      expect(result.confidence).toBe(0.7);
+      expect(result.sources.map(source => source.id)).toEqual(['sundaeswap', 'cex-ada']);
+    });
+
+    it('uses 0.90 confidence when two providers agree', async () => {
+      const minswap = provider('minswap', { priceAda: 0.5, liquidityAda: 100 });
+      const sundaeswap = provider('sundaeswap', { priceAda: 0.5, liquidityAda: 200 });
+      mockAdaUsd();
+
+      const result = await new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY');
+
+      expect(result.confidence).toBe(0.9);
+    });
+
+    it('keeps the weighted average finite for very large valid quotes', async () => {
+      const minswap = provider('minswap', {
+        priceAda: Number.MAX_VALUE,
+        liquidityAda: Number.MAX_VALUE,
+      });
+      const sundaeswap = provider('sundaeswap', new Error('unavailable'));
+      mockAdaUsd(0.5, 0.5, 0.5, 0.5);
+
+      const result = await new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY');
+
+      expect(Number.isFinite(result.price)).toBe(true);
+      expect(result.price).toBeGreaterThan(0);
+    });
+
+    it('reduces confidence for extreme finite provider disagreement', async () => {
+      const minswap = provider('minswap', { priceAda: 1e308, liquidityAda: 1 });
+      const sundaeswap = provider('sundaeswap', {
+        priceAda: 1.7e308,
+        liquidityAda: 1,
+      });
+      mockAdaUsd(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
+
+      const result = await new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY');
+
+      expect(result.confidence).toBeLessThan(0.9);
+    });
+
+    it('rejects a non-finite final TOKEN/USDT price', async () => {
+      const minswap = provider('minswap', {
+        priceAda: Number.MAX_VALUE,
+        liquidityAda: 1,
+      });
+      const sundaeswap = provider('sundaeswap', new Error('unavailable'));
+      mockAdaUsd(2, 2, 2, 2);
+
+      await expect(
+        new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY')
+      ).rejects.toThrow('Invalid non-finite INDY/USDT price');
+    });
+
+    it('categorizes both provider failures and preserves their context', async () => {
+      const minswap = provider('minswap', new Error('REST unavailable'));
+      const sundaeswap = provider('sundaeswap', new Error('GraphQL unavailable'));
+      mockAdaUsd();
+
+      await expect(
+        new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY')
+      ).rejects.toThrow(
+        'Cardano DEX providers unavailable for INDY: minswap: REST unavailable; sundaeswap: GraphQL unavailable'
       );
     });
 
-    it('should throw error when no pools found', async () => {
-      mockPoolDiscovery.discoverPools.mockResolvedValue([]);
+    it('rejects invalid provider quotes as unavailable', async () => {
+      const minswap = provider('minswap', { priceAda: 0, liquidityAda: 100 });
+      const sundaeswap = provider('sundaeswap', { priceAda: 1, liquidityAda: 0 });
+      mockAdaUsd();
 
-      await expect(service.getTokenPrice('INDY')).rejects.toThrow('No pools found for INDY');
+      await expect(
+        new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY')
+      ).rejects.toThrow('Cardano DEX providers unavailable for INDY');
     });
 
-    it('should throw error when no valid pools with liquidity', async () => {
-      const mockPools: LiquidityPool[] = [
-        {
-          dex: 'MinswapV2',
-          identifier: 'pool1',
-        },
-      ];
-      mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
+    it('preserves unsupported-token behavior without calling providers', async () => {
+      const minswap = provider('minswap', {});
+      const sundaeswap = provider('sundaeswap', {});
 
-      await expect(service.getTokenPrice('INDY')).rejects.toThrow(
-        'No valid pools with liquidity found for INDY'
-      );
+      await expect(
+        new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('UNSUPPORTED')
+      ).rejects.toThrow('Unsupported token: UNSUPPORTED');
+      expect(minswap.getTokenAdaQuote).not.toHaveBeenCalled();
+      expect(sundaeswap.getTokenAdaQuote).not.toHaveBeenCalled();
     });
 
-    it('should handle CEX API failures gracefully', async () => {
-      const mockPools: LiquidityPool[] = [
-        {
-          dex: 'MinswapV2',
-          identifier: 'pool1',
-          state: { tvl: 1000000, reserveA: 1000000, reserveB: 500000 },
-        },
-      ];
-      mockPoolDiscovery.discoverPools.mockResolvedValue(mockPools);
-      mockIrisClient.fetchPrices.mockResolvedValue([0.5]); // Mock Iris API price
+    it('preserves CEX fallback behavior', async () => {
+      const minswap = provider('minswap', { priceAda: 0.5 });
+      const sundaeswap = provider('sundaeswap', new Error('unavailable'));
+      mockAdaUsd(new Error('Binance down'), new Error('MEXC down'), 0.42, new Error('Kraken down'));
 
-      const mockPriceResult: PriceCalculationResult = {
-        price: 0.5,
-        confidence: 0.8,
-        poolsUsed: 1,
-        totalLiquidity: 1000000,
-        timestamp: new Date(),
-      };
-      mockPriceCalculator.calculateLiquidityWeightedPrice.mockReturnValue(mockPriceResult);
+      const result = await new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY');
 
-      (global.fetch as jest.Mock)
-        .mockRejectedValueOnce(new Error('Binance API down'))
-        .mockRejectedValueOnce(new Error('MEXC API down'))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ cardano: { usd: 0.45 } }),
-        })
-        .mockRejectedValueOnce(new Error('Kraken API down'));
-
-      const result = await service.getTokenPrice('INDY');
-
-      expect(result.price).toBeCloseTo(0.5 * 0.45, 3);
-      expect(result.sources[1].name).toBe('CEX ADA/USDT');
-      expect(result.sources[1].exchange).toBe('multi-cex-1');
+      expect(result.price).toBeCloseTo(0.5 * 0.42);
+      expect(result.sources[1]).toMatchObject({ id: 'cex-ada', exchange: 'multi-cex-1' });
     });
 
-    it('should throw error when all CEX APIs fail', async () => {
-      mockPoolDiscovery.discoverPools.mockRejectedValue(
-        new Error(
-          "Failed to get INDY/ADA price from Iris: Cannot read properties of undefined (reading 'price')"
-        )
-      );
-
+    it('fails price aggregation when all CEX APIs fail', async () => {
+      const minswap = provider('minswap', {});
+      const sundaeswap = provider('sundaeswap', {});
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      await expect(service.getTokenPrice('INDY')).rejects.toThrow(
-        'Price aggregation failed for INDY'
-      );
+      await expect(
+        new CardanoPriceService([minswap, sundaeswap]).getTokenPrice('INDY')
+      ).rejects.toThrow('Price aggregation failed for INDY');
     });
   });
 
   describe('private fetchADAUSDT method', () => {
-    it('should parse Binance API response correctly', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ price: '0.4567' }),
-      });
+    let service: CardanoPriceService;
 
-      const price = await (service as any).fetchADAUSDT('binance');
-      expect(price).toBe(0.4567);
+    beforeEach(() => {
+      service = new CardanoPriceService([]);
     });
 
-    it('should parse MEXC API response correctly', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ price: '0.4568' }),
-      });
+    it.each([
+      ['binance', { price: '0.4567' }, 0.4567],
+      ['mexc', { price: '0.4568' }, 0.4568],
+      ['coingecko', { cardano: { usd: 0.4569 } }, 0.4569],
+      ['kraken', { result: { ADAUSD: { c: ['0.4570'] } } }, 0.457],
+    ])('parses %s API responses', async (exchange, body, expected) => {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => body });
 
-      const price = await (service as any).fetchADAUSDT('mexc');
-      expect(price).toBe(0.4568);
+      await expect((service as any).fetchADAUSDT(exchange)).resolves.toBe(expected);
     });
 
-    it('should parse CoinGecko API response correctly', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ cardano: { usd: 0.4569 } }),
-      });
-
-      const price = await (service as any).fetchADAUSDT('coingecko');
-      expect(price).toBe(0.4569);
-    });
-
-    it('should parse Kraken API response correctly', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          result: { ADAUSD: { c: ['0.4570'] } },
-        }),
-      });
-
-      const price = await (service as any).fetchADAUSDT('kraken');
-      expect(price).toBe(0.457);
-    });
-
-    it('should throw error for HTTP error responses', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        status: 429,
-      });
+    it('rejects HTTP error responses', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 429 });
 
       await expect((service as any).fetchADAUSDT('binance')).rejects.toThrow(
         'binance API error: 429'
       );
     });
 
-    it('should throw error for invalid price data', async () => {
+    it.each(['invalid', '0', '-1'])('rejects invalid price %s', async price => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ price: 'invalid' }),
-      });
-
-      await expect((service as any).fetchADAUSDT('binance')).rejects.toThrow(
-        'Invalid price from binance'
-      );
-    });
-
-    it('should throw error for zero or negative prices', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ price: '0' }),
+        json: async () => ({ price }),
       });
 
       await expect((service as any).fetchADAUSDT('binance')).rejects.toThrow(

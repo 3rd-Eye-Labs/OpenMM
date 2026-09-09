@@ -3,8 +3,7 @@
  * Core functionality for discovering Cardano liquidity pools
  */
 
-import { IrisPoolDiscovery } from '../core/price-aggregation';
-import { IrisApiClient } from '../core/price-aggregation';
+import { CardanoPoolDiscovery } from '../core/price-aggregation';
 import { CardanoPriceService } from '../core/price-aggregation';
 import { getTokenConfig, isTokenSupported, getSupportedTokens } from '../config/price-aggregation';
 import { CardanoTokenConfig } from '../types';
@@ -30,13 +29,11 @@ export interface DiscoveryResult {
 }
 
 export class PoolDiscoveryCLI {
-  private poolDiscovery: IrisPoolDiscovery;
-  private irisClient: IrisApiClient;
+  private poolDiscovery: CardanoPoolDiscovery;
   private priceService: CardanoPriceService;
 
   constructor() {
-    this.poolDiscovery = new IrisPoolDiscovery();
-    this.irisClient = new IrisApiClient();
+    this.poolDiscovery = new CardanoPoolDiscovery();
     this.priceService = new CardanoPriceService();
   }
 
@@ -71,7 +68,7 @@ export class PoolDiscoveryCLI {
     }
 
     try {
-      const pools = await this.poolDiscovery.discoverPools('lovelace', tokenConfig);
+      const pools = await this.poolDiscovery.discoverPools('ADA', tokenConfig);
 
       const filteredPools = minLiquidity
         ? pools.filter(pool => Number(pool.state?.tvl || 0) >= minLiquidity)
@@ -171,12 +168,20 @@ export class PoolDiscoveryCLI {
       return;
     }
 
-    if (!json) console.log('\n💰 Getting live prices from Iris API...');
+    if (!json) console.log('\n💰 Reading normalized Minswap and SundaeSwap pool prices...');
 
     try {
-      const prices = await this.irisClient.fetchPrices(identifiers, 'OpenMM-PoolDiscovery/1.0');
-
-      const avgAdaPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+      const tokenConfig = getTokenConfig(tokenSymbol);
+      const discoveredPools = await this.poolDiscovery.discoverPools('ADA', tokenConfig);
+      const poolsByIdentifier = new Map(discoveredPools.map(pool => [pool.identifier, pool]));
+      const prices = identifiers.map(identifier => {
+        const price = poolsByIdentifier.get(identifier)?.state?.price;
+        if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
+          throw new Error(`No normalized price found for pool ${identifier}`);
+        }
+        return price;
+      });
+      const avgAdaPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
 
       if (json) {
         const result: Record<string, unknown> = {

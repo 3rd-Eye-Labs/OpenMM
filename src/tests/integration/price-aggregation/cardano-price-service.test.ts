@@ -1,102 +1,55 @@
 /**
- * Integration tests for Cardano Price Service
- * Tests the complete price aggregation flow with Iris API
+ * Live integration tests for Cardano pricing through Minswap and SundaeSwap.
  */
 import { CardanoPriceService } from '../../../core/price-aggregation';
 import { isTokenSupported, getSupportedTokens } from '../../../config/price-aggregation';
 
+const dexSourceIds = ['minswap', 'sundaeswap'];
+
+function expectLivePrice(
+  symbol: string,
+  price: Awaited<ReturnType<CardanoPriceService['getTokenPrice']>>
+) {
+  expect(price.symbol).toBe(`${symbol}/USDT`);
+  expect(Number.isFinite(price.price)).toBe(true);
+  expect(price.price).toBeGreaterThan(0);
+  expect(price.confidence).toBeGreaterThan(0);
+  expect(price.timestamp).toBeInstanceOf(Date);
+  expect(price.sources.some(source => dexSourceIds.includes(source.id))).toBe(true);
+  expect(price.sources.some(source => source.id.includes('iris'))).toBe(false);
+}
+
 describe('CardanoPriceService Integration', () => {
   let priceService: CardanoPriceService;
+
   beforeEach(() => {
     priceService = new CardanoPriceService();
   });
 
   describe('Token Support', () => {
-    test('should support INDY token', () => {
+    test('supports configured tokens', () => {
       expect(isTokenSupported('INDY')).toBe(true);
-    });
-
-    test('should support SNEK token', () => {
       expect(isTokenSupported('SNEK')).toBe(true);
+      expect(getSupportedTokens()).toEqual(expect.arrayContaining(['INDY', 'SNEK']));
     });
 
-    test('should not support unsupported token', () => {
+    test('rejects unsupported token', async () => {
       expect(isTokenSupported('UNKNOWN')).toBe(false);
-    });
-
-    test('should return list of supported tokens', () => {
-      const tokens = getSupportedTokens();
-      expect(tokens).toContain('INDY');
-      expect(tokens).toContain('SNEK');
-      expect(tokens.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Price Fetching', () => {
-    test('should reject unsupported token', async () => {
       await expect(priceService.getTokenPrice('UNKNOWN')).rejects.toThrow(
         'Unsupported token: UNKNOWN'
       );
     });
-
-    test('should fetch INDY price successfully', async () => {
-      let retryCount = 0;
-      let price = undefined;
-
-      while (retryCount < 3) {
-        try {
-          price = await priceService.getTokenPrice('INDY');
-          break;
-        } catch (error) {
-          retryCount++;
-          if (retryCount >= 3) {
-            throw error;
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      expect(price).toBeDefined();
-      expect(price!.symbol).toBe('INDY/USDT');
-      expect(price!.price).toBeGreaterThan(0);
-      expect(price!.confidence).toBeGreaterThan(0);
-      expect(price!.timestamp).toBeInstanceOf(Date);
-      expect(price!.sources.length).toBeGreaterThan(0);
-    }, 60000);
-
-    test('should fetch SNEK price successfully', async () => {
-      let retryCount = 0;
-      let price = undefined;
-
-      // Retry logic for network issues
-      while (retryCount < 3) {
-        try {
-          price = await priceService.getTokenPrice('SNEK');
-          break;
-        } catch (error) {
-          retryCount++;
-          if (retryCount >= 3) {
-            throw error;
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      expect(price).toBeDefined();
-      expect(price!.symbol).toBe('SNEK/USDT');
-      expect(price!.price).toBeGreaterThan(0);
-      expect(price!.confidence).toBeGreaterThan(0);
-    }, 60000);
   });
 
-  describe('Error Handling', () => {
-    test('should handle network errors gracefully', async () => {
-      jest
-        .spyOn(priceService as any, 'getTokenADAPrice')
-        .mockRejectedValue(new Error('Network error'));
-      await expect(priceService.getTokenPrice('INDY')).rejects.toThrow(
-        'Price aggregation failed for INDY'
-      );
-    });
+  describe('Live price fetching', () => {
+    test('fetches INDY through at least one replacement DEX provider', async () => {
+      const price = await priceService.getTokenPrice('INDY');
+      expectLivePrice('INDY', price);
+    }, 30000);
+
+    test('fetches zero-decimal SNEK through at least one replacement DEX provider', async () => {
+      const price = await priceService.getTokenPrice('SNEK');
+      expectLivePrice('SNEK', price);
+    }, 30000);
   });
 });

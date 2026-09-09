@@ -1,10 +1,10 @@
 import { createApiServer } from '../../../api/server';
 import { FastifyInstance } from 'fastify';
 import { CardanoPriceService } from '../../../core/price-aggregation/cardano-price-service';
-import { IrisPoolDiscovery } from '../../../core/price-aggregation/iris-pool-discovery';
+import { CardanoPoolDiscovery } from '../../../core/price-aggregation/cardano-pool-discovery';
 
 jest.mock('../../../core/price-aggregation/cardano-price-service');
-jest.mock('../../../core/price-aggregation/iris-pool-discovery');
+jest.mock('../../../core/price-aggregation/cardano-pool-discovery');
 
 describe('Cardano Routes', () => {
   let app: FastifyInstance;
@@ -15,7 +15,7 @@ describe('Cardano Routes', () => {
     (CardanoPriceService as jest.Mock).mockImplementation(() => ({
       getTokenPrice: mockGetTokenPrice,
     }));
-    (IrisPoolDiscovery as jest.Mock).mockImplementation(() => ({
+    (CardanoPoolDiscovery as jest.Mock).mockImplementation(() => ({
       discoverPools: mockDiscoverPools,
     }));
     app = await createApiServer({ enableSwagger: false });
@@ -36,9 +36,7 @@ describe('Cardano Routes', () => {
         price: 0.00012,
         confidence: 0.95,
         timestamp: new Date(),
-        sources: [
-          { id: 'iris-dex', name: 'Iris DEX Aggregator', exchange: 'cardano' },
-        ],
+        sources: [{ id: 'minswap', name: 'Minswap', exchange: 'cardano' }],
       });
 
       const response = await app.inject({
@@ -107,13 +105,13 @@ describe('Cardano Routes', () => {
           dex: 'Minswap',
           identifier: 'pool-1',
           state: { tvl: 500000, price: 0.5, reserveA: 100000, reserveB: 200000 },
-          pair: { tokenA: { ticker: 'ADA' }, tokenB: { ticker: 'INDY' } },
+          pair: { tokenA: { ticker: 'INDY' }, tokenB: { ticker: 'ADA' } },
         },
         {
           dex: 'SundaeSwap',
           identifier: 'pool-2',
           state: { tvl: 250000, price: 0.48, reserveA: 50000, reserveB: 104000 },
-          pair: { tokenA: { ticker: 'ADA' }, tokenB: { ticker: 'INDY' } },
+          pair: { tokenA: { ticker: 'INDY' }, tokenB: { ticker: 'ADA' } },
         },
       ]);
 
@@ -128,6 +126,12 @@ describe('Cardano Routes', () => {
       expect(body.pools).toHaveLength(2);
       expect(body.pools[0].dex).toBe('Minswap');
       expect(body.pools[0].tvl).toBe(500000);
+      expect(body.pools[0].tokenA).toBe('INDY');
+      expect(body.pools[0].tokenB).toBe('ADA');
+      expect(mockDiscoverPools).toHaveBeenCalledWith(
+        'ADA',
+        expect.objectContaining({ symbol: 'INDY', minLiquidityThreshold: 0 })
+      );
       expect(body.count).toBe(2);
     });
 
@@ -161,7 +165,7 @@ describe('Cardano Routes', () => {
     });
 
     it('should return 500 when pool discovery fails', async () => {
-      mockDiscoverPools.mockRejectedValue(new Error('Iris API unavailable'));
+      mockDiscoverPools.mockRejectedValue(new Error('all providers failed'));
 
       const response = await app.inject({
         method: 'GET',

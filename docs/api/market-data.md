@@ -33,4 +33,4 @@ Examples:
 - `BTC/USDT`
 - `ETH/USDT`
 - `ADA/EUR` (Kraken)
-- `INDY/ADA` (Cardano via Iris)
+- `INDY/ADA` (Cardano via Minswap and SundaeSwap)
